@@ -187,7 +187,9 @@ async def run_sql_func(sql_func_name=None, dsn=None, conn_obj=None, z=0, x=0, y=
         SELECT * FROM {fqfn}({args_as_str});
     '''
 
-    return await conn_obj.fetchval(execute_func_query)
+    mvt_bytes = await conn_obj.fetchval(execute_func_query)
+    await conn_obj.execute(drop_func_query)
+    return  mvt_bytes
 
 
 

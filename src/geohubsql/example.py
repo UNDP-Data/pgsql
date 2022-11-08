@@ -32,7 +32,9 @@ if __name__ == '__main__':
                                   dsn=dsn,
                                   filter_table='admin.admin0',
                                   filter_column='iso3cd',
-                                  filter_value='C')
+                                  filter_value='C',
+
+                                          )
                 )
     util.dump_mvt(bytes)
 
