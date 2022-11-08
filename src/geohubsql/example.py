@@ -28,10 +28,11 @@ if __name__ == '__main__':
 
 
     #asyncio.run(run(dsn=dsn))
-    asyncio.run(util.run_sql_func(sql_func_name='filter_layer.sql',
+    bytes = asyncio.run(util.run_sql_func(sql_func_name='filter_layer.sql',
                                   dsn=dsn,
                                   filter_table='admin.admin0',
                                   filter_column='iso3cd',
                                   filter_value='C')
                 )
+    util.dump_mvt(bytes)
 

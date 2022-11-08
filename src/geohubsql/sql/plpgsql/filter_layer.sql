@@ -131,7 +131,7 @@ CREATE OR REPLACE FUNCTION public.function_source_query_params(
             RAISE INFO 'THE G COL IS %  ', geom_col;
             sql_stmt = format(q1_string, z, x, y, geom_col, filter_column, table_schema, table_name, geom_col, filter_column, filter_value);
         END IF;
-        RAISE INFO '%',sql_stmt;
+        --RAISE INFO '%',sql_stmt;
         EXECUTE sql_stmt INTO mvt;
         RETURN mvt;
     END

@@ -11,10 +11,15 @@ logger = logging.getLogger(__name__)
 
 
 def dump_mvt(mvt_bytes=None):
+    """
+    Prints the human readable content of a chunk pof bytes representing a MVT tile(tiles)
+    :param mvt_bytes: bytes
+    :return:
+    """
     decoded_data = mapbox_vector_tile.decode(mvt_bytes)
     for lname, l in decoded_data.items():
         for feat in l['features']:
-            print(feat['id'], feat['properties'])
+            logger.info(f'{feat["id"]}, {feat["properties"]}')
 
 
 
@@ -25,7 +30,7 @@ def print_pg_message(conn_obj, msg):
 def connect(func):
     """
     Decorator function that handles the connection to PostgreSQL DB
-    I the decorated function possesses a conn_obj in **kwargs it patches it with
+    If the decorated function possesses a conn_obj in **kwargs it patches it with
     a listener to log the messages from PG server
     If the dsn is supplied the decorator creates a pool and a connection to the serves specified in DB and
     closes the pool ad the connection after the decorated function is called
@@ -78,6 +83,7 @@ def scantree(path):
 
 
 def get_sql_file_path(sql_file_name=None):
+    """Compute the sql file path for the goven sql_file_name residing in sql folder of this repo"""
     assert sql_file_name is not None, f'Invalid sql_file_name={sql_file_name}'
     for entry in scantree(os.path.join(ROOT_DIR, 'sql')):
         if entry.is_file() and entry.name.endswith('.sql'):
@@ -87,7 +93,7 @@ def get_sql_file_path(sql_file_name=None):
 
 def get_sqlfile_content(sql_file_path=None):
     """
-    Reda the content of a SQL file from sql folder
+    Read the content of a SQL file from sql folder
     :param sql_file_name:
     :return: str, the content of the SQL file, as is
     """
@@ -101,9 +107,10 @@ def get_sqlfile_content(sql_file_path=None):
 
 def get_sql_func_details(sql_func_content=None):
     """
-
-    :param sql_func_content:
-    :return:
+    Parses an SQL postgres funtion returning various details abouyt the function like
+    name, schema, arguments
+    :param sql_func_content: str, the text content representing a SQL function
+    :return: dict with various properties of the function
     """
     assert sql_func_content.count('$$') == 2, f'sql_func_content={sql_func_content} seems to be malformed '
     header, body, footer = sql_func_content.split('$$')
@@ -143,15 +150,19 @@ async def run_jsonargs_sql_func(sql_func_name=None, z=0, x=0, y=0, **kwargs):
 @connect
 async def run_sql_func(sql_func_name=None, dsn=None, conn_obj=None, z=0, x=0, y=0, **kwargs):
     """
-    Run the SQL
-    :param sql_func_name:
-    :param dsn:
-    :param conn_obj:
-    :param z:
-    :param x:
-    :param y:
-    :param kwargs:
-    :return:
+    Run the SQL function sql_func_name in the database provided by the dsn or conn_obj arguments
+    forwarding the arguments through the kwargs
+    :param sql_func_name: str, the name of the function to read/execute
+    :param dsn: str, Postgres DSN
+    :param conn_obj: instance of asyncpg.connection as an alternative to dsn.
+    :param z: z level, int
+    :param x: x tile coord, int
+    :param y: y tile coord, int
+    :param kwargs: dict, a placeholder for any params the sql_func_name might require
+    :return: the result of executing the sql fucntion in postgres with the supplied parameters
+
+
+
     """
     if not dsn:
         assert conn_obj is not None, f'invalid conn_obj={conn_obj}'
@@ -176,8 +187,7 @@ async def run_sql_func(sql_func_name=None, dsn=None, conn_obj=None, z=0, x=0, y=
         SELECT * FROM {fqfn}({args_as_str});
     '''
 
-    mvt_bytes = await conn_obj.fetchval(execute_func_query)
-    if mvt_bytes:
-        dump_mvt(mvt_bytes=mvt_bytes)
+    return await conn_obj.fetchval(execute_func_query)
+
 
 
