@@ -1,3 +1,5 @@
+import sys
+#sys.path.append('src/')
 from geohubsql import ROOT_DIR
 import os
 import mapbox_vector_tile
@@ -6,9 +8,13 @@ from functools import wraps
 import logging
 import json
 import ast
+import asyncio
+import traceback
+import inspect
+
 logger = logging.getLogger(__name__)
 
-
+from pprint import pprint
 
 def dump_mvt(mvt_bytes=None):
     """
@@ -148,6 +154,38 @@ async def run_jsonargs_sql_func(sql_func_name=None, z=0, x=0, y=0, **kwargs):
     mvt = conn_obj.fetch()
 
 @connect
+# DEPLOY and RUN
+async def deploy_and_run_sql_func(sql_func_name=None, dsn=None, conn_obj=None, z=0, x=0, y=0, **kwargs):
+    """
+    Run the SQL function sql_func_name in the database provided by the dsn or conn_obj arguments
+    forwarding the arguments through the kwargs
+    :param sql_func_name: str, the name of the function to read/execute
+    :param dsn: str, Postgres DSN
+    :param conn_obj: instance of asyncpg.connection as an alternative to dsn.
+    :param z: z level, int
+    :param x: x tile coord, int
+    :param y: y tile coord, int
+    :param kwargs: dict, a placeholder for any params the sql_func_name might require
+    :return: the result of executing the sql function in postgres with the supplied parameters
+
+
+
+    """
+    if not dsn:
+        assert conn_obj is not None, f'invalid conn_obj={conn_obj}'
+
+
+    await drop_and_deploy_sql_func(sql_func_name = sql_func_name, dsn = dsn);
+
+    mvt_bytes = await(run_sql_func(sql_func_name=sql_func_name, dsn=dsn, **kwargs))
+
+    return  mvt_bytes
+
+
+
+
+@connect
+#RUN ONLY
 async def run_sql_func(sql_func_name=None, dsn=None, conn_obj=None, z=0, x=0, y=0, **kwargs):
     """
     Run the SQL function sql_func_name in the database provided by the dsn or conn_obj arguments
@@ -159,7 +197,7 @@ async def run_sql_func(sql_func_name=None, dsn=None, conn_obj=None, z=0, x=0, y=
     :param x: x tile coord, int
     :param y: y tile coord, int
     :param kwargs: dict, a placeholder for any params the sql_func_name might require
-    :return: the result of executing the sql fucntion in postgres with the supplied parameters
+    :return: the result of executing the sql function in postgres with the supplied parameters
 
 
 
@@ -170,15 +208,15 @@ async def run_sql_func(sql_func_name=None, dsn=None, conn_obj=None, z=0, x=0, y=
     sql_func_content = get_sqlfile_content(sql_file_path=sql_file_path)
     func_details = get_sql_func_details(sql_func_content=sql_func_content)
     func_args = func_details['args']
+    #print('Function ARGS:')
+    #pprint(func_args)
+
     fqfn = f'{func_details["schema"]}.{func_details["name"]}'
     mandatory_args = [e[0] for e in func_args if 'default' not in e]
     for marg in mandatory_args:
+        print('MARG: ' + marg)
         assert marg in kwargs, f'{marg} is a mandatory argument for {fqfn}'
-    drop_func_query = f'DROP FUNCTION IF EXISTS {fqfn};'
-    #remove function
-    await conn_obj.execute(drop_func_query)
-    #create
-    await conn_obj.execute(sql_func_content)
+
     # run
     func_args = dict(z=z,x=x,y=y)
     func_args.update(kwargs)
@@ -187,9 +225,55 @@ async def run_sql_func(sql_func_name=None, dsn=None, conn_obj=None, z=0, x=0, y=
         SELECT * FROM {fqfn}({args_as_str});
     '''
 
-    mvt_bytes = await conn_obj.fetchval(execute_func_query)
-    await conn_obj.execute(drop_func_query)
-    return  mvt_bytes
+    try:
+        mvt_bytes = await conn_obj.fetchval(execute_func_query)
+    except Exception as e:
+        error_message = traceback.format_exc()
+        print('ERRORS: ' + inspect.currentframe().f_code.co_name)
+        print(error_message)
+        #traceback.print_exc()
 
 
+    return mvt_bytes
+
+@connect
+async def drop_and_deploy_sql_func(sql_func_name=None, dsn=None, conn_obj=None):
+    """
+    Deploy the SQL function sql_func_name in the database provided by the dsn or conn_obj arguments
+    :param sql_func_name: str, the name of the function to read/execute
+    :param dsn: str, Postgres DSN
+    :param conn_obj: instance of asyncpg.connection as an alternative to dsn.
+
+    """
+    if not dsn:
+        assert conn_obj is not None, f'invalid conn_obj={conn_obj}'
+    sql_file_path = get_sql_file_path(sql_file_name=sql_func_name)
+    sql_func_content = get_sqlfile_content(sql_file_path=sql_file_path)
+    ###
+    func_details = get_sql_func_details(sql_func_content=sql_func_content)
+    fqfn = f'{func_details["schema"]}.{func_details["name"]}'
+
+    #remove function
+    drop_func_query = f'DROP FUNCTION IF EXISTS {fqfn};'
+    print('DROPPING: '+drop_func_query)
+
+    try:
+        await conn_obj.execute(drop_func_query)
+    except Exception as e:
+        error_message = traceback.format_exc()
+        print('ERRORS: ' + inspect.currentframe().f_code.co_name)
+        print(error_message)
+        #traceback.print_exc()
+
+    #create
+    print('CREATING FUNCTION: ' + fqfn)
+    try:
+        outputs = await conn_obj.execute(sql_func_content)
+    except Exception as e:
+        error_message = traceback.format_exc()
+        print('ERRORS: ' + inspect.currentframe().f_code.co_name)
+        print(error_message)
+        #traceback.print_exc()
+
+    return
 
