@@ -1,3 +1,13 @@
+"""
+Utility to emulate filtering of Countries via PL/PgSQL scripts.
+Returns a dump of the produced Vector Tiles.
+Assumes that the .env file contains the appropriate POSTGRES_DSN string.
+
+"""
+
+import sys
+sys.path.insert(0, '../')
+
 from geohubsql import util
 import asyncio
 import asyncpg
@@ -28,7 +38,7 @@ if __name__ == '__main__':
 
 
     #asyncio.run(run(dsn=dsn))
-    bytes = asyncio.run(util.run_sql_func(sql_func_name='filter_layer.sql',
+    bytes = asyncio.run(util.deploy_and_run_sql_func(sql_func_name='filter_layer.sql',
                                   dsn=dsn,
                                   filter_table='admin.admin0',
                                   filter_column='iso3cd',
