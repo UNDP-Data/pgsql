@@ -8,7 +8,7 @@ Assumes that the .env file contains the appropriate POSTGRES_DSN string.
 import sys
 sys.path.insert(0, '../')
 
-import util
+from geohubsql import util
 import asyncio
 import asyncpg
 import logging
