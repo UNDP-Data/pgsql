@@ -46,6 +46,7 @@ def connect(func):
             if dsn is None:
                 raise ValueError(f'dsn argument have to be provided to be able to connect to DB')
             pool = await asyncpg.create_pool(dsn=dsn, min_size=1, max_size=1, command_timeout=60, )
+            logger.debug(f'connecting to DB')
             conn_obj = await pool.acquire(timeout=10)
 
         else:
@@ -106,11 +107,12 @@ def get_sqlfile_content(sql_file_path=None):
         return f.read()
 
 
-def get_sql_func_details(sql_func_content=None):
+def get_sql_func_details(sql_func_content=None, enforce_bytea=True):
     """
     Parses an SQL postgres funtion returning various details abouyt the function like
     name, schema, arguments
     :param sql_func_content: str, the text content representing a SQL function
+    :param enforce_bytea: bool, True
     :return: dict with various properties of the function
     """
     assert sql_func_content.count('$$') == 2, f'sql_func_content={sql_func_content} seems to be malformed '
@@ -127,7 +129,8 @@ def get_sql_func_details(sql_func_content=None):
     args = [e.strip().split( ) for e in args_section.split(',')]
     assert 'RETURNS'.lower() in return_section.lower(), f'Could not parse/find return type of the function in {return_section}'
     return_type = return_section.lower().strip().split(' ')[1]
-    assert return_type == 'bytea', f'Invalid return type {return_type}. The return type of the SQL function {fqfn} must be "bytea"'
+    if enforce_bytea:
+        assert return_type == 'bytea', f'Invalid return type {return_type}. The return type of the SQL function {fqfn} must be "bytea"'
     return dict(name=func_name,schema=schema,args=args, return_type=return_type)
 
 @connect
@@ -230,6 +233,8 @@ async def run_sql_func(sql_func_name=None, dsn=None, conn_obj=None, z=0, x=0, y=
         SELECT * FROM {fqfn}({args_as_str});
     '''
 
+    print(execute_func_query)
+
 
     mvt_bytes =  await conn_obj.fetchval(execute_func_query)
     if cleanup:
@@ -239,12 +244,14 @@ async def run_sql_func(sql_func_name=None, dsn=None, conn_obj=None, z=0, x=0, y=
     return  mvt_bytes
 
 @connect
-async def deploy_sql_func(sql_func_name=None, dsn=None, conn_obj=None):
+async def deploy_sql_func(sql_func_name=None, dsn=None, conn_obj=None, enforce_vtfunc=True):
     """
     Deploy the SQL function sql_func_name in the database provided by the dsn or conn_obj arguments
     :param sql_func_name: str, the name of the function to read/execute
     :param dsn: str, Postgres DSN
     :param conn_obj: instance of asyncpg.connection as an alternative to dsn.
+    :param enforce_vtfunc:, bool, True, set to false to deploy a func that does not return a bytea type
+            useful tod eploy regula SQL funcs
 
     """
     if not dsn:
@@ -252,12 +259,12 @@ async def deploy_sql_func(sql_func_name=None, dsn=None, conn_obj=None):
     sql_file_path = get_sql_file_path(sql_file_name=sql_func_name)
     sql_func_content = get_sqlfile_content(sql_file_path=sql_file_path)
     ###
-    func_details = get_sql_func_details(sql_func_content=sql_func_content)
+    func_details = get_sql_func_details(sql_func_content=sql_func_content, enforce_bytea=enforce_vtfunc)
     fqfn = f'{func_details["schema"]}.{func_details["name"]}'
 
     #remove function
     drop_func_query = f'DROP FUNCTION IF EXISTS {fqfn};'
-    logger.debug(f'Dropping function using query {drop_func_query}')
+    logger.debug(f'Dropping function {fqfn}')
 
     try:
         await conn_obj.execute(drop_func_query)
