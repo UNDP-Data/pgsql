@@ -6,15 +6,10 @@ import mapbox_vector_tile
 import asyncpg
 from functools import wraps
 import logging
-import json
-import ast
-import asyncio
-import traceback
-import inspect
+
 
 logger = logging.getLogger(__name__)
 
-from pprint import pprint
 
 def dump_mvt(mvt_bytes=None):
     """
@@ -41,6 +36,7 @@ def connect(func):
     If the dsn is supplied the decorator creates a pool and a connection to the serves specified in DB and
     closes the pool ad the connection after the decorated function is called
     """
+
     @wraps(func)
     async def wrapper(**kwargs):
 
@@ -55,7 +51,6 @@ def connect(func):
         else:
             reuse = True
             conn_obj = kwargs['conn_obj']
-
         # add log listener
         if not print_pg_message in conn_obj._log_listeners:
             conn_obj.add_log_listener(print_pg_message)
@@ -155,7 +150,7 @@ async def run_jsonargs_sql_func(sql_func_name=None, z=0, x=0, y=0, **kwargs):
 
 @connect
 # DEPLOY and RUN
-async def deploy_and_run_sql_func(sql_func_name=None, dsn=None, conn_obj=None, z=0, x=0, y=0, **kwargs):
+async def deploy_and_run_sql_func(sql_func_name=None, dsn=None, conn_obj=None, z=0, x=0, y=0, cleanup=False, **kwargs):
     """
     Run the SQL function sql_func_name in the database provided by the dsn or conn_obj arguments
     forwarding the arguments through the kwargs
@@ -165,6 +160,7 @@ async def deploy_and_run_sql_func(sql_func_name=None, dsn=None, conn_obj=None, z
     :param z: z level, int
     :param x: x tile coord, int
     :param y: y tile coord, int
+    :param cleanup: bool, False, if True the function will be also removed
     :param kwargs: dict, a placeholder for any params the sql_func_name might require
     :return: the result of executing the sql function in postgres with the supplied parameters
 
@@ -175,18 +171,27 @@ async def deploy_and_run_sql_func(sql_func_name=None, dsn=None, conn_obj=None, z
         assert conn_obj is not None, f'invalid conn_obj={conn_obj}'
 
 
-    await deploy_sql_func(sql_func_name = sql_func_name, dsn = dsn);
+    await deploy_sql_func(sql_func_name=sql_func_name, dsn=dsn, conn_obj=conn_obj)
 
-    mvt_bytes = await(run_sql_func(sql_func_name=sql_func_name, dsn=dsn, **kwargs))
+    return await run_sql_func(
+        sql_func_name=sql_func_name,
+        dsn=dsn,
+        conn_obj=conn_obj,
+        z=z,
+        x=x,
+        y=y,
+        cleanup=cleanup,
+        **kwargs
+    )
 
-    return  mvt_bytes
+
 
 
 
 
 @connect
-#RUN ONLY
-async def run_sql_func(sql_func_name=None, dsn=None, conn_obj=None, z=0, x=0, y=0, **kwargs):
+#RUN ONLY OPTIONALLY CLEANUP
+async def run_sql_func(sql_func_name=None, dsn=None, conn_obj=None, z=0, x=0, y=0, cleanup=False, **kwargs):
     """
     Run the SQL function sql_func_name in the database provided by the dsn or conn_obj arguments
     forwarding the arguments through the kwargs
@@ -196,6 +201,7 @@ async def run_sql_func(sql_func_name=None, dsn=None, conn_obj=None, z=0, x=0, y=
     :param z: z level, int
     :param x: x tile coord, int
     :param y: y tile coord, int
+    :param cleanup: bool, False, if True the function will be also removed
     :param kwargs: dict, a placeholder for any params the sql_func_name might require
     :return: the result of executing the sql function in postgres with the supplied parameters
 
@@ -224,7 +230,13 @@ async def run_sql_func(sql_func_name=None, dsn=None, conn_obj=None, z=0, x=0, y=
         SELECT * FROM {fqfn}({args_as_str});
     '''
 
-    return await conn_obj.fetchval(execute_func_query)
+
+    mvt_bytes =  await conn_obj.fetchval(execute_func_query)
+    if cleanup:
+        drop_func_query = f'DROP FUNCTION IF EXISTS {fqfn};'
+        logger.debug(f'Dropping function {fqfn}')
+        await conn_obj.execute(drop_func_query)
+    return  mvt_bytes
 
 @connect
 async def deploy_sql_func(sql_func_name=None, dsn=None, conn_obj=None):
