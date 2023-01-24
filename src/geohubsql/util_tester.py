@@ -29,9 +29,9 @@ async def run(dsn):
 
 
 def test_drop_and_deploy(dsn):
-    f_output = asyncio.run(util.drop_and_deploy_sql_func(sql_func_name='hdi_subnat.sql',
-                                                        dsn=dsn
-                                                        )
+    f_output = asyncio.run(util.deploy_sql_func(sql_func_name='hdi_subnat.sql',
+                                                dsn=dsn
+                                                )
                            )
     return
 

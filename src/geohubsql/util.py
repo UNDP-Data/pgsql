@@ -175,7 +175,7 @@ async def deploy_and_run_sql_func(sql_func_name=None, dsn=None, conn_obj=None, z
         assert conn_obj is not None, f'invalid conn_obj={conn_obj}'
 
 
-    await drop_and_deploy_sql_func(sql_func_name = sql_func_name, dsn = dsn);
+    await deploy_sql_func(sql_func_name = sql_func_name, dsn = dsn);
 
     mvt_bytes = await(run_sql_func(sql_func_name=sql_func_name, dsn=dsn, **kwargs))
 
@@ -208,13 +208,12 @@ async def run_sql_func(sql_func_name=None, dsn=None, conn_obj=None, z=0, x=0, y=
     sql_func_content = get_sqlfile_content(sql_file_path=sql_file_path)
     func_details = get_sql_func_details(sql_func_content=sql_func_content)
     func_args = func_details['args']
-    #print('Function ARGS:')
-    #pprint(func_args)
+
 
     fqfn = f'{func_details["schema"]}.{func_details["name"]}'
     mandatory_args = [e[0] for e in func_args if 'default' not in e]
     for marg in mandatory_args:
-        print('MARG: ' + marg)
+        logger.debug(f'mandatory argument: {marg}')
         assert marg in kwargs, f'{marg} is a mandatory argument for {fqfn}'
 
     # run
@@ -225,19 +224,10 @@ async def run_sql_func(sql_func_name=None, dsn=None, conn_obj=None, z=0, x=0, y=
         SELECT * FROM {fqfn}({args_as_str});
     '''
 
-    try:
-        mvt_bytes = await conn_obj.fetchval(execute_func_query)
-    except Exception as e:
-        error_message = traceback.format_exc()
-        print('ERRORS: ' + inspect.currentframe().f_code.co_name)
-        print(error_message)
-        #traceback.print_exc()
-
-
-    return mvt_bytes
+    return await conn_obj.fetchval(execute_func_query)
 
 @connect
-async def drop_and_deploy_sql_func(sql_func_name=None, dsn=None, conn_obj=None):
+async def deploy_sql_func(sql_func_name=None, dsn=None, conn_obj=None):
     """
     Deploy the SQL function sql_func_name in the database provided by the dsn or conn_obj arguments
     :param sql_func_name: str, the name of the function to read/execute
@@ -255,25 +245,20 @@ async def drop_and_deploy_sql_func(sql_func_name=None, dsn=None, conn_obj=None):
 
     #remove function
     drop_func_query = f'DROP FUNCTION IF EXISTS {fqfn};'
-    print('DROPPING: '+drop_func_query)
+    logger.debug(f'Dropping function using query {drop_func_query}')
 
     try:
         await conn_obj.execute(drop_func_query)
     except Exception as e:
-        error_message = traceback.format_exc()
-        print('ERRORS: ' + inspect.currentframe().f_code.co_name)
-        print(error_message)
-        #traceback.print_exc()
+        logger.error(f'Failed to drop function {fqfn}')
+        raise
 
     #create
-    print('CREATING FUNCTION: ' + fqfn)
+    logger.debug(f'Creating function {fqfn} ')
     try:
-        outputs = await conn_obj.execute(sql_func_content)
+        await conn_obj.execute(sql_func_content)
     except Exception as e:
-        error_message = traceback.format_exc()
-        print('ERRORS: ' + inspect.currentframe().f_code.co_name)
-        print(error_message)
-        #traceback.print_exc()
-
+        logger.error(f'Failed to create function {fqfn}')
+        raise
     return
 
