@@ -76,7 +76,7 @@ CREATE OR REPLACE FUNCTION admin.hdi_subnat(
 
 -- use 'default' as a layer name to make it possible to visualize it via pg_tileServ's internal map viewer
 
-        SELECT ST_AsMVT(mvtgeom.*,'default', 4096, 'geom', 'fid')
+        SELECT ST_AsMVT(mvtgeom.*,'admin.hdi_subnat', 4096, 'geom', 'fid')
 		FROM mvtgeom
 		INTO mvt;
 

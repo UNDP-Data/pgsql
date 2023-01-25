@@ -29,7 +29,7 @@ if __name__ == '__main__':
     logger.setLevel(logging.DEBUG)
 
     evars = dotenv_values('../../.env')
-    dsn = evars['POSTGRES_DSN']
+    dsn = evars['TILESERVER_DSN']
     print(dsn)
 
 
