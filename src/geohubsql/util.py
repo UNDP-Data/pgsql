@@ -48,7 +48,6 @@ def connect(func):
             pool = await asyncpg.create_pool(dsn=dsn, min_size=1, max_size=1, command_timeout=60, )
             logger.debug(f'connecting to DB')
             conn_obj = await pool.acquire(timeout=10)
-
         else:
             reuse = True
             conn_obj = kwargs['conn_obj']
@@ -172,29 +171,52 @@ async def deploy_and_run_sql_func(sql_func_name=None, dsn=None, conn_obj=None, z
     """
     if not dsn:
         assert conn_obj is not None, f'invalid conn_obj={conn_obj}'
-
-
     await deploy_sql_func(sql_func_name=sql_func_name, dsn=dsn, conn_obj=conn_obj)
-
-    return await run_sql_func(
+    mvt_bytes = await run_sql_func(
         sql_func_name=sql_func_name,
         dsn=dsn,
         conn_obj=conn_obj,
         z=z,
         x=x,
         y=y,
-        cleanup=cleanup,
         **kwargs
     )
-
-
-
-
+    if cleanup:
+        await  drop_sql_func(sql_func_name=sql_func_name, dsn=dsn, conn_obj=conn_obj)
+    return mvt_bytes
 
 
 @connect
 #RUN ONLY OPTIONALLY CLEANUP
-async def run_sql_func(sql_func_name=None, dsn=None, conn_obj=None, z=0, x=0, y=0, cleanup=False, **kwargs):
+async def drop_sql_func(sql_func_name=None, dsn=None, conn_obj=None):
+    """
+    Run the SQL function sql_func_name in the database provided by the dsn or conn_obj arguments
+    forwarding the arguments through the kwargs
+    :param sql_func_name: str, the name of the function to read/execute
+    :param dsn: str, Postgres DSN
+    :param conn_obj: instance of asyncpg.connection as an alternative to dsn.
+
+    :return: the result of executing the sql function in postgres with the supplied parameters
+
+
+    """
+    if not dsn:
+        assert conn_obj is not None, f'invalid conn_obj={conn_obj}'
+    sql_file_path = get_sql_file_path(sql_file_name=sql_func_name)
+    sql_func_content = get_sqlfile_content(sql_file_path=sql_file_path)
+    func_details = get_sql_func_details(sql_func_content=sql_func_content)
+    func_args = func_details['args']
+
+
+    fqfn = f'{func_details["schema"]}.{func_details["name"]}'
+    drop_func_query = f'DROP FUNCTION IF EXISTS {fqfn};'
+    logger.debug(f'Dropping function {fqfn}')
+    await conn_obj.execute(drop_func_query)
+
+
+@connect
+#RUN ONLY OPTIONALLY CLEANUP
+async def run_sql_func(sql_func_name=None, dsn=None, conn_obj=None, z=0, x=0, y=0,  **kwargs):
     """
     Run the SQL function sql_func_name in the database provided by the dsn or conn_obj arguments
     forwarding the arguments through the kwargs
@@ -233,15 +255,10 @@ async def run_sql_func(sql_func_name=None, dsn=None, conn_obj=None, z=0, x=0, y=
         SELECT * FROM {fqfn}({args_as_str});
     '''
 
-    print(execute_func_query)
+
+    return await conn_obj.fetchval(execute_func_query)
 
 
-    mvt_bytes =  await conn_obj.fetchval(execute_func_query)
-    if cleanup:
-        drop_func_query = f'DROP FUNCTION IF EXISTS {fqfn};'
-        logger.debug(f'Dropping function {fqfn}')
-        await conn_obj.execute(drop_func_query)
-    return  mvt_bytes
 
 @connect
 async def deploy_sql_func(sql_func_name=None, dsn=None, conn_obj=None, enforce_vtfunc=True):

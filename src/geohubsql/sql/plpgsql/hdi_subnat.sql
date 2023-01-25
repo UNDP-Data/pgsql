@@ -12,7 +12,8 @@ CREATE OR REPLACE FUNCTION admin.hdi_subnat(
         mvt bytea;
         geom_col varchar;
         featcount integer;
-        feat_limit integer := 20;
+        feat_limit integer := 3000;
+        extent integer := 1024;
 
 -- PL/PgSQL function to create a dynamic function layer (delivered as Vector Tiles) with a representation of the Human Development Index
 -- requires/accepts four input parameters which act as multipliers for the respective HDI formula parameters:
@@ -43,7 +44,7 @@ CREATE OR REPLACE FUNCTION admin.hdi_subnat(
 			h."Log Gross National Income per capita" AS GDI,
 			admin.calc_hdi(h."Life expectancy"*le_mult,h."Expected years schooling"*eys_mult ,h."Mean years schooling"*mys_mult , h."Log Gross National Income per capita"*1000*gni_mult) hdi
 			FROM admin.hdi_input_data h
-			WHERE h."GDLCODE" like 'USA%'
+			--WHERE h."GDLCODE" like 'USA%'
         );
 
 		CREATE INDEX IF NOT EXISTS "hdi_tmp_table_idx1" ON "hdi_tmp_table" (gdlcode);
@@ -58,10 +59,10 @@ CREATE OR REPLACE FUNCTION admin.hdi_subnat(
 
         CREATE TEMPORARY TABLE mvtgeom AS (
 
-            SELECT ST_AsMVTGeom(a.geom, bounds.geom, extent => 4096, buffer => 64) AS geom,
+            SELECT ST_AsMVTGeom(a.geom, bounds.geom, extent => extent, buffer => 32) AS geom,
 			ROW_NUMBER () OVER (ORDER BY a.gdlcode) AS fid,
 			a.gdlcode,
-			h.hdi
+			CAST(h.hdi as FLOAT)
             FROM admin.admin1_3857 a
 			JOIN bounds ON ST_Intersects(a.geom, bounds.geom)
             JOIN hdi_tmp_table h ON a.gdlcode = h.gdlcode
@@ -76,7 +77,7 @@ CREATE OR REPLACE FUNCTION admin.hdi_subnat(
 
 -- use 'default' as a layer name to make it possible to visualize it via pg_tileServ's internal map viewer
 
-        SELECT ST_AsMVT(mvtgeom.*,'admin.hdi_subnat', 4096, 'geom', 'fid')
+        SELECT ST_AsMVT(mvtgeom.*,'admin.hdi_subnat', extent, 'geom', 'fid')
 		FROM mvtgeom
 		INTO mvt;
 

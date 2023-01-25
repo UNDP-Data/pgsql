@@ -16,6 +16,7 @@ if __name__ == '__main__':
     dsn = evars['POSTGRES_DSN']
 
 
+
     #asyncio.run(run(dsn=dsn))
     asyncio.run(util.deploy_sql_func(   sql_func_name='hdi_subnat.sql',
                                                 dsn=dsn,

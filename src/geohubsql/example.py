@@ -24,8 +24,8 @@ async def run(dsn, **kwargs):
             #patch kwargs so the connection is reused
             kwargs['conn_obj'] = conn_obj
             bytes = await util.deploy_and_run_sql_func(**kwargs)
-
             util.dump_mvt(bytes)
+
         logging.debug(f'Connection was closed automatically')
 
 
