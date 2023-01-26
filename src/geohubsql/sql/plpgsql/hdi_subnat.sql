@@ -11,14 +11,17 @@ CREATE OR REPLACE FUNCTION admin.hdi_subnat(
 
     RETURNS bytea AS $$
     DECLARE
+        layer_name varchar := 'admin.hdi_subnat';
+
         mvt bytea;
         geom_col varchar;
         featcount integer;
         feat_limit integer := 3000;
+
+        min_extent integer := 256;
+        max_extent integer := 4096;
         mvt_extent integer := 1024;
         mvt_buffer integer := 32;
-        layer_name varchar := 'admin.hdi_subnat';
-
 
 
 -- PL/PgSQL function to create a dynamic function layer (delivered as Vector Tiles) with a representation of the Human Development Index
@@ -65,6 +68,13 @@ CREATE OR REPLACE FUNCTION admin.hdi_subnat(
 
         -- comment out after devel phase
         mvt_extent := definition_multiplier*mvt_extent;
+        IF (mvt_extent > max_extent) THEN
+            mvt_extent := max_extent;
+        END IF;
+        IF (mvt_extent < min_extent) THEN
+            mvt_extent := min_extent;
+        END IF;
+        --
 
         --RAISE WARNING 'Zoom Level is: %, definition_multiplier is %, mvt_extent is %', z, definition_multiplier, mvt_extent;
 
