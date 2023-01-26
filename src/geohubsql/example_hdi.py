@@ -39,10 +39,10 @@ if __name__ == '__main__':
                                     z=0,
                                     x=0,
                                     y=0,
-                                    le_mult = 1.0,
-                                    eys_mult = 1.0,
-                                    mys_mult = 1.0,
-                                    gni_mult = 1.0
+                                    life_expectancy_multiplier = 1.0,
+                                    expected_years_of_schooling_multiplier = 1.0,
+                                    mean_years_of_schooling_multiplier = 1.0,
+                                    gross_national_income_multiplier = 1.0
                                     )
                     )
 

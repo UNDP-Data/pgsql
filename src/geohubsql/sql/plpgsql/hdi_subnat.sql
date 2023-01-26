@@ -2,38 +2,64 @@ CREATE OR REPLACE FUNCTION admin.hdi_subnat(
     z integer default 0,
     x integer default 0,
     y integer default 0,
-    le_mult numeric default 1,
-    eys_mult numeric default 1,
-    mys_mult numeric default 1,
-    gni_mult numeric default 1
+    life_expectancy_multiplier numeric default 1,
+    expected_years_of_schooling_multiplier numeric default 1,
+    mean_years_of_schooling_multiplier numeric default 1,
+    gross_national_income_multiplier numeric default 1,
+    definition_multiplier float default 1
     )
+
     RETURNS bytea AS $$
     DECLARE
         mvt bytea;
         geom_col varchar;
         featcount integer;
         feat_limit integer := 3000;
-        extent integer := 1024;
+        mvt_extent integer := 1024;
+        mvt_buffer integer := 32;
+        layer_name varchar := 'admin.hdi_subnat';
+
+
 
 -- PL/PgSQL function to create a dynamic function layer (delivered as Vector Tiles) with a representation of the Human Development Index
 -- requires/accepts four input parameters which act as multipliers for the respective HDI formula parameters:
---			le_mult  multiplies the "Life expectancy" parameter
---			eys_mult multiplies the "Expected years schooling"  parameter
---			mys_mult multiplies the "Mean years schooling"  parameter
---			gni_mult multiplies the "Log Gross National Income per capita" parameter
+--			life_expectancy_multiplier  multiplies the "Life expectancy" parameter
+--			expected_years_of_schooling_multiplier multiplies the "Expected years schooling"  parameter
+--			mean_years_of_schooling_multiplier multiplies the "Mean years schooling"  parameter
+--			gross_national_income_multiplier multiplies the "Log Gross National Income per capita" parameter
 -- input parameters can be passed in the URL
 --
 -- example URL:
--- http://172.18.0.6:7800/admin.hdi_subnat/{z}/{x}/{y}.pbf?le_mult=1.0&eys_mult=1.0&mys_mult=1.0&gni_mult=1.0
+-- http://172.18.0.6:7800/admin.hdi_subnat/{z}/{x}/{y}.pbf?life_expectancy_multiplier=1.0&expected_years_of_schooling_multiplier=1.0&mean_years_of_schooling_multiplier=1.0&gross_national_income_multiplier=1.0
 
     BEGIN
-
-        CREATE INDEX IF NOT EXISTS "admin1_3857_idx"  ON "admin"."admin1_3857" USING GIST (geom);
-		CREATE INDEX IF NOT EXISTS "admin1_3857_idx1" ON "admin"."admin1_3857" (gdlcode);
-
-        RAISE WARNING 'HEY';
-
+    layer_name := 'default';
 		DROP TABLE IF EXISTS hdi_tmp_table;
+
+        CASE
+            WHEN (z<=1) THEN
+                mvt_extent := 256;
+            WHEN (z=2) THEN
+                mvt_extent := 256;
+            WHEN (z=3) THEN
+                mvt_extent := 512;
+            WHEN (z=4) THEN
+                mvt_extent := 512;
+            WHEN (z=5) THEN
+                mvt_extent := 512;
+            WHEN (z>6)AND(z<=10) THEN
+                mvt_extent := 1024;
+            WHEN (z>10)AND(z<=12) THEN
+                mvt_extent := 2048;
+            ELSE
+                mvt_extent := 4096;
+        END CASE;
+
+
+        -- comment out after devel phase
+        mvt_extent := definition_multiplier*mvt_extent;
+
+        RAISE WARNING 'Zoom Level is: %, definition_multiplier is %, mvt_extent is %', z, definition_multiplier, mvt_extent;
 
         CREATE TEMPORARY TABLE hdi_tmp_table AS (
             SELECT
@@ -42,9 +68,12 @@ CREATE OR REPLACE FUNCTION admin.hdi_subnat(
 			h."Mean years schooling" AS MYS,
 			h."Expected years schooling" AS EYS,
 			h."Log Gross National Income per capita" AS GDI,
-			admin.calc_hdi(h."Life expectancy"*le_mult,h."Expected years schooling"*eys_mult ,h."Mean years schooling"*mys_mult , h."Log Gross National Income per capita"*1000*gni_mult) hdi
+			admin.calc_hdi( h."Life expectancy"*life_expectancy_multiplier,
+			                h."Expected years schooling"*expected_years_of_schooling_multiplier,
+			                h."Mean years schooling"*mean_years_of_schooling_multiplier,
+			                h."Log Gross National Income per capita"*1000*gross_national_income_multiplier) hdi
 			FROM admin.hdi_input_data h
-			--WHERE h."GDLCODE" like 'USA%'
+			WHERE h."GDLCODE" like 'USA%'
         );
 
 		CREATE INDEX IF NOT EXISTS "hdi_tmp_table_idx1" ON "hdi_tmp_table" (gdlcode);
@@ -59,10 +88,16 @@ CREATE OR REPLACE FUNCTION admin.hdi_subnat(
 
         CREATE TEMPORARY TABLE mvtgeom AS (
 
-            SELECT ST_AsMVTGeom(a.geom, bounds.geom, extent => extent, buffer => 32) AS geom,
+            SELECT ST_AsMVTGeom(a.geom, bounds.geom, extent => mvt_extent, buffer => mvt_buffer) AS geom,
 			ROW_NUMBER () OVER (ORDER BY a.gdlcode) AS fid,
 			a.gdlcode,
-			CAST(h.hdi as FLOAT)
+			--CAST(h.hdi as FLOAT)
+			h.hdi,
+            -- comment out after devel phase
+			z as z,
+			-- comment out after devel phase
+			mvt_extent as mvt_extent_px,
+			definition_multiplier as ext_multiplier_val
             FROM admin.admin1_3857 a
 			JOIN bounds ON ST_Intersects(a.geom, bounds.geom)
             JOIN hdi_tmp_table h ON a.gdlcode = h.gdlcode
@@ -70,6 +105,8 @@ CREATE OR REPLACE FUNCTION admin.hdi_subnat(
             LIMIT feat_limit
             );
 
+        --COMMENT ON COLUMN mvtgeom.hdi is 'Human Development Index';
+        --COMMENT ON COLUMN mvtgeom.gdlcode is 'National/Subnational administrative region unique identification code';
 
 		--SELECT COUNT(geom) INTO featcount FROM mvtgeom;
         --RAISE WARNING 'featcount1 %', featcount;
@@ -77,7 +114,7 @@ CREATE OR REPLACE FUNCTION admin.hdi_subnat(
 
 -- use 'default' as a layer name to make it possible to visualize it via pg_tileServ's internal map viewer
 
-        SELECT ST_AsMVT(mvtgeom.*,'admin.hdi_subnat', extent, 'geom', 'fid')
+        SELECT ST_AsMVT(mvtgeom.*,layer_name, mvt_extent, 'geom', 'fid')
 		FROM mvtgeom
 		INTO mvt;
 
@@ -87,3 +124,4 @@ CREATE OR REPLACE FUNCTION admin.hdi_subnat(
 $$ LANGUAGE plpgsql VOLATILE STRICT PARALLEL SAFE;
 
 COMMENT ON FUNCTION admin.hdi_subnat IS 'This is hdi_subnat, please insert the desired multiplication values';
+
