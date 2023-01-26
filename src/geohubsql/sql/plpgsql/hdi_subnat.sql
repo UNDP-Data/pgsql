@@ -33,8 +33,15 @@ CREATE OR REPLACE FUNCTION admin.hdi_subnat(
 -- http://172.18.0.6:7800/admin.hdi_subnat/{z}/{x}/{y}.pbf?life_expectancy_multiplier=1.0&expected_years_of_schooling_multiplier=1.0&mean_years_of_schooling_multiplier=1.0&gross_national_income_multiplier=1.0
 
     BEGIN
-    layer_name := 'default';
+
+    -- uncomment to visualize with pg_tileServ's internal viewer:
+    --layer_name := 'default';
+
+
 		DROP TABLE IF EXISTS hdi_tmp_table;
+
+        --let's set St_AsMVT's extent as a function of the zoom level
+        --in order to reduce network usage and increase the UX.
 
         CASE
             WHEN (z<=1) THEN
@@ -59,7 +66,7 @@ CREATE OR REPLACE FUNCTION admin.hdi_subnat(
         -- comment out after devel phase
         mvt_extent := definition_multiplier*mvt_extent;
 
-        RAISE WARNING 'Zoom Level is: %, definition_multiplier is %, mvt_extent is %', z, definition_multiplier, mvt_extent;
+        --RAISE WARNING 'Zoom Level is: %, definition_multiplier is %, mvt_extent is %', z, definition_multiplier, mvt_extent;
 
         CREATE TEMPORARY TABLE hdi_tmp_table AS (
             SELECT
@@ -73,7 +80,7 @@ CREATE OR REPLACE FUNCTION admin.hdi_subnat(
 			                h."Mean years schooling"*mean_years_of_schooling_multiplier,
 			                h."Log Gross National Income per capita"*1000*gross_national_income_multiplier) hdi
 			FROM admin.hdi_input_data h
-			WHERE h."GDLCODE" like 'USA%'
+--			WHERE h."GDLCODE" like 'USA%'
         );
 
 		CREATE INDEX IF NOT EXISTS "hdi_tmp_table_idx1" ON "hdi_tmp_table" (gdlcode);
@@ -102,7 +109,7 @@ CREATE OR REPLACE FUNCTION admin.hdi_subnat(
 			JOIN bounds ON ST_Intersects(a.geom, bounds.geom)
             JOIN hdi_tmp_table h ON a.gdlcode = h.gdlcode
             ORDER BY a.gdlcode
-            LIMIT feat_limit
+            --LIMIT feat_limit
             );
 
         --COMMENT ON COLUMN mvtgeom.hdi is 'Human Development Index';
