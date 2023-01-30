@@ -16,11 +16,6 @@ CREATE OR REPLACE FUNCTION admin.calc_hdi(
 
     DECLARE
 
-        life_expectancy_positive decimal  :=0;
-        mean_years_of_schooling_positive decimal  :=0;
-        expected_years_of_schooling_positive decimal  :=0;
-        gross_national_income_positive decimal :=0;
-
         life_expectancy_index decimal;
         mean_years_of_schooling_index decimal;
         expected_years_of_schooling_index decimal;
@@ -29,11 +24,6 @@ CREATE OR REPLACE FUNCTION admin.calc_hdi(
         HDI FLOAT;
 
 	BEGIN
-
-	    life_expectancy_positive := admin.eval_max(life_expectancy,0);
-        mean_years_of_schooling_positive := admin.eval_max(mean_years_of_schooling,0);
-        expected_years_of_schooling_positive := admin.eval_max(expected_years_of_schooling,0);
-        gross_national_income_positive := admin.eval_max(gross_national_income,0);
 
 		life_expectancy_index := (life_expectancy-20)/65;
 		mean_years_of_schooling_index := mean_years_of_schooling/15;

@@ -3,43 +3,47 @@ CREATE OR REPLACE FUNCTION admin.hdi_subnat_extarg(
     x integer default 0,
     y integer default 0,
     params varchar default '{
-  "le_incr":
-    {"param_name":"life_expectancy_increment",
-    "type":"numeric",
-      "limits":{"min":-10,"max":10},
-      "value":0,
-      "label":"Increment of life expectancy",
-      "widget_type":"slider",
-      "hidden":0,
-      "units":"years"},
-  "eys_incr":
-    {"param_name":"expected_years_of_schooling_increment",
-    "type":"numeric",
-      "limits":{"min":-10,"max":10},
-      "value":0,
-      "label":"Increment of expected education",
-      "widget_type":"slider",
-      "hidden":0,
-      "units":"years"},
-    "mys_incr":
-    {"param_name":"mean_years_of_schooling_increment",
-    "type":"numeric",
-      "limits":{"min":-10,"max":10},
-      "value":0,
-      "label":"Increment of mean education",
-      "widget_type":"slider",
-      "hidden":0,
-      "units":"years"},
-  "gni_incr":
-    {"param_name":"gross_national_income_increment",
-    "type":"numeric",
-      "limits":{"min":-30000,"max":30000},
-      "value":0,
-      "label":"Income increment",
-      "widget_type":"slider",
-      "hidden":0,
-      "units":"USD"}
-}'
+              "le_incr":
+                {"param_name":"life_expectancy_increment",
+                  "type":"numeric",
+                  "icon":"fa-people-roof",
+                  "limits":{"min":-10,"max":10},
+                  "value":0,
+                  "label":"Increment of life expectancy",
+                  "widget_type":"slider",
+                  "hidden":0,
+                  "units":"years"},
+              "eys_incr":
+                {"param_name":"expected_years_of_schooling_increment",
+                  "type":"numeric",
+                  "icon":"fa-graduation-cap",
+                  "limits":{"min":-10,"max":10},
+                  "value":0,
+                  "label":"Increment of expected education",
+                  "widget_type":"slider",
+                  "hidden":0,
+                  "units":"years"},
+              "mys_incr":
+                {"param_name":"mean_years_of_schooling_increment",
+                  "type":"numeric",
+                  "icon":"fa-school",
+                  "limits":{"min":-10,"max":10},
+                  "value":0,
+                  "label":"Increment of mean education",
+                  "widget_type":"slider",
+                  "hidden":0,
+                  "units":"years"},
+              "gni_incr":
+                {"param_name":"gross_national_income_increment",
+                  "type":"numeric",
+                  "icon":"fa-hand-holding-dollar",
+                  "limits":{"min":-30000,"max":30000},
+                  "value":0,
+                  "label":"Income increment",
+                  "widget_type":"slider",
+                  "hidden":0,
+                  "units":"USD"}
+            }'
     )
 
 
@@ -78,7 +82,8 @@ RETURNS bytea AS $$
             '{
               "le_incr":
                 {"param_name":"life_expectancy_increment",
-                "type":"numeric",
+                  "type":"numeric",
+                  "icon":"fa-people-roof",
                   "limits":{"min":-10,"max":10},
                   "value":0,
                   "label":"Increment of life expectancy",
@@ -87,7 +92,8 @@ RETURNS bytea AS $$
                   "units":"years"},
               "eys_incr":
                 {"param_name":"expected_years_of_schooling_increment",
-                "type":"numeric",
+                  "type":"numeric",
+                  "icon":"fa-graduation-cap",
                   "limits":{"min":-10,"max":10},
                   "value":0,
                   "label":"Increment of expected education",
@@ -96,7 +102,8 @@ RETURNS bytea AS $$
                   "units":"years"},
               "mys_incr":
                 {"param_name":"mean_years_of_schooling_increment",
-                "type":"numeric",
+                  "type":"numeric",
+                  "icon":"fa-school",
                   "limits":{"min":-10,"max":10},
                   "value":0,
                   "label":"Increment of mean education",
@@ -105,7 +112,8 @@ RETURNS bytea AS $$
                   "units":"years"},
               "gni_incr":
                 {"param_name":"gross_national_income_increment",
-                "type":"numeric",
+                  "type":"numeric",
+                  "icon":"fa-hand-holding-dollar",
                   "limits":{"min":-30000,"max":30000},
                   "value":0,
                   "label":"Income increment",
