@@ -263,8 +263,6 @@ $$ LANGUAGE plpgsql VOLATILE STRICT PARALLEL SAFE;
 COMMENT ON FUNCTION admin.hdi_subnat_extarg IS 'This is hdi_subnat_extarg, please insert the desired multiplication values';
 
 
-
---SELECT * FROM admin.hdi_subnat_extarg(0,0,0,'{"p1":"p1_NEW_data", "p2":"p4_data"}') AS OUTP;
 --
 --SELECT * FROM admin.hdi_subnat_extarg(0,0,0,'{
 --  "le_incr":
@@ -283,4 +281,4 @@ COMMENT ON FUNCTION admin.hdi_subnat_extarg IS 'This is hdi_subnat_extarg, pleas
 -- http://172.18.0.6:7800/admin.hdi_subnat_extarg/{z}/{x}/{y}.pbf?params='%7B%0A%20%20%22le_incr%22%3A%0A%20%20%20%20%7B%22value%22%3A11%7D%2C%0A%20%20%22eys_incr%22%3A%0A%20%20%20%20%20%7B%22value%22%3A22%7D%2C%0A%20%20%20%20%22mys_incr%22%3A%0A%20%20%20%20%20%7B%22value%22%3A33%7D%2C%0A%20%20%22gni_incr%22%3A%0A%20%20%20%20%20%7B%22value%22%3A44%7D%0A%7D'
 
 -- works in QGIS:
--- http://172.18.0.6:7800/admin.hdi_subnat_extarg/{z}/{x}/{y}.pbf?params={"le_incr":{"value":11},"eys_incr":{"value":22},"mys_incr":{"value":33},"gni_incr":{"value":44}}http://172.18.0.6:7800/admin.hdi_subnat_extarg/{z}/{x}/{y}.pbf?params={"le_incr":{"value":11},"eys_incr":{"value":22},"mys_incr":{"value":33},"gni_incr":{"value":44}}
+-- http://172.18.0.6:7800/admin.hdi_subnat_extarg/{z}/{x}/{y}.pbf?params={"le_incr":{"value":11},"eys_incr":{"value":22},"mys_incr":{"value":33},"gni_incr":{"value":44}}
