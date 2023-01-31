@@ -210,7 +210,7 @@ RETURNS bytea AS $$
 			                (h."Mean years schooling"+mys_incr)::decimal,
 			                (h."Log Gross National Income per capita"*1000+gni_incr)::decimal) AS hdi
 			FROM admin.hdi_input_data h
-			WHERE h."GDLCODE" like 'USA%'
+			--WHERE h."GDLCODE" like 'USA%'
         );
 
 		CREATE INDEX IF NOT EXISTS "hdi_extarg_tmp_table_idx1" ON "hdi_extarg_tmp_table" (gdlcode);
