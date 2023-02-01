@@ -43,7 +43,7 @@ CREATE OR REPLACE FUNCTION admin.hdi_subnat_extarg(
                   "widget_type":"slider",
                   "hidden":0,
                   "units":"USD"}
-            }'::json
+            }'
     )
 
 
@@ -123,36 +123,32 @@ RETURNS bytea AS $$
             }';
 
 -- PL/PgSQL function to create a dynamic function layer (delivered as Vector Tiles) with a representation of the Human Development Index
--- requires/accepts four input parameters which act as multipliers for the respective HDI formula parameters:
---			life_expectancy_multiplier  multiplies the "Life expectancy" parameter
---			expected_years_of_schooling_multiplier multiplies the "Expected years schooling"  parameter
---			mean_years_of_schooling_multiplier multiplies the "Mean years schooling"  parameter
---			gross_national_income_multiplier multiplies the "Log Gross National Income per capita" parameter
--- input parameters can be passed as JSON in the URL
+-- requires/accepts four input parameters which act as increment/decrement for the respective HDI formula parameters:
+--
+--			life_expectancy_increment               increments/decrements the "Life expectancy" parameter
+--			expected_years_of_schooling_increment   increments/decrements the "Expected years schooling"  parameter
+--			mean_years_of_schooling_increment       increments/decrements the "Mean years schooling"  parameter
+--			gross_national_income_increment         increments/decrements the "Log Gross National Income per capita" parameter
+--
+-- input parameters shall be passed as JSON in the URL
 
 
     BEGIN
         defaults_json  := func_defaults::jsonb;
         requested_json := params::jsonb;
 
-        --sanitized_json:=requested_json::json;
         -- sanitize the JSON before proceeding
         sanitized_json:=admin.params_sanity_check(defaults_json, requested_json);
 
-
-        --param_names:=json_object_keys ( sanitized_json );
-
---      RAISE WARNING 'arr_par: %', sanitized_json;
 --      RAISE WARNING 'sanitized_json: %', sanitized_json;
---		RAISE WARNING 'sanitized_json / le_incr: %',  sanitized_json->'le_incr';
---		RAISE WARNING 'sanitized_json / le_incr / value: %',  sanitized_json->'le_incr'->'value';
+--		RAISE WARNING 'sanitized_json -> le_incr: %',  sanitized_json->'le_incr';
+--		RAISE WARNING 'sanitized_json -> le_incr -> value: %',  sanitized_json->'le_incr'->'value';
 
         -- extract the relevant parameters
         le_incr  := sanitized_json->'le_incr'->'value';
         eys_incr := sanitized_json->'eys_incr'->'value';
         mys_incr := sanitized_json->'mys_incr'->'value';
         gni_incr := sanitized_json->'gni_incr'->'value';
-
 
         --RAISE WARNING 'le_incr: %, eys_incr: %, mys_incr: %, gni_incr %', le_incr, eys_incr, mys_incr, gni_incr;
 
@@ -166,9 +162,9 @@ RETURNS bytea AS $$
 
         CASE
             WHEN (z<=1) THEN
-                mvt_extent := 256;
+                mvt_extent := 384;
             WHEN (z=2) THEN
-                mvt_extent := 256;
+                mvt_extent := 384;
             WHEN (z=3) THEN
                 mvt_extent := 512;
             WHEN (z=4) THEN
@@ -228,12 +224,12 @@ RETURNS bytea AS $$
             SELECT ST_AsMVTGeom(a.geom, bounds.geom, extent => mvt_extent, buffer => mvt_buffer) AS geom,
 			ROW_NUMBER () OVER (ORDER BY a.gdlcode) AS fid,
 			a.gdlcode,
-			--CAST(h.hdi as FLOAT)
-			h.hdi,
+			CAST(h.hdi as FLOAT),
+			--h.hdi,
             -- comment out after devel phase
-			z as z,
+			CAST(z as INTEGER) as z,
 			-- comment out after devel phase
-			mvt_extent as mvt_extent_px
+			CAST(mvt_extent as INTEGER) as mvt_extent_px
 			--definition_multiplier as ext_multiplier_val
             FROM admin.admin1_3857 a
 			JOIN bounds ON ST_Intersects(a.geom, bounds.geom)
@@ -243,13 +239,6 @@ RETURNS bytea AS $$
             );
 
         --COMMENT ON COLUMN mvtgeom.hdi is 'Human Development Index';
-        --COMMENT ON COLUMN mvtgeom.gdlcode is 'National/Subnational administrative region unique identification code';
-
-		--SELECT COUNT(geom) INTO featcount FROM mvtgeom;
-        --RAISE WARNING 'featcount %', featcount;
-
-
-
 
         SELECT ST_AsMVT(mvtgeom.*,layer_name, mvt_extent, 'geom', 'fid')
 		FROM mvtgeom
@@ -260,7 +249,7 @@ RETURNS bytea AS $$
     END
 $$ LANGUAGE plpgsql VOLATILE STRICT PARALLEL SAFE;
 
-COMMENT ON FUNCTION admin.hdi_subnat_extarg IS 'This is hdi_subnat_extarg, please insert the desired multiplication values';
+COMMENT ON FUNCTION admin.hdi_subnat_extarg IS 'This is hdi_subnat_extarg, please insert the desired increment values';
 
 
 --
