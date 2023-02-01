@@ -1,3 +1,4 @@
+import json
 import sys
 #sys.path.append('src/')
 from geohubsql import ROOT_DIR
@@ -104,6 +105,33 @@ def get_sqlfile_content(sql_file_path=None):
 
     with open(sql_file_path) as f:
         return f.read()
+def parse_farg(sql_args_str=None):
+    cindex = 0
+    args = []
+
+    for ci, c in enumerate(sql_args_str):
+        if c == ',':
+            line = sql_args_str[cindex:ci]
+
+            if 'default' in line:
+                cline = line.strip().split(' ')
+                try:
+                    aname, atype, _, adef_val = cline
+                    args.append(cline)
+                    cindex = ci+1
+                except Exception as e:
+                    start_index = cindex + line.find('\'')+1
+                    end_index = sql_args_str.index('\'', start_index)
+                    p = line.strip().split('default')[0]
+                    aname, atype = p.strip().split(' ')
+                    adef_val = sql_args_str[start_index:end_index]
+                    args.append([aname, atype, json.loads(adef_val)])
+                    break
+
+
+
+    return args
+
 
 
 def get_sql_func_details(sql_func_content=None, enforce_bytea=True):
@@ -125,7 +153,18 @@ def get_sql_func_details(sql_func_content=None, enforce_bytea=True):
     fqfn = fname_section.split(' ')[-1]
     assert '.' in fqfn, f'Could not extract fully qualified func name from {fname_section}'
     schema, func_name = fqfn.split('.')
-    args = [e.strip().split( ) for e in args_section.split(',')]
+
+    #args = parse_farg(sql_args_str=args_section)
+
+
+    # try:
+
+    start_index = args_section.index('\'')
+    end_index = args_section.index('\'', start_index+1)
+    params_json_str = args_section[start_index+1:end_index]
+    args  = json.loads(params_json_str)
+    # except Exception as e:
+    #     args = [e.strip().split( ) for e in args_section.split(',')]
     assert 'RETURNS'.lower() in return_section.lower(), f'Could not parse/find return type of the function in {return_section}'
     return_type = return_section.lower().strip().split(' ')[1]
     if enforce_bytea:
@@ -205,9 +244,6 @@ async def drop_sql_func(sql_func_name=None, dsn=None, conn_obj=None):
     sql_file_path = get_sql_file_path(sql_file_name=sql_func_name)
     sql_func_content = get_sqlfile_content(sql_file_path=sql_file_path)
     func_details = get_sql_func_details(sql_func_content=sql_func_content)
-    func_args = func_details['args']
-
-
     fqfn = f'{func_details["schema"]}.{func_details["name"]}'
     drop_func_query = f'DROP FUNCTION IF EXISTS {fqfn};'
     logger.debug(f'Dropping function {fqfn}')
@@ -239,21 +275,29 @@ async def run_sql_func(sql_func_name=None, dsn=None, conn_obj=None, z=0, x=0, y=
     sql_func_content = get_sqlfile_content(sql_file_path=sql_file_path)
     func_details = get_sql_func_details(sql_func_content=sql_func_content)
     func_args = func_details['args']
-
-
     fqfn = f'{func_details["schema"]}.{func_details["name"]}'
-    mandatory_args = [e[0] for e in func_args if 'default' not in e]
-    for marg in mandatory_args:
-        logger.debug(f'mandatory argument: {marg}')
-        assert marg in kwargs, f'{marg} is a mandatory argument for {fqfn}'
+    # DO NOT HANDLE MANDATORY ARGS FOR NOW
+    # mandatory_args = [e[0] for e in func_args if 'default'  in e]
+    # print(mandatory_args)
+    # for marg in mandatory_args:
+    #     logger.debug(f'mandatory argument: {marg}')
+    #     assert marg in kwargs, f'{marg} is a mandatory argument for {fqfn}'
 
     # run
-    func_args = dict(z=z,x=x,y=y)
-    func_args.update(kwargs)
-    args_as_str = ', '.join({f"{k} => '{v}'" if isinstance(v, str) else f"{k} => {v}" for k, v in func_args.items()})
+
+    default_json_args = {k:{'value':v['value']} for (k, v) in func_args.items()}
+
+    default_json_args.update(**kwargs)
+
+
+    #args_as_str = ', '.join({f"{k} => '{v}'" if isinstance(v, str) else f"{k} => {v}" for k, v in func_args.items()})
+    #url = f'https://pgtileserv.undpgeohub.org/admin.hdi_subnat_extarg/{z}/{x}/{y}.pbf?{args_as_str}'
+    print(default_json_args)
+    print(json.dumps(default_json_args, indent=4))
     execute_func_query = f'''
-        SELECT * FROM {fqfn}({args_as_str});
+        SELECT * FROM {fqfn}({z},{x},{y}, params => '{json.dumps(default_json_args, indent=4)}');
     '''
+    print(execute_func_query)
 
 
     return await conn_obj.fetchval(execute_func_query)

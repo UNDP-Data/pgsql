@@ -18,7 +18,7 @@ if __name__ == '__main__':
 
 
     #asyncio.run(run(dsn=dsn))
-    asyncio.run(util.deploy_sql_func(   sql_func_name='hdi_subnat.sql',
+    asyncio.run(util.deploy_sql_func(   sql_func_name='hdi_subnat_extarg.sql',
                                                 dsn=dsn,
 
                                     )
