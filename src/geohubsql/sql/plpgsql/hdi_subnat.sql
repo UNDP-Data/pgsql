@@ -48,19 +48,19 @@ CREATE OR REPLACE FUNCTION admin.hdi_subnat(
 
         CASE
             WHEN (z<=1) THEN
-                mvt_extent := 256;
+                mvt_extent := 256*2;
             WHEN (z=2) THEN
-                mvt_extent := 256;
+                mvt_extent := 256*2;
             WHEN (z=3) THEN
-                mvt_extent := 512;
+                mvt_extent := 512*2;
             WHEN (z=4) THEN
-                mvt_extent := 512;
+                mvt_extent := 512*2;
             WHEN (z=5) THEN
-                mvt_extent := 512;
+                mvt_extent := 512*2;
             WHEN (z>6)AND(z<=10) THEN
-                mvt_extent := 1024;
+                mvt_extent := 1024*2;
             WHEN (z>10)AND(z<=12) THEN
-                mvt_extent := 2048;
+                mvt_extent := 2048*2;
             ELSE
                 mvt_extent := 4096;
         END CASE;
@@ -109,9 +109,9 @@ CREATE OR REPLACE FUNCTION admin.hdi_subnat(
 			ROW_NUMBER () OVER (ORDER BY a.gdlcode) AS fid,
 			a.gdlcode,
 			--CAST(h.hdi as FLOAT)
-			h.hdi,
+			CAST(h.hdi as FLOAT),
             -- comment out after devel phase
-			z as z,
+			-- z as z,
 			-- comment out after devel phase
 			mvt_extent as mvt_extent_px,
 			definition_multiplier as ext_multiplier_val
