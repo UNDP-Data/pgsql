@@ -11,7 +11,7 @@ CREATE OR REPLACE FUNCTION admin.calc_hdi(
 --			life_expectancy:  "Life expectancy" (in years)
 --			mean_years_of_schooling: "Expected years schooling" (in years)
 --			expected_years_of_schooling: "Mean years schooling" (in years)
---			gross_national_income: "Log Gross National Income per capita" (in USD)
+--			gross_national_income: "Gross National Income per capita" (in USD)
 -- returns a decimal value
 
     DECLARE

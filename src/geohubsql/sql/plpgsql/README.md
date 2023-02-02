@@ -31,6 +31,7 @@ The  files received by the enduser are hence `.pbf` files.
   - it creates an additional and optional standard index for a column passed as an argument to enhance future `JOIN` operations and `WHERE` filters. It is recommended to create said index (and possibly others, as well) for all columns which are used for `JOIN`s and `WHERE`s.
 - MVT-generating functions are optimized for pg_tileServ, however, a convenience wrapper for martin (`martin.sql`) is also provided, and can be invoked as the pg_tileServ function, with the additional argument `function_name`.
 - in order to use pg_tileServe's internal map viewer, the first layer needs to be named `default`, otherwise it will not show up on pg_tileServ preview (it will however correctly work on UNDP's GeoHub, maplibre, leaflet, QGIS, etc.)
+- attributes need to be explicitly CAST in SQL, otherwise value will be shown in the client, but the type will be `undefined`
 
 # Usage
 

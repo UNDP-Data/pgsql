@@ -4,7 +4,8 @@ CREATE OR REPLACE FUNCTION admin.hdi_subnat_extarg(
     y integer default 0,
     params varchar default '{
               "le_incr":
-                {"param_name":"life_expectancy_increment",
+                { "id":"le_incr",
+                  "param_name":"life_expectancy_increment",
                   "type":"numeric",
                   "icon":"fa-people-roof",
                   "limits":{"min":-10,"max":10},
@@ -14,7 +15,8 @@ CREATE OR REPLACE FUNCTION admin.hdi_subnat_extarg(
                   "hidden":0,
                   "units":"years"},
               "eys_incr":
-                {"param_name":"expected_years_of_schooling_increment",
+                { "id":"eys_incr",
+                  "param_name":"expected_years_of_schooling_increment",
                   "type":"numeric",
                   "icon":"fa-graduation-cap",
                   "limits":{"min":-10,"max":10},
@@ -24,7 +26,8 @@ CREATE OR REPLACE FUNCTION admin.hdi_subnat_extarg(
                   "hidden":0,
                   "units":"years"},
               "mys_incr":
-                {"param_name":"mean_years_of_schooling_increment",
+                { "id":"mys_incr",
+                  "param_name":"mean_years_of_schooling_increment",
                   "type":"numeric",
                   "icon":"fa-school",
                   "limits":{"min":-10,"max":10},
@@ -34,7 +37,8 @@ CREATE OR REPLACE FUNCTION admin.hdi_subnat_extarg(
                   "hidden":0,
                   "units":"years"},
               "gni_incr":
-                {"param_name":"gross_national_income_increment",
+                { "id":"gni_incr",
+                  "param_name":"gross_national_income_increment",
                   "type":"numeric",
                   "icon":"fa-hand-holding-dollar",
                   "limits":{"min":-30000,"max":30000},
@@ -81,7 +85,8 @@ RETURNS bytea AS $$
         func_defaults jsonb :=
             '{
               "le_incr":
-                {"param_name":"life_expectancy_increment",
+                { "id":"le_incr",
+                  "param_name":"life_expectancy_increment",
                   "type":"numeric",
                   "icon":"fa-people-roof",
                   "limits":{"min":-10,"max":10},
@@ -91,7 +96,8 @@ RETURNS bytea AS $$
                   "hidden":0,
                   "units":"years"},
               "eys_incr":
-                {"param_name":"expected_years_of_schooling_increment",
+                { "id":"eys_incr",
+                  "param_name":"expected_years_of_schooling_increment",
                   "type":"numeric",
                   "icon":"fa-graduation-cap",
                   "limits":{"min":-10,"max":10},
@@ -101,7 +107,8 @@ RETURNS bytea AS $$
                   "hidden":0,
                   "units":"years"},
               "mys_incr":
-                {"param_name":"mean_years_of_schooling_increment",
+                { "id":"mys_incr",
+                  "param_name":"mean_years_of_schooling_increment",
                   "type":"numeric",
                   "icon":"fa-school",
                   "limits":{"min":-10,"max":10},
@@ -111,7 +118,8 @@ RETURNS bytea AS $$
                   "hidden":0,
                   "units":"years"},
               "gni_incr":
-                {"param_name":"gross_national_income_increment",
+                { "id":"gni_incr",
+                  "param_name":"gross_national_income_increment",
                   "type":"numeric",
                   "icon":"fa-hand-holding-dollar",
                   "limits":{"min":-30000,"max":30000},
@@ -128,7 +136,7 @@ RETURNS bytea AS $$
 --			life_expectancy_increment               increments/decrements the "Life expectancy" parameter
 --			expected_years_of_schooling_increment   increments/decrements the "Expected years schooling"  parameter
 --			mean_years_of_schooling_increment       increments/decrements the "Mean years schooling"  parameter
---			gross_national_income_increment         increments/decrements the "Log Gross National Income per capita" parameter
+--			gross_national_income_increment         increments/decrements the "Gross National Income per capita" parameter
 --
 -- input parameters shall be passed as JSON in the URL
 
@@ -200,11 +208,11 @@ RETURNS bytea AS $$
 			h."Life expectancy" AS LE,
 			h."Mean years schooling" AS MYS,
 			h."Expected years schooling" AS EYS,
-			h."Log Gross National Income per capita" AS GDI,
+			h."Gross National Income per capita" AS GDI,
 			admin.calc_hdi( GREATEST((h."Life expectancy"+le_incr)::decimal,0.0)::decimal,
 			                (h."Expected years schooling"+eys_incr)::decimal,
 			                (h."Mean years schooling"+mys_incr)::decimal,
-			                (h."Log Gross National Income per capita"*1000+gni_incr)::decimal) AS hdi
+			                (h."Gross National Income per capita"+gni_incr)::decimal) AS hdi
 			FROM admin.hdi_input_data h
 			--WHERE h."GDLCODE" like 'USA%'
         );
