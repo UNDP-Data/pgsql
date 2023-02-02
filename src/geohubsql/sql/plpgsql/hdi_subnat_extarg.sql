@@ -9,6 +9,7 @@ CREATE OR REPLACE FUNCTION admin.hdi_subnat_extarg(
                   "type":"numeric",
                   "icon":"fa-people-roof",
                   "limits":{"min":-10,"max":10},
+                  "abs_limits":{"min":0,"max":100},
                   "value":0,
                   "label":"Increment of life expectancy",
                   "widget_type":"slider",
@@ -20,6 +21,7 @@ CREATE OR REPLACE FUNCTION admin.hdi_subnat_extarg(
                   "type":"numeric",
                   "icon":"fa-graduation-cap",
                   "limits":{"min":-10,"max":10},
+                  "abs_limits":{"min":0,"max":30},
                   "value":0,
                   "label":"Increment of expected education",
                   "widget_type":"slider",
@@ -31,6 +33,7 @@ CREATE OR REPLACE FUNCTION admin.hdi_subnat_extarg(
                   "type":"numeric",
                   "icon":"fa-school",
                   "limits":{"min":-10,"max":10},
+                  "abs_limits":{"min":0,"max":30},
                   "value":0,
                   "label":"Increment of mean education",
                   "widget_type":"slider",
@@ -42,6 +45,7 @@ CREATE OR REPLACE FUNCTION admin.hdi_subnat_extarg(
                   "type":"numeric",
                   "icon":"fa-hand-holding-dollar",
                   "limits":{"min":-30000,"max":30000},
+                  "abs_limits":{"min":0,"max":150000},
                   "value":0,
                   "label":"Income increment",
                   "widget_type":"slider",
@@ -70,6 +74,16 @@ RETURNS bytea AS $$
         mys_incr float default 0;
         gni_incr float default 0;
 
+        le_min  float default 0;
+        eys_min float default 0;
+        mys_min float default 0;
+        gni_min float default 0;
+
+        le_max  float default 0;
+        eys_max float default 0;
+        mys_max float default 0;
+        gni_max float default 0;
+
         le_value  float default 0;
         eys_value float default 0;
         mys_value float default 0;
@@ -90,6 +104,7 @@ RETURNS bytea AS $$
                   "type":"numeric",
                   "icon":"fa-people-roof",
                   "limits":{"min":-10,"max":10},
+                  "abs_limits":{"min":0,"max":100},
                   "value":0,
                   "label":"Increment of life expectancy",
                   "widget_type":"slider",
@@ -101,6 +116,7 @@ RETURNS bytea AS $$
                   "type":"numeric",
                   "icon":"fa-graduation-cap",
                   "limits":{"min":-10,"max":10},
+                  "abs_limits":{"min":0,"max":30},
                   "value":0,
                   "label":"Increment of expected education",
                   "widget_type":"slider",
@@ -112,6 +128,7 @@ RETURNS bytea AS $$
                   "type":"numeric",
                   "icon":"fa-school",
                   "limits":{"min":-10,"max":10},
+                  "abs_limits":{"min":0,"max":30},
                   "value":0,
                   "label":"Increment of mean education",
                   "widget_type":"slider",
@@ -123,6 +140,7 @@ RETURNS bytea AS $$
                   "type":"numeric",
                   "icon":"fa-hand-holding-dollar",
                   "limits":{"min":-30000,"max":30000},
+                  "abs_limits":{"min":0,"max":150000},
                   "value":0,
                   "label":"Income increment",
                   "widget_type":"slider",
@@ -157,6 +175,18 @@ RETURNS bytea AS $$
         eys_incr := sanitized_json->'eys_incr'->'value';
         mys_incr := sanitized_json->'mys_incr'->'value';
         gni_incr := sanitized_json->'gni_incr'->'value';
+
+        -- recast once to avoid doing that every row
+        le_min  := (func_defaults->'le_incr'->'abs_limits'->'min')::float;
+        eys_min := (func_defaults->'eys_incr'->'abs_limits'->'min')::float;
+        mys_min := (func_defaults->'mys_incr'->'abs_limits'->'min')::float;
+        gni_min := (func_defaults->'gni_incr'->'abs_limits'->'min')::float;
+
+        le_max  := (func_defaults->'le_incr'->'abs_limits'->'max')::float;
+        eys_max := (func_defaults->'eys_incr'->'abs_limits'->'max')::float;
+        mys_max := (func_defaults->'mys_incr'->'abs_limits'->'max')::float;
+        gni_max := (func_defaults->'gni_incr'->'abs_limits'->'max')::float;
+
 
         --RAISE WARNING 'le_incr: %, eys_incr: %, mys_incr: %, gni_incr %', le_incr, eys_incr, mys_incr, gni_incr;
 
@@ -200,19 +230,25 @@ RETURNS bytea AS $$
 
         --RAISE WARNING 'Zoom Level is: %, definition_multiplier is %, mvt_extent is %', z, definition_multiplier, mvt_extent;
 
+--			                admin.utils_enforce_limits(h."Life expectancy"+le_incr,                    func_defaults->'le_incr'->'abs_limits'->'min'::float,  func_defaults->'le_incr'->'abs_limits'->'max'::float)::decimal,
+--			                admin.utils_enforce_limits(h."Expected years schooling"+eys_incr,          func_defaults->'eys_incr'->'abs_limits'->'min'::float, func_defaults->'eys_incr'->'abs_limits'->'max'::float)::decimal,
+--			                admin.utils_enforce_limits(h."Mean years schooling"+mys_incr,              func_defaults->'mys_incr'->'abs_limits'->'min'::float, func_defaults->'mys_incr'->'abs_limits'->'max'::float)::decimal,
+--			                admin.utils_enforce_limits(h."Gross National Income per capita"+gni_incr,  func_defaults->'gni_incr'->'abs_limits'->'min'::float, func_defaults->'gni_incr'->'abs_limits'->'max'::float)::decimal
 
 
         CREATE TEMPORARY TABLE hdi_extarg_tmp_table AS (
             SELECT
 			h."GDLCODE" AS gdlcode,
-			h."Life expectancy" AS LE,
-			h."Mean years schooling" AS MYS,
-			h."Expected years schooling" AS EYS,
-			h."Gross National Income per capita" AS GDI,
-			admin.calc_hdi( GREATEST((h."Life expectancy"+le_incr)::decimal,0.0)::decimal,
-			                (h."Expected years schooling"+eys_incr)::decimal,
-			                (h."Mean years schooling"+mys_incr)::decimal,
-			                (h."Gross National Income per capita"+gni_incr)::decimal) AS hdi
+			--h."Life expectancy" AS LE,
+			--h."Mean years schooling" AS MYS,
+			--h."Expected years schooling" AS EYS,
+			--h."Gross National Income per capita" AS GDI,
+			admin.calc_hdi(
+			                admin.utils_enforce_limits(h."Life expectancy"                  + le_incr,  le_min,   le_max)::decimal,
+			                admin.utils_enforce_limits(h."Expected years schooling"         + eys_incr, eys_min,  eys_max)::decimal,
+			                admin.utils_enforce_limits(h."Mean years schooling"             + mys_incr, mys_min,  mys_max)::decimal,
+			                admin.utils_enforce_limits(h."Gross National Income per capita" + gni_incr, gni_min,  gni_max)::decimal
+			                ) AS hdi
 			FROM admin.hdi_input_data h
 			--WHERE h."GDLCODE" like 'USA%'
         );
