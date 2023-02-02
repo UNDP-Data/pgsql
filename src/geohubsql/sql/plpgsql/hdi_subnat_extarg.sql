@@ -237,7 +237,7 @@ RETURNS bytea AS $$
             ORDER BY a.gdlcode
             --LIMIT feat_limit
             );
-            
+
         --COMMENT ON COLUMN mvtgeom.hdi is 'Human Development Index';
 
         SELECT ST_AsMVT(mvtgeom.*,layer_name, mvt_extent, 'geom', 'fid')
