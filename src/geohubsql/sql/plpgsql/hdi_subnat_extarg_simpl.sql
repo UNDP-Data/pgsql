@@ -200,38 +200,42 @@ RETURNS bytea AS $$
         --let's set St_AsMVT's extent as a function of the zoom level
         --in order to reduce network usage and increase the UX.
 
-        CASE
-            WHEN (z<=1) THEN
-                mvt_extent := 512;
-            WHEN (z=2) THEN
-                mvt_extent := 512;
-            WHEN (z=3) THEN
-                mvt_extent := 512;
-            WHEN (z=4) THEN
-                mvt_extent := 512;
-            WHEN (z=5) THEN
-                mvt_extent := 512;
-            WHEN (z>6)AND(z<=10) THEN
-                mvt_extent := 1024;
-            WHEN (z>10)AND(z<=12) THEN
-                mvt_extent := 2048;
-            ELSE
-                mvt_extent := 4096;
-        END CASE;
+
+        EXECUTE format('SELECT * FROM admin.util_lookup_mvt_extent(%s)',z) INTO mvt_extent;
+
+-- TODO benckmark CASEs vs util_lookup_mvt_extent
+--        CASE
+--            WHEN (z<=1) THEN
+--                mvt_extent := 512;
+--            WHEN (z=2) THEN
+--                mvt_extent := 512;
+--            WHEN (z=3) THEN
+--                mvt_extent := 512;
+--            WHEN (z=4) THEN
+--                mvt_extent := 512;
+--            WHEN (z=5) THEN
+--                mvt_extent := 512;
+--            WHEN (z>6)AND(z<=10) THEN
+--                mvt_extent := 1024;
+--            WHEN (z>10)AND(z<=12) THEN
+--                mvt_extent := 2048;
+--            ELSE
+--                mvt_extent := 4096;
+--        END CASE;
 
         --EXECUTE format('SELECT * FROM admin.util_lookup_simplified_table_name(''admin'',''admin1_3857'',%s)',z) INTO simplified_table_name;
 
         -- comment out after devel phase
         --mvt_extent := definition_multiplier*mvt_extent;
-        IF (mvt_extent > max_extent) THEN
-            mvt_extent := max_extent;
-        END IF;
-        IF (mvt_extent < min_extent) THEN
-            mvt_extent := min_extent;
-        END IF;
+--        IF (mvt_extent > max_extent) THEN
+--            mvt_extent := max_extent;
+--        END IF;
+--        IF (mvt_extent < min_extent) THEN
+--            mvt_extent := min_extent;
+--        END IF;
         --
 
-        --RAISE WARNING 'Zoom Level is: %, definition_multiplier is %, mvt_extent is %', z, definition_multiplier, mvt_extent;
+        RAISE WARNING 'Zoom Level is: %, mvt_extent is %', z, mvt_extent;
 
 --			                admin.utils_enforce_limits(h."Life expectancy"+le_incr,                    func_defaults->'le_incr'->'abs_limits'->'min'::float,  func_defaults->'le_incr'->'abs_limits'->'max'::float)::decimal,
 --			                admin.utils_enforce_limits(h."Expected years schooling"+eys_incr,          func_defaults->'eys_incr'->'abs_limits'->'min'::float, func_defaults->'eys_incr'->'abs_limits'->'max'::float)::decimal,
@@ -268,7 +272,7 @@ RETURNS bytea AS $$
 
         EXECUTE format('SELECT * FROM admin.util_lookup_simplified_table_name(''admin'',''admin1_3857'',%s)',z) INTO simplified_table_name;
 
-        RAISE WARNING 'SIMPLIFYING into %', simplified_table_name;
+--        RAISE WARNING 'Uding implified table %', simplified_table_name;
 
         EXECUTE format('CREATE TEMPORARY TABLE mvtgeom AS (
 
@@ -279,8 +283,8 @@ RETURNS bytea AS $$
 			--h.hdi,
             -- comment out after devel phase
 			CAST(%s as INTEGER) as z,
-			CAST(%s as INTEGER) as x,
-			CAST(%s as INTEGER) as y,
+--			CAST(%s as INTEGER) as x,
+--			CAST(%s as INTEGER) as y,
 			-- comment out after devel phase
 			CAST(%s as INTEGER) as mvt_extent_px,
 			''%s'' as table_name
@@ -300,7 +304,7 @@ RETURNS bytea AS $$
 
         --COMMENT ON COLUMN mvtgeom.hdi is 'Human Development Index';
 
-        RAISE WARNING 'SIMPLIFIED into %', simplified_table_name;
+        --RAISE WARNING 'SIMPLIFIED into %', simplified_table_name;
 
         SELECT ST_AsMVT(mvtgeom.*,layer_name, mvt_extent, 'geom', 'fid')
 		FROM mvtgeom
