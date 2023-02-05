@@ -79,10 +79,10 @@ table_name_opt_idx_geom = lower(input_table_name) || '_opt_idx_geom';
 IF (geom_col_name IS NOT NULL) THEN
 
 	-- drop the optimized table, if already existing
-	EXECUTE format('DROP TABLE IF EXISTS %I.%I',
-						input_schema_name, table_name_opt);
+	EXECUTE format('DROP TABLE IF EXISTS %I.%I',	input_schema_name, table_name_opt);
 
 	-- physical storage rewriting of the table, ordered geometry-wise to make it faster to retrieve contiguous features
+	-- probably not useful on Azure, to be benchmarked
 	EXECUTE format('
 	CREATE TABLE %I.%I AS
 	SELECT * FROM %I.%I as optimized_table
@@ -132,6 +132,8 @@ IF (opt_additional_col_to_be_indexed IS NOT NULL) THEN
 				   opt_col_index, input_schema_name,
 				   table_name_opt, opt_additional_col_to_be_indexed
 				  );
+
+
 		exit_code = 0;
 
 	ELSE
@@ -145,7 +147,34 @@ ELSE
 	exit_code = 3;
 END IF;
 
+IF ((exit_code = 0)OR(exit_code=3)) THEN
+
+-- delete the previous table and rename the new one
+
+		--RAISE NOTICE 'DROPping  %.%',input_schema_name, input_table_name;
+	    EXECUTE format('DROP TABLE %I.%I;',
+	                input_schema_name, input_table_name
+				  );
+
+		--RAISE NOTICE 'RENAMing  %.% to %.%',input_schema_name, table_name_opt, input_schema_name, input_table_name;
+	    EXECUTE format('ALTER TABLE %I.%I RENAME TO %I;',
+	               input_schema_name, table_name_opt, input_table_name
+	               );
+-- 		EXECUTE format('ALTER INDEX %I RENAME TO %I;',
+-- 	               opt_index_name, base_index_name
+-- 	               );
+
+		--RAISE NOTICE 'Granting standard permissions on %.%',input_schema_name, table_name_opt;
+	    EXECUTE format('SELECT * FROM admin.grant_standard_permissions_on_table(''%s'',''%s'')',
+	                input_schema_name, input_table_name
+				  );
+
+END IF;
+
 RETURN exit_code;
 
 END
-$$  LANGUAGE plpgsql SECURITY DEFINER
+$$  LANGUAGE plpgsql SECURITY DEFINER;
+
+--CREATE TABLE admin.admin1_3857_bu AS SELECT * from admin.admin1_3857;
+--SELECT * FROM admin.optimize_geom('admin','admin1_3857');
