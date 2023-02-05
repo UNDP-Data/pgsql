@@ -200,9 +200,6 @@ RETURNS bytea AS $$
         --let's set St_AsMVT's extent as a function of the zoom level
         --in order to reduce network usage and increase the UX.
 
-
-
-
         CASE
             WHEN (z<=1) THEN
                 mvt_extent := 512;
@@ -222,6 +219,7 @@ RETURNS bytea AS $$
                 mvt_extent := 4096;
         END CASE;
 
+        --EXECUTE format('SELECT * FROM admin.util_lookup_simplified_table_name(''admin'',''admin1_3857'',%s)',z) INTO simplified_table_name;
 
         -- comment out after devel phase
         --mvt_extent := definition_multiplier*mvt_extent;
@@ -260,8 +258,8 @@ RETURNS bytea AS $$
 
 		CREATE INDEX IF NOT EXISTS "hdi_extarg_tmp_table_simpl_idx1" ON "hdi_extarg_tmp_table_simpl" (gdlcode);
 
+        -- takes about 50 millisecs to create
 		DROP TABLE IF EXISTS bounds;
-
         CREATE TEMPORARY TABLE bounds AS (
 			SELECT ST_TileEnvelope(z,x,y) AS geom
 		);
@@ -281,6 +279,8 @@ RETURNS bytea AS $$
 			--h.hdi,
             -- comment out after devel phase
 			CAST(%s as INTEGER) as z,
+			CAST(%s as INTEGER) as x,
+			CAST(%s as INTEGER) as y,
 			-- comment out after devel phase
 			CAST(%s as INTEGER) as mvt_extent_px,
 			''%s'' as table_name
@@ -292,29 +292,11 @@ RETURNS bytea AS $$
             --LIMIT feat_limit
             );',
             mvt_extent, mvt_buffer,
-            z, mvt_extent, simplified_table_name,
+            z, x, y,
+            mvt_extent, simplified_table_name,
             simplified_table_name
             );
 
-
---        CREATE TEMPORARY TABLE mvtgeom AS (
---
---            SELECT ST_AsMVTGeom(a.geom, bounds.geom, extent => mvt_extent, buffer => mvt_buffer) AS geom,
---			ROW_NUMBER () OVER (ORDER BY a.gdlcode) AS fid,
---			a.gdlcode,
---			CAST(h.hdi as FLOAT),
---			--h.hdi,
---            -- comment out after devel phase
---			CAST(z as INTEGER) as z,
---			-- comment out after devel phase
---			CAST(mvt_extent as INTEGER) as mvt_extent_px
---			--definition_multiplier as ext_multiplier_val
---            FROM admin."admin1_3857_s10000" a
---			JOIN bounds ON ST_Intersects(a.geom, bounds.geom)
---            JOIN hdi_extarg_tmp_table_simpl h ON a.gdlcode = h.gdlcode
---            ORDER BY a.gdlcode
---            --LIMIT feat_limit
---            );
 
         --COMMENT ON COLUMN mvtgeom.hdi is 'Human Development Index';
 

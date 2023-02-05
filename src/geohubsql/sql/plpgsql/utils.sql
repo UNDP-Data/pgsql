@@ -62,7 +62,7 @@ RETURNS boolean AS $utils_simplify_vlayer$
     BEGIN
 
         _output_table_name := input_table_name||'_'||suffix;
-        RAISE WARNING 'new table name: %s', _output_table_name ;
+        --RAISE WARNING 'new table name: %s', _output_table_name ;
 
 		EXECUTE format(
 			'DROP TABLE IF EXISTS %I.%I ;',
@@ -155,12 +155,20 @@ CREATE OR REPLACE FUNCTION admin.util_check_table_exists(
     RETURNS boolean AS $util_check_table_exists$
 
     DECLARE
-        suffix varchar default '';
-        simplified_table_name varchar default NULL;
+        table_exists boolean default FALSE;
 
     BEGIN
-        -- TODO: check simplified_table_name existence
-        RETURN TRUE;
+
+        EXECUTE format('SELECT EXISTS (
+        SELECT FROM
+            pg_tables
+        WHERE
+            schemaname = ''%s'' AND
+            tablename  = ''%s''
+        );',
+        input_schema_name, input_table_name) INTO table_exists;
+
+        RETURN table_exists;
     END
 $util_check_table_exists$ LANGUAGE plpgsql VOLATILE STRICT PARALLEL SAFE;
 
@@ -195,7 +203,7 @@ CREATE OR REPLACE FUNCTION admin.util_lookup_simplified_table_name(
         , zoom_level)
         INTO suffix;
 
-	RAISE NOTICE 'found suffix: %',suffix;
+	--RAISE NOTICE 'found suffix: %',suffix;
 
     IF (length (suffix)>0) THEN
         simplified_table_name := input_table_name||'_'||suffix;
@@ -203,16 +211,13 @@ CREATE OR REPLACE FUNCTION admin.util_lookup_simplified_table_name(
         simplified_table_name := input_table_name;
     END IF;
 
-	RAISE NOTICE 'simplified_table_name: %',simplified_table_name;
+	--RAISE NOTICE 'simplified_table_name: %',simplified_table_name;
 
      EXECUTE format('SELECT * FROM  admin.util_check_table_exists(''%s'', ''%s'')', input_schema_name, simplified_table_name)
      INTO table_exists;
-	RAISE NOTICE 'table_exists: %',table_exists;
+	--RAISE NOTICE 'table_exists: %',table_exists;
 
-    IF (table_exists) THEN
-        RAISE NOTICE 'found simplified_table_name: %',simplified_table_name;
-
-    ELSE
+    IF (NOT table_exists) THEN
         RAISE NOTICE 'ERR NOT FOUND simplified_table_name: %',simplified_table_name;
         simplified_table_name:=input_table_name;
     END IF;
@@ -225,6 +230,49 @@ $util_lookup_simplified_table_name$ LANGUAGE plpgsql VOLATILE STRICT PARALLEL SA
 --
 --SELECT * FROM admin.util_lookup_simplified_table_name('admin', 'whatever', 7);
 
+
+-----------------------------------------------------------------------------
+-----------------------------------------------------------------------------
+----------------            util_lookup_mvt_extent           ----------------
+-----------------------------------------------------------------------------
+-----------------------------------------------------------------------------
+
+
+CREATE OR REPLACE FUNCTION admin.util_lookup_mvt_extent(
+        zoom_level integer default 0
+        )
+
+    RETURNS integer AS $util_lookup_mvt_extent$
+
+    DECLARE
+        _mvt_extent integer default NULL;
+
+    BEGIN
+
+        EXECUTE format(
+        'SELECT vzl.mvt_extent_value FROM admin.vector_zoom_level AS vzl
+        where vzl.zoom_level = %s
+        LIMIT 1;'
+        , zoom_level)
+        INTO _mvt_extent;
+
+--        SELECT vzl.mvt_extent_value FROM admin.vector_zoom_level AS vzl
+--        where vzl.zoom_level = zoom_level
+--        LIMIT 1
+--        INTO _mvt_extent;
+
+    IF (_mvt_extent IS NULL)OR(_mvt_extent<=0) THEN
+        _mvt_extent := 4096;
+    END IF;
+
+--	RAISE NOTICE '_mvt_extent: %',_mvt_extent;
+
+    RETURN _mvt_extent;
+    END
+$util_lookup_mvt_extent$ LANGUAGE plpgsql VOLATILE STRICT PARALLEL SAFE;
+
+--
+--SELECT * FROM admin.util_lookup_mvt_extent(7);
 
 
 -----------------------------------------------------------------------------
@@ -281,6 +329,9 @@ BEGIN
             (30,'',          0)
             ;
 
+        DROP INDEX IF EXISTS vector_simplification_level_idx;
+        CREATE INDEX IF NOT EXISTS vector_simplification_level_idx ON admin.vector_simplification_level (zoom_level);
+
 		DROP TABLE IF EXISTS admin.vector_zoom_level;
         CREATE TABLE admin.vector_zoom_level (
            zoom_level integer PRIMARY KEY,
@@ -321,6 +372,9 @@ BEGIN
             (29,4096),
             (30,4096)
             ;
+
+            DROP INDEX IF EXISTS vector_zoom_level_idx;
+            CREATE INDEX IF NOT EXISTS vector_zoom_level_idx ON admin.vector_zoom_level (zoom_level);
 
             RETURN TRUE;
 END
