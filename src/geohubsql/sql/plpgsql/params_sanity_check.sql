@@ -34,7 +34,7 @@ RETURNS json AS $params_sanity_check$
             AND ((default_param->_key->'limits'->>'max')::numeric >= _this_value::numeric)
             THEN
 
-				_sanitized_value := regexp_replace(_this_value, '[^0-9.]+','','g')::jsonb;
+				_sanitized_value := regexp_replace(_this_value, '[^0-9.]+-','','g')::jsonb;
                 --_sanitized_value := requested_params->_key->'value';
 
             ELSE

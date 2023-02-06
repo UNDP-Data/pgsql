@@ -283,8 +283,8 @@ RETURNS bytea AS $$
 			--h.hdi,
             -- comment out after devel phase
 			CAST(%s as INTEGER) as z,
---			CAST(%s as INTEGER) as x,
---			CAST(%s as INTEGER) as y,
+			CAST(%s as INTEGER) as x,
+			CAST(%s as INTEGER) as y,
 			-- comment out after devel phase
 			CAST(%s as INTEGER) as mvt_extent_px,
 			''%s'' as table_name

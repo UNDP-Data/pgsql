@@ -15,9 +15,11 @@ RETURNS float AS $utils_enforce_limits$
 
         IF (input_value < abs_min) THEN
             _sanitized_value = abs_min;
+            --RAISE WARNING 'WARN LOW  utils_enforce_limits %, %, % -> %', input_value, abs_min, abs_max, _sanitized_value;
         ELSE
             IF (input_value > abs_max) THEN
                 _sanitized_value = abs_max;
+               --RAISE WARNING 'WARN HIGH utils_enforce_limits %, %, % -> %', input_value, abs_min, abs_max, _sanitized_value;
             ELSE
                _sanitized_value = input_value;
             END IF;
