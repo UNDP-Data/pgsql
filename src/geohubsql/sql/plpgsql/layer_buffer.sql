@@ -28,6 +28,7 @@ RETURNS bytea AS $$
         --mvt:=admin.hdi_subnat_extarg(z,x,y,query_params::text);
         --mvt:=function_name(z,x,y,query_params::text);
 -- TODO
+-- make the input params coherent with the structure used in function layers
 -- what if buffer_distance <=0 ?
 -- what if geom column name is not 'geom' ?
 -- what about the attributes in the original layer? -> drop them, the buffer will be likely used as a binary mask
