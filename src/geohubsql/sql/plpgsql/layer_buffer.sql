@@ -34,12 +34,11 @@ RETURNS bytea AS $$
 -- opt buffer distance taken from a field of the original layer?
 -- check geom type?
 
-
         requested_json := params::jsonb;
-        input_layer_name  := requested_json->'input_layer_name';
+        input_layer_name  := trim('"' FROM (requested_json->'input_layer_name')::text);
         buffer_distance  := (requested_json->'buffer_distance')::float;
 
-        --RAISE WARNING 'layer_name: %, buffer_distance: %', input_layer_name, buffer_distance;
+        --RAISE WARNING 'OOOOOOOOOO input_layer_name: %, buffer_distance: %', input_layer_name, buffer_distance;
 
         -- takes about 50 millisecs to create
 		DROP TABLE IF EXISTS bounds;
@@ -74,15 +73,19 @@ RETURNS bytea AS $$
 --		INTO mvt;
 
 
+        DROP TABLE IF EXISTS temp_buffer;
 
+        EXECUTE format('CREATE TEMPORARY TABLE temp_buffer AS (
+            SELECT ST_Union(ST_Buffer(a.geom, %1$s)) AS geom
+            FROM %s a
+            );',
+            buffer_distance, input_layer_name
+            );
 
         SELECT ST_AsMVT(mvtgeom.*,'default', 2048, 'geom')
 		FROM (
             SELECT ST_AsMVTGeom(t.geom, bounds.geom, extent => 2048, buffer => 256) AS geom
-            FROM (
-            SELECT ST_Union(ST_Buffer(a.geom, 1000)) AS geom
-            FROM admin.water_facilities a
-        ) t
+            FROM temp_buffer t
             JOIN bounds ON ST_Intersects(t.geom, bounds.geom)
         ) AS mvtgeom
 		INTO mvt;

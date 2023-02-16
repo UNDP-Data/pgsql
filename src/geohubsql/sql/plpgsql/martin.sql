@@ -32,16 +32,16 @@ $$ LANGUAGE plpgsql VOLATILE STRICT PARALLEL SAFE;
 COMMENT ON FUNCTION admin.martin IS 'This is martin, please insert the desired incremental values';
 
 --
-SELECT * FROM admin.martin(0,0,0,'{
-  "le_incr":
-    {"value":1},
-  "eys_incr":
-     {"value":2},
-    "mys_incr":
-     {"value":3},
-  "gni_incr":
-     {"value":4}
-}') AS OUTP;
+--SELECT * FROM admin.martin(0,0,0,'{
+--  "le_incr":
+--    {"value":1},
+--  "eys_incr":
+--     {"value":2},
+--    "mys_incr":
+--     {"value":3},
+--  "gni_incr":
+--     {"value":4}
+--}') AS OUTP;
 --
 
 -- works in QGIS:
