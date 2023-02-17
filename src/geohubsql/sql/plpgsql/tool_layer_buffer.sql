@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION admin.layer_buffer (
+CREATE OR REPLACE FUNCTION admin.tool_layer_buffer (
     z integer default 0,
     x integer default 0,
     y integer default 0,
@@ -40,7 +40,7 @@ CREATE OR REPLACE FUNCTION admin.layer_buffer (
                   "icon":"fa-text-height",
                   "label":"Only apply to features with this attribute",
                   "widget_type":"search box",
-                  "value":"national roads",
+                  "value":"National roads",
                   "hidden":0}
             }'
     )
@@ -49,7 +49,7 @@ RETURNS bytea AS $$
 
     DECLARE
         mvt bytea;
-        output_layer_name varchar := 'admin.layer_buffer';
+        output_layer_name varchar := 'admin.tool_layer_buffer';
 
         defaults_json jsonb;
 		requested_json jsonb;
@@ -210,7 +210,7 @@ RETURNS bytea AS $$
            JOIN bounds ON ST_Intersects(t.geom, bounds.geom)
        );
 
-        SELECT ST_AsMVT(mvtgeom.*, 'admin.layer_buffer', 2048, 'geom')
+        SELECT ST_AsMVT(mvtgeom.*, 'admin.tool_layer_buffer', 2048, 'geom')
         FROM mvtgeom AS mvtgeom
 		INTO mvt;
 
@@ -221,25 +221,28 @@ RETURNS bytea AS $$
     END
 $$ LANGUAGE plpgsql VOLATILE STRICT PARALLEL SAFE;
 
-COMMENT ON FUNCTION admin.layer_buffer IS 'Buffer a vector layer by a given distance';
+COMMENT ON FUNCTION admin.tool_layer_buffer IS 'Buffer a vector layer by a given distance';
 
 -- EXAMPLES:
 
---SELECT * FROM admin.layer_buffer(0,0,0,'{
---"input_layer_name": {"value":"admin.roads"},
---"buffer_distance":  {"value":1200},
---"filter_attribute": {"value":"type"},
---"filter_value":     {"value":"national road"}
---}');
+SELECT * FROM admin.tool_layer_buffer(0,0,0,'{
+"input_layer_name": {"value":"rwanda.roads"},
+"buffer_distance":  {"value":1200},
+"filter_attribute": {"value":"type"},
+"filter_value":     {"value":"national road"}
+}');
 
---SELECT * FROM admin.layer_buffer(0,0,0,'{
---"input_layer_name": {"value":"admin.water_facilities"},
---"buffer_distance":  {"value":1200},
---"filter_attribute": {"value":"wsf_type"},
---"filter_value":     {"value":"Improved Spring"}
---}');
+SELECT * FROM admin.tool_layer_buffer(0,0,0,'{
+"input_layer_name": {"value":"rwanda.water_facilities"},
+"buffer_distance":  {"value":1200},
+"filter_attribute": {"value":"wsf_type"},
+"filter_value":     {"value":"Improved Spring"}
+}');
 
 -- works in QGIS:
--- http://172.18.0.6:7800/admin.layer_buffer/{z}/{x}/{y}.pbf?params={"input_layer_name":{"value":"admin.water_facilities"},"buffer_distance":{"value":1200}}
--- http://172.18.0.6:7800/admin.layer_buffer/{z}/{x}/{y}.pbf?params={"input_layer_name":{"value":"admin.roads"},"buffer_distance":{"value":1200},"filter_attribute":{"value":"type"},"filter_value":{"value":"national road"}}
--- http://172.18.0.6:7800/admin.layer_buffer/{z}/{x}/{y}.pbf?params={"input_layer_name":{"value":"admin.water_facilities"},"buffer_distance":{"value":1200},"filter_attribute":{"value":"wsf_type"},"filter_value":{"value":"Improved Spring"}}
+-- http://172.18.0.6:7800/admin.tool_layer_buffer/{z}/{x}/{y}.pbf?params={"input_layer_name":{"value":"admin.water_facilities"},"buffer_distance":{"value":1200}}
+-- http://172.18.0.6:7800/admin.tool_layer_buffer/{z}/{x}/{y}.pbf?params={"input_layer_name":{"value":"admin.roads"},"buffer_distance":{"value":1200},"filter_attribute":{"value":"type"},"filter_value":{"value":"National road"}}
+-- http://172.18.0.6:7800/admin.tool_layer_buffer/{z}/{x}/{y}.pbf?params={"input_layer_name":{"value":"admin.water_facilities"},"buffer_distance":{"value":1200},"filter_attribute":{"value":"wsf_type"},"filter_value":{"value":"Improved Spring"}}
+--
+ https://pgtileserv.undpgeohub.org/admin.tool_layer_buffer/{z}/{x}/{y}.pbf?params={"input_layer_name":{"value":"rwanda.roads"},"buffer_distance":{"value":1200},"filter_attribute":{"value":"type"},"filter_value":{"value":"National road"}}
+ https://pgtileserv.undpgeohub.org/admin.tool_layer_buffer/{z}/{x}/{y}.pbf?params={"input_layer_name":{"value":"rwanda.water_facilities"},"buffer_distance":{"value":1200},"filter_attribute":{"value":"wsf_type"},"filter_value":{"value":"Improved Spring"}}
