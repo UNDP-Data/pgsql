@@ -16,7 +16,8 @@ RETURNS json AS $params_sanity_check$
         _outp varchar;
         _path text[];
 		_this_value varchar;
-		_max_value_field_length constant int := 10;
+		_numeric_max_value_field_length constant int :=  10;
+		_text_max_value_field_length constant int    := 255;
 
     BEGIN
 
@@ -25,24 +26,46 @@ RETURNS json AS $params_sanity_check$
 
 			_this_value := requested_params->_key->>'value'::varchar;
 
-			IF (length(_this_value) >= _max_value_field_length) THEN
-				_this_value := left(_this_value, _max_value_field_length);
-			END IF;
+			CASE
+			    WHEN ((default_param->_key->>'type') = 'numeric') THEN
 
-            IF  _this_value IS NOT NULL
-			AND ((default_param->_key->'limits'->>'min')::numeric <= _this_value::numeric)
-            AND ((default_param->_key->'limits'->>'max')::numeric >= _this_value::numeric)
-            THEN
+                    IF (length(_this_value) >= _numeric_max_value_field_length) THEN
+                        _this_value := left(_this_value, _numeric_max_value_field_length);
+                    END IF;
 
-				_sanitized_value := regexp_replace(_this_value, '[^0-9.]+-','','g')::jsonb;
-                --_sanitized_value := requested_params->_key->'value';
+                    IF _this_value IS NOT NULL
+                        AND ((default_param->_key->'limits'->>'min')::numeric <= _this_value::numeric)
+                       AND ((default_param->_key->'limits'->>'max')::numeric >= _this_value::numeric)
+                    THEN
+                        _sanitized_value := regexp_replace(_this_value, '[^0-9.-]+','','g')::jsonb;
+                    ELSE
+                        _sanitized_value := default_param->_key->>'value'::jsonb;
+                    END IF;
 
-            ELSE
-                _sanitized_value := default_param->_key->'value';
+                WHEN ((default_param->_key->>'type') = 'text') THEN
 
-            END IF;
+--                    _sanitized_value := LEFT(regexp_replace(_this_value, '[^a-zA-Z0-9_\-\.]+','','g'),_text_max_value_field_length)::jsonb;
+					_this_value	     := LEFT(_this_value,_text_max_value_field_length);
+-- 					RAISE WARNING 'TEXT this_value 1 %: %', _key, _this_value;
+					_this_value	     := regexp_replace(_this_value, '[^a-zA-Z0-9_\-\. ]+','','g');
+-- 					RAISE WARNING 'TEXT this_value 2 %: %', _key, _this_value;
+                    IF (length(_this_value)=0) THEN
+                        _this_value='null'; --lower case, because we want a JSON null
+                    END IF;
+
+					_sanitized_value := to_jsonb(_this_value);
+-- 					RAISE WARNING 'TEXT _sanitized_value - %: %',_key, _sanitized_value;
+
+                ELSE
+                    _sanitized_value := default_param->_key->>'value';
+
+                END CASE;
+
+
+
+
             --RAISE WARNING 'SIZE: %' $.default_param._key.'value'.size()::text;
-            --RAISE WARNING 'k: %, p:%, saniv:%', _key, _payload, _sanitized_value;
+--             RAISE WARNING 'k: %, p:%, saniv:%', _key, _payload, _sanitized_value;
 			_output_payload:=jsonb_build_object('value',_sanitized_value);
             _path:=array[_key];
 
