@@ -65,14 +65,54 @@ RETURNS bytea AS $$
 
     BEGIN
 
+-- TODO
+-- make the input params coherent with the structure used in function layers -- DONE
+-- add filters -- DONE
+-- what if buffer_distance <=0 ?
+-- what if geom column name is not 'geom' ?
+-- what about the attributes in the original layer? -> drop them, the buffer will be likely used as a binary mask
+--                                                  -> add an opt flag to the function parameters to preserve attrs
+-- opt buffer distance taken from a field of the original layer?
+-- check geom type? -- Not needed
+
+--        defaults_json        := func_defaults::jsonb;
+--        requested_json       := params::jsonb;
+--
+--        -- sanitize the JSON before proceeding
+--        sanitized_json       := admin.params_sanity_check(defaults_json, requested_json);
+--
+--        input_layer_name     := trim('"' FROM (sanitized_json->'input_layer_name'->'value')::text);
+--        buffer_distance      := (sanitized_json->'buffer_distance'->'value')::float;
+--   		filter_attribute     := trim('"' FROM (sanitized_json->'filter_attribute'->'value')::text);
+--		filter_value         := trim('"' FROM (sanitized_json->'filter_value'->'value')::text);
+--
+--        simplify_distance    := buffer_distance/4;
+
+
 		DROP TABLE IF EXISTS bounds;
         CREATE TEMPORARY TABLE bounds AS (
 			SELECT ST_TileEnvelope(z,x,y) AS geom
 		);
 
+--		DROP TABLE IF EXISTS bounds_buffered;
+--
+--
+--        --create a temp table to avoid buffering bounds at every JOIN in the main query
+--        EXECUTE format('
+--            CREATE TEMPORARY TABLE bounds_buffered AS (
+--                SELECT ST_Buffer(b.geom,%s) AS geom
+--                FROM bounds AS b
+--            );',
+--            buffer_distance);
+--
+--        DROP TABLE IF EXISTS temp_buffer;
+
+
+        -- we need to buffer the tiles of the bounds table to include the buffers of features in neighbouring tiles.
+
         DROP TABLE IF EXISTS temp_buffer_union;
         CREATE TEMPORARY TABLE temp_buffer_union AS (
-            SELECT geom FROM admin.tool_layer_buffer_core(z,x,y,params)
+            SELECT geom FROM admin.tool_layer_buffer_core(0,0,0,params)
             );
 
 --       SELECT count(*) FROM temp_buffer_union INTO res_counter;
