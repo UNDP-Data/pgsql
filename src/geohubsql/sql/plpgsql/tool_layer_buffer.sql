@@ -68,7 +68,7 @@ RETURNS bytea AS $$
             CREATE TEMPORARY TABLE temp_buffer AS (
                 SELECT ST_Buffer(ST_Simplify(a.geom, %s), %s) AS geom
                 FROM %s a
-                JOIN bounds AS b
+                JOIN bounds_buffered AS b
                 ON ST_Intersects(a.geom, ST_Buffer(b.geom, %s))
                 WHERE a.%s = '%s'
                 );
@@ -80,7 +80,7 @@ RETURNS bytea AS $$
             CREATE TEMPORARY TABLE temp_buffer AS (
                 SELECT ST_Buffer(ST_Simplify(a.geom, %s), %s) AS geom
                 FROM %s a
-                JOIN bounds AS b
+                JOIN bounds_buffered AS b
                 ON ST_Intersects(a.geom, ST_Buffer(b.geom, %s))
                 );
             $STMT2$;
@@ -159,6 +159,17 @@ RETURNS bytea AS $$
 			SELECT ST_TileEnvelope(z,x,y) AS geom
 		);
 
+		DROP TABLE IF EXISTS bounds_buffered;
+
+
+        --create a temp table to avoid buffering bounds at every JOIN in the main query
+        EXECUTE format('
+            CREATE TEMPORARY TABLE bounds_buffered AS (
+                SELECT ST_Buffer(b.geom,%s) AS geom
+                FROM bounds AS b
+            );',
+            buffer_distance);
+
         DROP TABLE IF EXISTS temp_buffer;
 
 
@@ -225,24 +236,24 @@ COMMENT ON FUNCTION admin.tool_layer_buffer IS 'Buffer a vector layer by a given
 
 -- EXAMPLES:
 
-SELECT * FROM admin.tool_layer_buffer(0,0,0,'{
-"input_layer_name": {"value":"rwanda.roads"},
-"buffer_distance":  {"value":1200},
-"filter_attribute": {"value":"type"},
-"filter_value":     {"value":"national road"}
-}');
-
-SELECT * FROM admin.tool_layer_buffer(0,0,0,'{
-"input_layer_name": {"value":"rwanda.water_facilities"},
-"buffer_distance":  {"value":1200},
-"filter_attribute": {"value":"wsf_type"},
-"filter_value":     {"value":"Improved Spring"}
-}');
+--SELECT * FROM admin.tool_layer_buffer(0,0,0,'{
+--"input_layer_name": {"value":"rwanda.roads"},
+--"buffer_distance":  {"value":1200},
+--"filter_attribute": {"value":"type"},
+--"filter_value":     {"value":"national road"}
+--}');
+--
+--SELECT * FROM admin.tool_layer_buffer(0,0,0,'{
+--"input_layer_name": {"value":"rwanda.water_facilities"},
+--"buffer_distance":  {"value":1200},
+--"filter_attribute": {"value":"wsf_type"},
+--"filter_value":     {"value":"Improved Spring"}
+--}');
 
 -- works in QGIS:
 -- http://172.18.0.6:7800/admin.tool_layer_buffer/{z}/{x}/{y}.pbf?params={"input_layer_name":{"value":"admin.water_facilities"},"buffer_distance":{"value":1200}}
 -- http://172.18.0.6:7800/admin.tool_layer_buffer/{z}/{x}/{y}.pbf?params={"input_layer_name":{"value":"admin.roads"},"buffer_distance":{"value":1200},"filter_attribute":{"value":"type"},"filter_value":{"value":"National road"}}
 -- http://172.18.0.6:7800/admin.tool_layer_buffer/{z}/{x}/{y}.pbf?params={"input_layer_name":{"value":"admin.water_facilities"},"buffer_distance":{"value":1200},"filter_attribute":{"value":"wsf_type"},"filter_value":{"value":"Improved Spring"}}
 --
- https://pgtileserv.undpgeohub.org/admin.tool_layer_buffer/{z}/{x}/{y}.pbf?params={"input_layer_name":{"value":"rwanda.roads"},"buffer_distance":{"value":1200},"filter_attribute":{"value":"type"},"filter_value":{"value":"National road"}}
- https://pgtileserv.undpgeohub.org/admin.tool_layer_buffer/{z}/{x}/{y}.pbf?params={"input_layer_name":{"value":"rwanda.water_facilities"},"buffer_distance":{"value":1200},"filter_attribute":{"value":"wsf_type"},"filter_value":{"value":"Improved Spring"}}
+-- https://pgtileserv.undpgeohub.org/admin.tool_layer_buffer/{z}/{x}/{y}.pbf?params={"input_layer_name":{"value":"rwanda.roads"},"buffer_distance":{"value":1200},"filter_attribute":{"value":"type"},"filter_value":{"value":"National road"}}
+-- https://pgtileserv.undpgeohub.org/admin.tool_layer_buffer/{z}/{x}/{y}.pbf?params={"input_layer_name":{"value":"rwanda.water_facilities"},"buffer_distance":{"value":1200},"filter_attribute":{"value":"wsf_type"},"filter_value":{"value":"Improved Spring"}}
