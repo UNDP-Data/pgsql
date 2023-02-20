@@ -69,7 +69,7 @@ RETURNS bytea AS $$
                 SELECT ST_Buffer(ST_Simplify(a.geom, %s), %s) AS geom
                 FROM %s a
                 JOIN bounds_buffered AS b
-                ON ST_Intersects(a.geom, ST_Buffer(b.geom, %s))
+                ON (a.geom && ST_Buffer(b.geom, %s))
                 WHERE a.%s = '%s'
                 );
             $STMT1$;
@@ -81,7 +81,7 @@ RETURNS bytea AS $$
                 SELECT ST_Buffer(ST_Simplify(a.geom, %s), %s) AS geom
                 FROM %s a
                 JOIN bounds_buffered AS b
-                ON ST_Intersects(a.geom, ST_Buffer(b.geom, %s))
+                ON (a.geom && ST_Buffer(b.geom, %s))
                 );
             $STMT2$;
 
