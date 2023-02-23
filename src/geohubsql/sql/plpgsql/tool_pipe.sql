@@ -216,11 +216,11 @@ RETURNS bytea AS $$
 
 --        RAISE WARNING 'jsonb_pretty: %', jsonb_pretty(requested_json);
 
-        -- dummy output
---        DROP TABLE IF EXISTS bounds;
---        CREATE TEMPORARY TABLE bounds AS (
---			SELECT ST_TileEnvelope(z,x,y) AS geom
---		);
+--         dummy output
+        DROP TABLE IF EXISTS bounds;
+        CREATE TEMPORARY TABLE bounds AS (
+			SELECT ST_TileEnvelope(z,x,y) AS geom
+		);
 
 
 --        DROP TABLE IF EXISTS admin.tool_temp;

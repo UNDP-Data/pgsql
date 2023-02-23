@@ -22,7 +22,8 @@ CREATE OR REPLACE FUNCTION admin.tool_layer_intersect_core (
                   "value":"admin.input_layer_2",
                   "hidden":0}
             }',
-    temp_table_name text default 'tool_layer_intersection_core_temp_table'
+    temp_table_name text default 'tool_layer_intersection_core_temp_table',
+    bounds text default 'bounds'
     )
 
 RETURNS VOID AS $$

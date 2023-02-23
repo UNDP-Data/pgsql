@@ -71,10 +71,7 @@ RETURNS bytea AS $$
 		);
 
         DROP TABLE IF EXISTS temp_buffer_union;
---        CREATE TEMPORARY TABLE temp_buffer_union AS (
---            SELECT geom FROM admin.tool_layer_buffer_core(z,x,y,params)
---            );
-
+--        EXECUTE admin.tool_layer_buffer_core(z,x,y,params,'temp_buffer_union','bounds');
         EXECUTE admin.tool_layer_buffer_core(z,x,y,params,'temp_buffer_union');
 
 --       SELECT count(*) FROM temp_buffer_union INTO res_counter;

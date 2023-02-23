@@ -44,6 +44,7 @@ CREATE OR REPLACE FUNCTION admin.tool_layer_buffer_core (
                   "hidden":0}
             }',
     temp_table_name text default 'tool_layer_buffer_core_temp_table'
+    --,bounds text default 'bounds'
     )
 
 -- TODO
@@ -225,7 +226,7 @@ RETURNS VOID AS $$
 
         END IF;
 
---        RAISE WARNING 'sql_stmt: %',sql_stmt;
+        RAISE WARNING 'sql_stmt: %',sql_stmt;
 
         EXECUTE sql_stmt;
 
