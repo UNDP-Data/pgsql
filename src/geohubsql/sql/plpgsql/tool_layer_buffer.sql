@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION admin.tool_layer_buffer2 (
+CREATE OR REPLACE FUNCTION admin.tool_layer_buffer (
     z integer default 0,
     x integer default 0,
     y integer default 0,
@@ -75,7 +75,7 @@ RETURNS bytea AS $$
 --            SELECT geom FROM admin.tool_layer_buffer_core(z,x,y,params)
 --            );
 
-        EXECUTE admin.tool_layer_buffer_core2(z,x,y,params,'temp_buffer_union');
+        EXECUTE admin.tool_layer_buffer_core(z,x,y,params,'temp_buffer_union');
 
 --       SELECT count(*) FROM temp_buffer_union INTO res_counter;
 --       SELECT ST_AsText(geom) from temp_buffer_union INTO geom_text;
@@ -88,7 +88,7 @@ RETURNS bytea AS $$
            FROM temp_buffer_union t
            JOIN bounds ON ST_Intersects(t.geom, bounds.geom));
 
-        SELECT ST_AsMVT(mvtgeom.*, 'admin.tool_layer_buffer2', 2048, 'geom')
+        SELECT ST_AsMVT(mvtgeom.*, 'admin.tool_layer_buffer', 2048, 'geom')
         FROM mvtgeom AS mvtgeom
 		INTO mvt;
 
@@ -100,7 +100,7 @@ RETURNS bytea AS $$
     END
 $$ LANGUAGE plpgsql VOLATILE STRICT PARALLEL SAFE;
 
-COMMENT ON FUNCTION admin.tool_layer_buffer2 IS 'Buffer a vector layer by a given distance';
+COMMENT ON FUNCTION admin.tool_layer_buffer IS 'Buffer a vector layer by a given distance';
 
 -- EXAMPLES:
 

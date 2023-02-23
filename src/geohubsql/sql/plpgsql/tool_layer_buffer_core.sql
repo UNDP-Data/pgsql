@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION admin.tool_layer_buffer_core2 (
+CREATE OR REPLACE FUNCTION admin.tool_layer_buffer_core (
     z integer default 0,
     x integer default 0,
     y integer default 0,

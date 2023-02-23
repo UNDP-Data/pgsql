@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION admin.tool_pipe2 (
+CREATE OR REPLACE FUNCTION admin.tool_pipe (
     z integer default 0,
     x integer default 0,
     y integer default 0,
@@ -100,7 +100,7 @@ RETURNS bytea AS $$
 
         INSERT INTO admin.tool_pipe_valid_functions (function_name, parameters,return_type)
         VALUES
-        ('tool_layer_buffer_core2',
+        ('tool_layer_buffer_core',
             '{"input_layer_name":{"value":""},
             "buffer_distance":{"value":0},
             "filter_attribute":{"value":"type"},
@@ -264,7 +264,7 @@ COMMENT ON FUNCTION admin.tool_pipe IS 'Vector tool pipe';
 --            "value":"1"
 --         },
 --         "tool_function":{
---            "value":"tool_layer_buffer_core2"
+--            "value":"tool_layer_buffer_core"
 --         },
 --         "input_layer_name":{
 --            "value":"rwanda.water_facilities"
