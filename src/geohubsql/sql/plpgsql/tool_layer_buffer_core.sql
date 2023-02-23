@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION admin.tool_layer_buffer_core (
+CREATE OR REPLACE FUNCTION admin.tool_layer_buffer_core2 (
     z integer default 0,
     x integer default 0,
     y integer default 0,
@@ -42,13 +42,14 @@ CREATE OR REPLACE FUNCTION admin.tool_layer_buffer_core (
                   "widget_type":"search box",
                   "value":"National roads",
                   "hidden":0}
-            }'
+            }',
+    temp_table_name text default 'tool_layer_buffer_core_temp_table'
     )
 
 -- TODO
 --RETURNS TABLE (a_name VARCHAR, geom GEOMETRY) AS $$
 
-RETURNS TABLE (geom GEOMETRY) AS $$
+RETURNS VOID AS $$
 
     DECLARE
         mvt bytea;
@@ -75,12 +76,35 @@ RETURNS TABLE (geom GEOMETRY) AS $$
                 ON (a.geom && ST_Buffer(b.geom, %s))
                 WHERE a.%s = '%s'
                 );
+
+            CREATE TEMPORARY TABLE %s AS (
+                SELECT ST_Union(a.geom) AS geom
+                FROM temp_buffer a
+            );
+
             $STMT1$;
 
         q2_string text =
             $STMT2$
 
             CREATE TEMPORARY TABLE temp_buffer AS (
+                SELECT ST_Buffer(ST_Simplify(a.geom, %s), %s) AS geom
+                FROM %s a
+                JOIN bounds_buffered AS b
+                ON (a.geom && ST_Buffer(b.geom, %s))
+                );
+
+            CREATE TEMPORARY TABLE %s AS (
+                SELECT ST_Union(a.geom) AS geom
+                FROM temp_buffer a
+            );
+
+            $STMT2$;
+
+        q3_string text =
+            $STMT2$
+
+            CREATE TEMPORARY TABLE %1$s AS (
                 SELECT ST_Buffer(ST_Simplify(a.geom, %s), %s) AS geom
                 FROM %s a
                 JOIN bounds_buffered AS b
@@ -157,8 +181,8 @@ RETURNS TABLE (geom GEOMETRY) AS $$
         simplify_distance    := buffer_distance/4;
 
 
-		DROP TABLE IF EXISTS bounds;
-        CREATE TEMPORARY TABLE bounds AS (
+		DROP TABLE IF EXISTS bounds_tlbc;
+        CREATE TEMPORARY TABLE bounds_tlbc AS (
 			SELECT ST_TileEnvelope(z,x,y) AS geom
 		);
 
@@ -169,7 +193,7 @@ RETURNS TABLE (geom GEOMETRY) AS $$
         EXECUTE format('
             CREATE TEMPORARY TABLE bounds_buffered AS (
                 SELECT ST_Buffer(b.geom,%s) AS geom
-                FROM bounds AS b
+                FROM bounds_tlbc AS b
             );',
             buffer_distance);
 
@@ -186,7 +210,8 @@ RETURNS TABLE (geom GEOMETRY) AS $$
                 buffer_distance,
                 input_layer_name,
                 buffer_distance,
-                filter_attribute, filter_value
+                filter_attribute, filter_value,
+                temp_table_name
             );
 
         ELSE
@@ -194,7 +219,8 @@ RETURNS TABLE (geom GEOMETRY) AS $$
                 simplify_distance,
                 buffer_distance,
                 input_layer_name,
-                buffer_distance
+                buffer_distance,
+                temp_table_name
             );
 
         END IF;
@@ -202,6 +228,10 @@ RETURNS TABLE (geom GEOMETRY) AS $$
 --        RAISE WARNING 'sql_stmt: %',sql_stmt;
 
         EXECUTE sql_stmt;
+
+
+        DROP TABLE IF EXISTS bounds_tlbc;
+		DROP TABLE IF EXISTS bounds_buffered;
 
 --        RAISE WARNING '# # # # # # # # # # # # # # # input_layer_name: %',sql_stmt;
 --        SELECT COUNT(*) FROM temp_buffer INTO res_counter;
@@ -214,11 +244,11 @@ RETURNS TABLE (geom GEOMETRY) AS $$
 
 
         -- this is the query which returns the table as the function's "return value"
-        RETURN QUERY
-        SELECT
-            --'abc'::varchar AS a_name,
-            ST_Union(a.geom) AS geom
-        FROM temp_buffer a;
+--        RETURN QUERY
+--        SELECT
+--            --'abc'::varchar AS a_name,
+--            ST_Union(a.geom) AS geom
+--        FROM temp_buffer a;
 
 
     END

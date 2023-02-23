@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION admin.tool_layer_intersect (
+CREATE OR REPLACE FUNCTION admin.tool_layer_intersect_core (
     z integer default 0,
     x integer default 0,
     y integer default 0,
@@ -21,14 +21,15 @@ CREATE OR REPLACE FUNCTION admin.tool_layer_intersect (
                   "widget_type":"search box",
                   "value":"admin.input_layer_2",
                   "hidden":0}
-            }'
+            }',
+    temp_table_name text default 'tool_layer_intersection_core_temp_table'
     )
 
-RETURNS bytea AS $$
+RETURNS VOID AS $$
 
     DECLARE
         mvt bytea;
-        output_layer_name varchar := 'admin.tool_layer_intersect';
+        output_layer_name varchar := 'admin.tool_layer_intersect_core';
 
         defaults_json jsonb;
 		requested_json jsonb;
@@ -49,9 +50,9 @@ RETURNS bytea AS $$
             CREATE INDEX IF NOT EXISTS %3$s ON %1$s USING GIST (geom);
             CREATE INDEX IF NOT EXISTS %4$s ON %2$s USING GIST (geom);
 
-            DROP TABLE IF EXISTS temp_intersection;
+            DROP TABLE IF EXISTS %5$s;
 
-            CREATE TABLE temp_intersection AS (
+            CREATE TABLE %5$s AS (
             SELECT
             a1.*,
             ST_Intersection(a1.geom, a2.geom) as geom1
@@ -60,10 +61,10 @@ RETURNS bytea AS $$
                 WHERE (a2.geom && a1.geom)
             );
 
-            ALTER TABLE temp_intersection
+            ALTER TABLE %5$s
             DROP COLUMN geom;
 
-            ALTER TABLE temp_intersection
+            ALTER TABLE %5$s
 	        RENAME COLUMN geom1 TO geom;
 
             $STMT1$;
@@ -97,7 +98,7 @@ RETURNS bytea AS $$
 -- TODO
 -- check/create spatial indexes
 
-        RAISE WARNING 'TOOL_LAYER_INTERSECT params: %', params;
+        RAISE WARNING 'tool_layer_intersect_core params: %', params;
 
         defaults_json        := func_defaults::jsonb;
         requested_json       := params::jsonb;
@@ -116,63 +117,54 @@ RETURNS bytea AS $$
 			SELECT ST_TileEnvelope(z,x,y) AS geom
 		);
 
-        DROP TABLE IF EXISTS temp_intersection;
+
+
+        DROP TABLE IF EXISTS temp_table_name;
 
         sql_stmt = format(q1_string,
             input_layer_name_1,
             input_layer_name_2,
             input_layer_name_1_idx,
-            input_layer_name_2_idx
+            input_layer_name_2_idx,
+            temp_table_name
         );
 
 
-        RAISE WARNING 'TOOL_LAYER_INTERSECT sql_stmt: %',sql_stmt;
+        RAISE WARNING 'tool_layer_intersect_core sql_stmt: %',sql_stmt;
 
         EXECUTE sql_stmt;
 
+        EXECUTE format('SELECT COUNT(*) FROM %s', temp_table_name) INTO res_counter;
+        RAISE WARNING 'elem_output_layer_name has % features.', res_counter;
+
 --        RAISE WARNING '# # # # # # # # # # # # # # # input_layer_name_1: %',sql_stmt;
---        SELECT COUNT(*) FROM temp_intersection INTO res_counter;
+--        SELECT COUNT(*) FROM temp_table_name INTO res_counter;
 --        RAISE WARNING '################# input_layer_name_1: %, input_layer_name_2: %, res_counter:%', input_layer_name_1, input_layer_name_2,  res_counter;
 
 --        no measurable effect
---        CREATE INDEX IF NOT EXISTS temp_geom_idx ON temp_intersection USING GIST (geom);
+--        CREATE INDEX IF NOT EXISTS temp_geom_idx ON temp_table_name USING GIST (geom);
 
-       DROP TABLE IF EXISTS mvtgeom;
-       CREATE TEMPORARY TABLE mvtgeom AS (
-           SELECT ST_AsMVTGeom(t.geom, bounds.geom, extent => 2048, buffer => 256) AS geom
-           FROM temp_intersection t
-           JOIN bounds ON ST_Intersects(t.geom, bounds.geom)
-       );
-
-        SELECT COUNT(*) FROM mvtgeom INTO res_counter;
---        RAISE WARNING '################# input_layer_name_1: %, input_layer_name_2: %, mvtgeom count:%', input_layer_name_1, input_layer_name_2,  res_counter;
-
-        SELECT ST_AsMVT(mvtgeom.*, 'admin.tool_layer_intersect', 2048, 'geom')
-        FROM mvtgeom AS mvtgeom
-		INTO mvt;
-
-
-
-        RETURN mvt;
+--        RETURN QUERY
+--
 
     END
 $$ LANGUAGE plpgsql VOLATILE STRICT PARALLEL SAFE;
 
-COMMENT ON FUNCTION admin.tool_layer_intersect IS 'Intersect two vector layers';
+COMMENT ON FUNCTION admin.tool_layer_intersect_core IS 'Intersect two vector layers';
 
 -- EXAMPLES:
 
---SELECT * FROM admin.tool_layer_intersect(0,0,0,'{
+--SELECT * FROM admin.tool_layer_intersect_core(0,0,0,'{
 --"input_layer_name_1": {"value":"admin_roads2"},
 --"buffer_distance":  {"value":1200},
 --"filter_attribute": {"value":"type"},
 --"filter_value":     {"value":"national road"}
 --}');
 --
---SELECT * FROM admin.tool_layer_intersect(0,0,0,'{
+--SELECT * FROM admin.tool_layer_intersect_core(0,0,0,'{
 --"input_layer_name_1": {"value":"admin.roads2"},
 --"input_layer_name_2": {"value":"admin.rwanda_water_buffer"}
 --}');
 
 -- works in QGIS:
--- http://172.18.0.6:7800/admin.tool_layer_intersect/{z}/{x}/{y}.pbf?params={"input_layer_name_1": {"value":"admin.roads2"},"input_layer_name_2": {"value":"admin.rwanda_water_buffer"}}
+-- http://172.18.0.6:7800/admin.tool_layer_intersect_core/{z}/{x}/{y}.pbf?params={"input_layer_name_1": {"value":"admin.roads2"},"input_layer_name_2": {"value":"admin.rwanda_water_buffer"}}

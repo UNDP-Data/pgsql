@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION admin.tool_layer_buffer (
+CREATE OR REPLACE FUNCTION admin.tool_layer_buffer_wrapper (
     z integer default 0,
     x integer default 0,
     y integer default 0,
@@ -49,7 +49,7 @@ RETURNS bytea AS $$
 
     DECLARE
         mvt bytea;
-        output_layer_name varchar := 'admin.tool_layer_buffer';
+        output_layer_name varchar := 'admin.tool_layer_buffer_wrapper';
 
         defaults_json jsonb;
 		requested_json jsonb;
@@ -112,7 +112,7 @@ RETURNS bytea AS $$
 
         DROP TABLE IF EXISTS temp_buffer_union;
         CREATE TEMPORARY TABLE temp_buffer_union AS (
-            SELECT geom FROM admin.tool_layer_buffer_core(0,0,0,params)
+            SELECT geom FROM admin.tool_layer_buffer_core(z,x,y,params)
             );
 
 --       SELECT count(*) FROM temp_buffer_union INTO res_counter;
@@ -126,7 +126,7 @@ RETURNS bytea AS $$
            JOIN bounds ON ST_Intersects(t.geom, bounds.geom)
        );
 
-        SELECT ST_AsMVT(mvtgeom.*, 'admin.tool_layer_buffer', 2048, 'geom')
+        SELECT ST_AsMVT(mvtgeom.*, 'admin.tool_layer_buffer_wrapper', 2048, 'geom')
         FROM mvtgeom AS mvtgeom
 		INTO mvt;
 
@@ -137,18 +137,18 @@ RETURNS bytea AS $$
     END
 $$ LANGUAGE plpgsql VOLATILE STRICT PARALLEL SAFE;
 
-COMMENT ON FUNCTION admin.tool_layer_buffer IS 'Buffer a vector layer by a given distance';
+COMMENT ON FUNCTION admin.tool_layer_buffer_wrapper IS 'Buffer a vector layer by a given distance';
 
 -- EXAMPLES:
 
---SELECT * FROM admin.tool_layer_buffer(0,0,0,'{
+--SELECT * FROM admin.tool_layer_buffer_wrapper(0,0,0,'{
 --"input_layer_name": {"value":"rwanda.roads"},
 --"buffer_distance":  {"value":1200},
 --"filter_attribute": {"value":"type"},
 --"filter_value":     {"value":"National road"}
 --}');
 --
---SELECT * FROM admin.tool_layer_buffer(0,0,0,'{
+--SELECT * FROM admin.tool_layer_buffer_wrapper(0,0,0,'{
 --"input_layer_name": {"value":"rwanda.water_facilities"},
 --"buffer_distance":  {"value":1200},
 --"filter_attribute": {"value":"wsf_type"},
@@ -156,9 +156,9 @@ COMMENT ON FUNCTION admin.tool_layer_buffer IS 'Buffer a vector layer by a given
 --}');
 
 -- works in QGIS:
--- http://172.18.0.6:7800/admin.tool_layer_buffer/{z}/{x}/{y}.pbf?params={"input_layer_name":{"value":"admin.water_facilities"},"buffer_distance":{"value":1200}}
--- http://172.18.0.6:7800/admin.tool_layer_buffer/{z}/{x}/{y}.pbf?params={"input_layer_name":{"value":"admin.roads"},"buffer_distance":{"value":1200},"filter_attribute":{"value":"type"},"filter_value":{"value":"National road"}}
--- http://172.18.0.6:7800/admin.tool_layer_buffer/{z}/{x}/{y}.pbf?params={"input_layer_name":{"value":"admin.water_facilities"},"buffer_distance":{"value":1200},"filter_attribute":{"value":"wsf_type"},"filter_value":{"value":"Improved Spring"}}
+-- http://172.18.0.6:7800/admin.tool_layer_buffer_wrapper/{z}/{x}/{y}.pbf?params={"input_layer_name":{"value":"admin.water_facilities"},"buffer_distance":{"value":1200}}
+-- http://172.18.0.6:7800/admin.tool_layer_buffer_wrapper/{z}/{x}/{y}.pbf?params={"input_layer_name":{"value":"admin.roads"},"buffer_distance":{"value":1200},"filter_attribute":{"value":"type"},"filter_value":{"value":"National road"}}
+-- http://172.18.0.6:7800/admin.tool_layer_buffer_wrapper/{z}/{x}/{y}.pbf?params={"input_layer_name":{"value":"admin.water_facilities"},"buffer_distance":{"value":1200},"filter_attribute":{"value":"wsf_type"},"filter_value":{"value":"Improved Spring"}}
 --
--- https://pgtileserv.undpgeohub.org/admin.tool_layer_buffer/{z}/{x}/{y}.pbf?params={"input_layer_name":{"value":"rwanda.roads"},"buffer_distance":{"value":1200},"filter_attribute":{"value":"type"},"filter_value":{"value":"National road"}}
--- https://pgtileserv.undpgeohub.org/admin.tool_layer_buffer/{z}/{x}/{y}.pbf?params={"input_layer_name":{"value":"rwanda.water_facilities"},"buffer_distance":{"value":1200},"filter_attribute":{"value":"wsf_type"},"filter_value":{"value":"Improved Spring"}}
+-- https://pgtileserv.undpgeohub.org/admin.tool_layer_buffer_wrapper/{z}/{x}/{y}.pbf?params={"input_layer_name":{"value":"rwanda.roads"},"buffer_distance":{"value":1200},"filter_attribute":{"value":"type"},"filter_value":{"value":"National road"}}
+-- https://pgtileserv.undpgeohub.org/admin.tool_layer_buffer_wrapper/{z}/{x}/{y}.pbf?params={"input_layer_name":{"value":"rwanda.water_facilities"},"buffer_distance":{"value":1200},"filter_attribute":{"value":"wsf_type"},"filter_value":{"value":"Improved Spring"}}

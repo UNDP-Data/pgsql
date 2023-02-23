@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION admin.tool_layer_buffer (
+CREATE OR REPLACE FUNCTION admin.tool_layer_buffer2 (
     z integer default 0,
     x integer default 0,
     y integer default 0,
@@ -71,33 +71,36 @@ RETURNS bytea AS $$
 		);
 
         DROP TABLE IF EXISTS temp_buffer_union;
-        CREATE TEMPORARY TABLE temp_buffer_union AS (
-            SELECT geom FROM admin.tool_layer_buffer_core(z,x,y,params)
-            );
+--        CREATE TEMPORARY TABLE temp_buffer_union AS (
+--            SELECT geom FROM admin.tool_layer_buffer_core(z,x,y,params)
+--            );
+
+        EXECUTE admin.tool_layer_buffer_core2(z,x,y,params,'temp_buffer_union');
 
 --       SELECT count(*) FROM temp_buffer_union INTO res_counter;
 --       SELECT ST_AsText(geom) from temp_buffer_union INTO geom_text;
 --       RAISE WARNING 'found % features. GEOM: %', res_counter, geom_text;
 
        DROP TABLE IF EXISTS mvtgeom;
+
        CREATE TEMPORARY TABLE mvtgeom AS (
            SELECT ST_AsMVTGeom(t.geom, bounds.geom, extent => 2048, buffer => 256) AS geom
            FROM temp_buffer_union t
-           JOIN bounds ON ST_Intersects(t.geom, bounds.geom)
-       );
+           JOIN bounds ON ST_Intersects(t.geom, bounds.geom));
 
-        SELECT ST_AsMVT(mvtgeom.*, 'admin.tool_layer_buffer', 2048, 'geom')
+        SELECT ST_AsMVT(mvtgeom.*, 'admin.tool_layer_buffer2', 2048, 'geom')
         FROM mvtgeom AS mvtgeom
 		INTO mvt;
 
-
+       SELECT ST_AsText(geom) from mvtgeom INTO geom_text;
+       RAISE WARNING 'GEOM: %', geom_text;
 
         RETURN mvt;
 
     END
 $$ LANGUAGE plpgsql VOLATILE STRICT PARALLEL SAFE;
 
-COMMENT ON FUNCTION admin.tool_layer_buffer IS 'Buffer a vector layer by a given distance';
+COMMENT ON FUNCTION admin.tool_layer_buffer2 IS 'Buffer a vector layer by a given distance';
 
 -- EXAMPLES:
 
