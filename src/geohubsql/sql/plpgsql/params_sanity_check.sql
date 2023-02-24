@@ -31,6 +31,7 @@ RETURNS json AS $params_sanity_check$
 
                     IF (length(_this_value) >= _numeric_max_value_field_length) THEN
                         _this_value := left(_this_value, _numeric_max_value_field_length);
+
                     END IF;
 
                     IF _this_value IS NOT NULL
@@ -39,7 +40,7 @@ RETURNS json AS $params_sanity_check$
                     THEN
                         _sanitized_value := regexp_replace(_this_value, '[^0-9.-]+','','g')::jsonb;
                     ELSE
-                        _sanitized_value := default_param->_key->>'value'::jsonb;
+                        _sanitized_value := default_param->_key->'value';
                     END IF;
 
                 WHEN ((default_param->_key->>'type') = 'text') THEN
