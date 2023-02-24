@@ -115,12 +115,7 @@ RETURNS bytea AS $$
          sanitized_json       := admin.params_sanity_check(defaults_json, requested_json);
 
         DROP TABLE IF EXISTS temp_buffer_union;
---        RAISE WARNING 'PERFORM admin.tool_layer_buffer_core(%,%,%,%,%)', z,x,y,sanitized_json,'temp_buffer_union';
         EXECUTE format('SELECT * FROM admin.tool_layer_buffer_core(%s,%s,%s,''%s'',''temp_buffer_union'')',z,x,y,sanitized_json);
-
---       SELECT count(*) FROM temp_buffer_union INTO res_counter;
---       SELECT ST_AsText(geom) from temp_buffer_union INTO geom_text;
---       RAISE WARNING 'found % features. GEOM: %', res_counter, geom_text;
 
 		DROP TABLE IF EXISTS bounds;
         CREATE TEMPORARY TABLE bounds AS (

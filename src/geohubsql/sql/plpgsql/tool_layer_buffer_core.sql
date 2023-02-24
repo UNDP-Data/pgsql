@@ -206,14 +206,14 @@ COMMENT ON FUNCTION admin.tool_layer_buffer_core IS 'Buffer a vector layer by a 
 --"buffer_distance":  {"value":100000},
 --"filter_attribute": {"value":"type"},
 --"filter_value":     {"value":"National road"}
---}')
+--}','temp_buffer_table');
 --
 --SELECT * FROM admin.tool_layer_buffer_core(0,0,0,'{
 --"input_layer_name": {"value":"rwanda.water_facilities"},
 --"buffer_distance":  {"value":1200},
 --"filter_attribute": {"value":"wsf_type"},
 --"filter_value":     {"value":"Improved Spring"}
---}');
+--}','temp_buffer_table');
 
 --DROP TABLE IF EXISTS admin.geom_test;
 --CREATE TABLE admin.geom_test AS(
@@ -222,12 +222,4 @@ COMMENT ON FUNCTION admin.tool_layer_buffer_core IS 'Buffer a vector layer by a 
 --"buffer_distance":  {"value":1200},
 --"filter_attribute": {"value":"type"},
 --"filter_value":     {"value":"National road"}
---}'))
-
--- works in QGIS:
--- http://172.18.0.6:7800/admin.tool_layer_buffer_core/{z}/{x}/{y}.pbf?params={"input_layer_name":{"value":"admin.water_facilities"},"buffer_distance":{"value":1200}}
--- http://172.18.0.6:7800/admin.tool_layer_buffer_core/{z}/{x}/{y}.pbf?params={"input_layer_name":{"value":"admin.roads"},"buffer_distance":{"value":1200},"filter_attribute":{"value":"type"},"filter_value":{"value":"National road"}}
--- http://172.18.0.6:7800/admin.tool_layer_buffer_core/{z}/{x}/{y}.pbf?params={"input_layer_name":{"value":"admin.water_facilities"},"buffer_distance":{"value":1200},"filter_attribute":{"value":"wsf_type"},"filter_value":{"value":"Improved Spring"}}
---
--- https://pgtileserv.undpgeohub.org/admin.tool_layer_buffer_core/{z}/{x}/{y}.pbf?params={"input_layer_name":{"value":"rwanda.roads"},"buffer_distance":{"value":1200},"filter_attribute":{"value":"type"},"filter_value":{"value":"National road"}}
--- https://pgtileserv.undpgeohub.org/admin.tool_layer_buffer_core/{z}/{x}/{y}.pbf?params={"input_layer_name":{"value":"rwanda.water_facilities"},"buffer_distance":{"value":1200},"filter_attribute":{"value":"wsf_type"},"filter_value":{"value":"Improved Spring"}}
+--}','temp_buffer_table'))

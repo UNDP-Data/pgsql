@@ -32,7 +32,6 @@ RETURNS bytea AS $$
 		res_counter int;
 		sql_stmt text;
 
-		sanitized_json jsonb;
 
         _valid_key   text;
         _value text;
@@ -119,11 +118,6 @@ RETURNS bytea AS $$
         ON CONFLICT (function_name) DO NOTHING;
 
 
-        -- sanitize the JSON before proceeding
---        sanitized_json       := admin.params_sanity_check(defaults_json, requested_json);
---        input_layer_name     := trim('"' FROM (sanitized_json->'input_layer_name'->'value')::text);
-
---        RAISE WARNING 'jsonb_pretty: %', jsonb_pretty(requested_json);
 
         FOR requested_array_element IN SELECT * FROM jsonb_array_elements(requested_json)
         LOOP
@@ -145,12 +139,14 @@ RETURNS bytea AS $$
             CONTINUE WHEN (function_is_valid = 0);
 
              --retrieve return_type for the specific tool/function_name
+
             SELECT return_type
                 FROM admin.tool_pipe_valid_functions
                 WHERE function_name = elem_function_name
             INTO elem_return_type;
 
             --retrieve expected parameters for the specific tool/function_name
+
             SELECT parameters
                 FROM admin.tool_pipe_valid_functions
                 WHERE function_name = elem_function_name
@@ -197,36 +193,14 @@ RETURNS bytea AS $$
             last_elem_output_layer_name := elem_output_layer_name;
 
 
-
-
-
--- TODO check if needed / how to remove
---            CREATE INDEX IF NOT EXISTS output_from_tool_1_idx ON output_from_tool_1 USING GIST (geom);
-
---            EXECUTE format('SELECT COUNT(*) FROM %s', elem_output_layer_name) INTO res_counter;
---            RAISE WARNING 'elem_output_layer_name has % features.', res_counter;
-
---            jsonb_set(requested_json,{requested_array_element,elem_label,'output_layer'},elem_output_layer_name);
-
---            CREATE TEMPORARY TABLE output_from_tool_||elem_id AS (
---                  SELECT * FROM elem_function_name(z,y,x, elem_valid_params);
---            )
-
         END LOOP;
 
---        RAISE WARNING 'jsonb_pretty: %', jsonb_pretty(requested_json);
-
---         dummy output
         DROP TABLE IF EXISTS bounds;
+
         CREATE TEMPORARY TABLE bounds AS (
 			SELECT ST_TileEnvelope(z,x,y) AS geom
 		);
 
-
---        DROP TABLE IF EXISTS admin.tool_temp;
---        EXECUTE format('
---            CREATE TABLE admin.tool_temp AS (SELECT * FROM %s)', last_elem_output_layer_name
---            );
 
        DROP TABLE IF EXISTS mvtgeom;
 
@@ -243,10 +217,6 @@ RETURNS bytea AS $$
         FROM mvtgeom AS mvtgeom
 		INTO mvt;
 
---        EXECUTE format('
---        SELECT *
---        FROM %s', last_elem_output_layer_name)
---		INTO mvt;
 
         RETURN mvt;
 

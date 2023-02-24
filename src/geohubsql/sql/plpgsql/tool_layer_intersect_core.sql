@@ -40,8 +40,8 @@ RETURNS VOID AS $$
 
             $STMT1$
 
-            CREATE INDEX IF NOT EXISTS %3$s_idx ON %1$s USING GIST (geom);
-            CREATE INDEX IF NOT EXISTS %4$s_idx ON %2$s USING GIST (geom);
+            CREATE INDEX IF NOT EXISTS %3$s ON %1$s USING GIST (geom);
+            CREATE INDEX IF NOT EXISTS %4$s ON %2$s USING GIST (geom);
 
             DROP TABLE IF EXISTS %5$s;
 
@@ -123,10 +123,3 @@ COMMENT ON FUNCTION admin.tool_layer_intersect_core IS 'Intersect two vector lay
 --"input_layer_name_2": {"value":"admin.rwanda_water_buffer"}
 --}','intersection_table');
 --
---SELECT * FROM admin.tool_layer_intersect_core(0,0,0,'{
---"input_layer_name_1": {"value":"admin.roads2"},
---"input_layer_name_2": {"value":"admin.rwanda_water_buffer"}
---}');
-
--- works in QGIS:
--- http://172.18.0.6:7800/admin.tool_layer_intersect_core/{z}/{x}/{y}.pbf?params={"input_layer_name_1": {"value":"admin.roads2"},"input_layer_name_2": {"value":"admin.rwanda_water_buffer"}}
