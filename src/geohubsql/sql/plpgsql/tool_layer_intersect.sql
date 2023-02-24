@@ -68,8 +68,6 @@ RETURNS bytea AS $$
 
             $STMT1$;
 
-
-
         func_defaults jsonb :=
             '{
                 "input_layer_name_1":

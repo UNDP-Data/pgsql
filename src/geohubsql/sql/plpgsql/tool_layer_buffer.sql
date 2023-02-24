@@ -61,22 +61,27 @@ RETURNS bytea AS $$
 		filter_attribute text;
 		filter_value text;
 		sanitized_json jsonb;
-        		geom_text text;
+        geom_text text;
 
     BEGIN
+
+        defaults_json        := func_defaults::jsonb;
+        requested_json       := params::jsonb;
+
+        -- sanitize the JSON before proceeding
+         sanitized_json       := admin.params_sanity_check(defaults_json, requested_json);
+
+        DROP TABLE IF EXISTS temp_buffer_union;
+        EXECUTE admin.tool_layer_buffer_core(z,x,y,sanitized_json,'temp_buffer_union');
+
+--       SELECT count(*) FROM temp_buffer_union INTO res_counter;
+--       SELECT ST_AsText(geom) from temp_buffer_union INTO geom_text;
+--       RAISE WARNING 'found % features. GEOM: %', res_counter, geom_text;
 
 		DROP TABLE IF EXISTS bounds;
         CREATE TEMPORARY TABLE bounds AS (
 			SELECT ST_TileEnvelope(z,x,y) AS geom
 		);
-
-        DROP TABLE IF EXISTS temp_buffer_union;
---        EXECUTE admin.tool_layer_buffer_core(z,x,y,params,'temp_buffer_union','bounds');
-        EXECUTE admin.tool_layer_buffer_core(z,x,y,params,'temp_buffer_union');
-
---       SELECT count(*) FROM temp_buffer_union INTO res_counter;
---       SELECT ST_AsText(geom) from temp_buffer_union INTO geom_text;
---       RAISE WARNING 'found % features. GEOM: %', res_counter, geom_text;
 
        DROP TABLE IF EXISTS mvtgeom;
 

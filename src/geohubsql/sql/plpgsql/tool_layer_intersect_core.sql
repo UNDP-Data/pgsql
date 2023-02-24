@@ -6,24 +6,15 @@ CREATE OR REPLACE FUNCTION admin.tool_layer_intersect_core (
                 "input_layer_name_1":
                 { "id":"input_layer_name_1",
                   "param_name":"input_layer_name_1",
-                  "type":"text",
-                  "icon":"fa-diamond",
-                  "label":"Layer to be intersected, in schema.table format",
-                  "widget_type":"search box",
                   "value":"admin.input_layer_1",
-                  "hidden":0},
+                },
                 "input_layer_name_2":
                 { "id":"input_layer_name_2",
                   "param_name":"input_layer_name_2",
-                  "type":"text",
-                  "icon":"fa-diamond",
-                  "label":"Layer to be intersected against, in schema.table format",
-                  "widget_type":"search box",
                   "value":"admin.input_layer_2",
-                  "hidden":0}
+                }
             }',
-    temp_table_name text default 'tool_layer_intersection_core_temp_table',
-    bounds text default 'bounds'
+    temp_table_name text default 'tool_layer_intersection_core_temp_table'
     )
 
 RETURNS VOID AS $$
@@ -44,12 +35,13 @@ RETURNS VOID AS $$
 
 		sanitized_json jsonb;
 
+
         q1_string text =
 
             $STMT1$
 
-            CREATE INDEX IF NOT EXISTS %3$s ON %1$s USING GIST (geom);
-            CREATE INDEX IF NOT EXISTS %4$s ON %2$s USING GIST (geom);
+            CREATE INDEX IF NOT EXISTS %3$s_idx ON %1$s USING GIST (geom);
+            CREATE INDEX IF NOT EXISTS %4$s_idx ON %2$s USING GIST (geom);
 
             DROP TABLE IF EXISTS %5$s;
 
@@ -58,7 +50,7 @@ RETURNS VOID AS $$
             a1.*,
             ST_Intersection(a1.geom, a2.geom) as geom1
                 FROM %1$s AS a1, %2$s AS a2
-                JOIN bounds AS b ON (a2.geom && b.geom)
+                JOIN bounds_tlic AS b ON (a2.geom && b.geom)
                 WHERE (a2.geom && a1.geom)
             );
 
@@ -71,53 +63,28 @@ RETURNS VOID AS $$
             $STMT1$;
 
 
-
-        func_defaults jsonb :=
-            '{
-                "input_layer_name_1":
-                { "id":"input_layer_name_1",
-                  "param_name":"input_layer_name_1",
-                  "type":"text",
-                  "icon":"fa-diamond",
-                  "label":"Layer to be intersected, in schema.table format",
-                  "widget_type":"search box",
-                  "value":"admin.input_layer_1",
-                  "hidden":0},
-                "input_layer_name_2":
-                { "id":"input_layer_name_2",
-                  "param_name":"input_layer_name_2",
-                  "type":"text",
-                  "icon":"fa-diamond",
-                  "label":"Layer to be intersected against, in schema.table format",
-                  "widget_type":"search box",
-                  "value":"admin.input_layer_2",
-                  "hidden":0}
-            }';
-
     BEGIN
 
 -- TODO
 -- check/create spatial indexes
 
-        RAISE WARNING 'tool_layer_intersect_core params: %', params;
-
-        defaults_json        := func_defaults::jsonb;
-        requested_json       := params::jsonb;
-
-        -- sanitize the JSON before proceeding
-        sanitized_json       := admin.params_sanity_check(defaults_json, requested_json);
+--        RAISE WARNING 'tool_layer_intersect_core params: %', params;
+--         JSON shall be sanitized by the calling function
+        sanitized_json       := params::jsonb;
 
         input_layer_name_1   := trim('"' FROM (sanitized_json->'input_layer_name_1'->'value')::text);
         input_layer_name_2   := trim('"' FROM (sanitized_json->'input_layer_name_2'->'value')::text);
 
         input_layer_name_1_idx := replace(input_layer_name_1,'.','_')||'_idx';
         input_layer_name_2_idx := replace(input_layer_name_2,'.','_')||'_idx';
+--        no measurable effect
+--        EXECUTE format('CREATE INDEX IF NOT EXISTS %1$s_idx ON %1$s USING GIST (geom)', input_layer_name_1);
+--        EXECUTE format('CREATE INDEX IF NOT EXISTS %1$s_idx ON %1$s USING GIST (geom)', input_layer_name_2);
 
-		DROP TABLE IF EXISTS bounds;
-        CREATE TEMPORARY TABLE bounds AS (
+		DROP TABLE IF EXISTS bounds_tlic;
+        CREATE TEMPORARY TABLE bounds_tlic AS (
 			SELECT ST_TileEnvelope(z,x,y) AS geom
 		);
-
 
 
         DROP TABLE IF EXISTS temp_table_name;
@@ -131,22 +98,18 @@ RETURNS VOID AS $$
         );
 
 
-        RAISE WARNING 'tool_layer_intersect_core sql_stmt: %',sql_stmt;
+--        RAISE WARNING 'tool_layer_intersect_core sql_stmt: %',sql_stmt;
 
         EXECUTE sql_stmt;
 
         EXECUTE format('SELECT COUNT(*) FROM %s', temp_table_name) INTO res_counter;
-        RAISE WARNING 'elem_output_layer_name has % features.', res_counter;
+--        RAISE WARNING 'elem_output_layer_name has % features.', res_counter;
 
 --        RAISE WARNING '# # # # # # # # # # # # # # # input_layer_name_1: %',sql_stmt;
 --        SELECT COUNT(*) FROM temp_table_name INTO res_counter;
 --        RAISE WARNING '################# input_layer_name_1: %, input_layer_name_2: %, res_counter:%', input_layer_name_1, input_layer_name_2,  res_counter;
 
---        no measurable effect
---        CREATE INDEX IF NOT EXISTS temp_geom_idx ON temp_table_name USING GIST (geom);
-
---        RETURN QUERY
---
+        DROP TABLE IF EXISTS bounds_tlic;
 
     END
 $$ LANGUAGE plpgsql VOLATILE STRICT PARALLEL SAFE;
@@ -156,11 +119,9 @@ COMMENT ON FUNCTION admin.tool_layer_intersect_core IS 'Intersect two vector lay
 -- EXAMPLES:
 
 --SELECT * FROM admin.tool_layer_intersect_core(0,0,0,'{
---"input_layer_name_1": {"value":"admin_roads2"},
---"buffer_distance":  {"value":1200},
---"filter_attribute": {"value":"type"},
---"filter_value":     {"value":"national road"}
---}');
+--"input_layer_name_1": {"value":"admin.roads2"},
+--"input_layer_name_2": {"value":"admin.rwanda_water_buffer"}
+--}','intersection_table');
 --
 --SELECT * FROM admin.tool_layer_intersect_core(0,0,0,'{
 --"input_layer_name_1": {"value":"admin.roads2"},

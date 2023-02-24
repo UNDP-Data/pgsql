@@ -6,42 +6,22 @@ CREATE OR REPLACE FUNCTION admin.tool_layer_buffer_core (
                 "input_layer_name":
                 { "id":"input_layer_name",
                   "param_name":"input_layer_name",
-                  "type":"text",
-                  "icon":"fa-diamond",
-                  "label":"Layer to be buffered in schema.table format",
-                  "widget_type":"search box",
-                  "value":"admin.input_layer",
-                  "hidden":0},
+                  "value":"admin.input_layer"},
                 "buffer_distance":
                 { "id":"buffer_distance",
                   "param_name":"buffer_distance",
-                  "type":"numeric",
-                  "icon":"fa-tape",
-                  "limits":{"min":0,"max":100000},
-                  "abs_limits":{"min":0,"max":100000},
-                  "value":0,
-                  "label":"Buffer radius/distance in meters",
-                  "widget_type":"slider",
-                  "hidden":0,
-                  "units":"meters"},
+                  "value":0
+                },
                 "filter_attribute":
                 { "id":"filter_attribute",
                   "param_name":"filter_attribute",
-                  "type":"text",
-                  "icon":"fa-filter",
-                  "label":"Layer attribute against which to filter",
-                  "widget_type":"search box",
-                  "value":"type",
-                  "hidden":0},
+                  "value":"type"
+                },
                 "filter_value":
                 { "id":"filter_value",
                   "param_name":"filter_value",
-                  "type":"text",
-                  "icon":"fa-text-height",
-                  "label":"Only apply to features with this attribute",
-                  "widget_type":"search box",
-                  "value":"National roads",
-                  "hidden":0}
+                  "value":"National roads"
+                  }
             }',
     temp_table_name text default 'tool_layer_buffer_core_temp_table'
     --,bounds text default 'bounds'
@@ -56,8 +36,9 @@ RETURNS VOID AS $$
         mvt bytea;
         output_layer_name varchar := 'admin.tool_layer_buffer_core';
 
-        defaults_json jsonb;
-		requested_json jsonb;
+--        defaults_json jsonb;
+--		requested_json jsonb;
+		sanitized_json jsonb;
 		input_layer_name text;
 		buffer_distance float;
 		simplify_distance float;
@@ -65,20 +46,20 @@ RETURNS VOID AS $$
 		sql_stmt text;
 		filter_attribute text;
 		filter_value text;
-		sanitized_json jsonb;
 
         q1_string text =
             $STMT1$
-
+            DROP TABLE IF EXISTS temp_buffer;
             CREATE TEMPORARY TABLE temp_buffer AS (
-                SELECT ST_Buffer(ST_Simplify(a.geom, %s), %s) AS geom
-                FROM %s a
-                JOIN bounds_buffered AS b
-                ON (a.geom && ST_Buffer(b.geom, %s))
-                WHERE a.%s = '%s'
+                SELECT ST_Buffer(ST_Simplify(a.geom, %1$s), %2$s) AS geom
+                FROM %3$s a
+                JOIN bounds_buffered_tlbc AS b
+                ON (a.geom && ST_Buffer(b.geom, %4$s))
+                WHERE a.%5$s = '%6$s'
                 );
 
-            CREATE TEMPORARY TABLE %s AS (
+            DROP TABLE IF EXISTS %7$s;
+            CREATE TEMPORARY TABLE %7$s AS (
                 SELECT ST_Union(a.geom) AS geom
                 FROM temp_buffer a
             );
@@ -87,30 +68,20 @@ RETURNS VOID AS $$
 
         q2_string text =
             $STMT2$
-
+            DROP TABLE IF EXISTS temp_buffer;
             CREATE TEMPORARY TABLE temp_buffer AS (
-                SELECT ST_Buffer(ST_Simplify(a.geom, %s), %s) AS geom
-                FROM %s a
-                JOIN bounds_buffered AS b
-                ON (a.geom && ST_Buffer(b.geom, %s))
+                SELECT ST_Buffer(ST_Simplify(a.geom, %1$s), %2$s) AS geom
+                FROM %3$s a
+                JOIN bounds_buffered_tlbc AS b
+                ON (a.geom && ST_Buffer(b.geom, %4$s))
                 );
 
-            CREATE TEMPORARY TABLE %s AS (
+            DROP TABLE IF EXISTS %5$s;
+            CREATE TEMPORARY TABLE %5$s AS (
                 SELECT ST_Union(a.geom) AS geom
                 FROM temp_buffer a
             );
 
-            $STMT2$;
-
-        q3_string text =
-            $STMT2$
-
-            CREATE TEMPORARY TABLE %1$s AS (
-                SELECT ST_Buffer(ST_Simplify(a.geom, %s), %s) AS geom
-                FROM %s a
-                JOIN bounds_buffered AS b
-                ON (a.geom && ST_Buffer(b.geom, %s))
-                );
             $STMT2$;
 
         func_defaults jsonb :=
@@ -118,61 +89,34 @@ RETURNS VOID AS $$
                 "input_layer_name":
                 { "id":"input_layer_name",
                   "param_name":"input_layer_name",
-                  "type":"text",
-                  "icon":"fa-diamond",
-                  "label":"Layer to be buffered in schema.table format",
-                  "widget_type":"search box",
-                  "value":"admin.input_layer",
-                  "hidden":0},
+                  "value":"admin.input_layer"},
                 "buffer_distance":
                 { "id":"buffer_distance",
                   "param_name":"buffer_distance",
-                  "type":"numeric",
-                  "icon":"fa-tape",
-                  "limits":{"min":0,"max":100000},
-                  "abs_limits":{"min":0,"max":100000},
-                  "value":0,
-                  "label":"Buffer radius/distance in meters",
-                  "widget_type":"slider",
-                  "hidden":0,
-                  "units":"meters"},
+                  "value":0
+                },
                 "filter_attribute":
                 { "id":"filter_attribute",
                   "param_name":"filter_attribute",
-                  "type":"text",
-                  "icon":"fa-filter",
-                  "label":"Layer attribute against which to filter",
-                  "widget_type":"search box",
-                  "value":"",
-                  "hidden":0},
+                  "value":"type"
+                },
                 "filter_value":
                 { "id":"filter_value",
                   "param_name":"filter_value",
-                  "type":"text",
-                  "icon":"fa-text-height",
-                  "label":"Only apply to features with this attribute",
-                  "widget_type":"search box",
-                  "value":"",
-                  "hidden":0}
+                  "value":"National roads"
+                  }
             }';
 
     BEGIN
 
 -- TODO
--- make the input params coherent with the structure used in function layers -- DONE
--- add filters -- DONE
--- what if buffer_distance <=0 ?
 -- what if geom column name is not 'geom' ?
 -- what about the attributes in the original layer? -> drop them, the buffer will be likely used as a binary mask
 --                                                  -> add an opt flag to the function parameters to preserve attrs
--- opt buffer distance taken from a field of the original layer?
--- check geom type? -- Not needed
 
-        defaults_json        := func_defaults::jsonb;
-        requested_json       := params::jsonb;
+        -- JSON shall be sanitized by the calling function
+        sanitized_json       := params::jsonb;
 
-        -- sanitize the JSON before proceeding
-        sanitized_json       := admin.params_sanity_check(defaults_json, requested_json);
 
         input_layer_name     := trim('"' FROM (sanitized_json->'input_layer_name'->'value')::text);
         buffer_distance      := (sanitized_json->'buffer_distance'->'value')::float;
@@ -187,18 +131,16 @@ RETURNS VOID AS $$
 			SELECT ST_TileEnvelope(z,x,y) AS geom
 		);
 
-		DROP TABLE IF EXISTS bounds_buffered;
+		DROP TABLE IF EXISTS bounds_buffered_tlbc;
 
 
         --create a temp table to avoid buffering bounds at every JOIN in the main query
         EXECUTE format('
-            CREATE TEMPORARY TABLE bounds_buffered AS (
+            CREATE TEMPORARY TABLE bounds_buffered_tlbc AS (
                 SELECT ST_Buffer(b.geom,%s) AS geom
                 FROM bounds_tlbc AS b
             );',
             buffer_distance);
-
-        DROP TABLE IF EXISTS temp_buffer;
 
 
         -- we need to buffer the tiles of the bounds table to include the buffers of features in neighbouring tiles.
@@ -226,13 +168,13 @@ RETURNS VOID AS $$
 
         END IF;
 
-        RAISE WARNING 'sql_stmt: %',sql_stmt;
+--        RAISE WARNING 'sql_stmt: %',sql_stmt;
 
         EXECUTE sql_stmt;
 
 
         DROP TABLE IF EXISTS bounds_tlbc;
-		DROP TABLE IF EXISTS bounds_buffered;
+		DROP TABLE IF EXISTS bounds_buffered_tlbc;
 
 --        RAISE WARNING '# # # # # # # # # # # # # # # input_layer_name: %',sql_stmt;
 --        SELECT COUNT(*) FROM temp_buffer INTO res_counter;
