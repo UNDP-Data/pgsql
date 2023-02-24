@@ -63,6 +63,49 @@ RETURNS bytea AS $$
 		sanitized_json jsonb;
         geom_text text;
 
+        func_defaults jsonb :=
+            '{
+                "input_layer_name":
+                { "id":"input_layer_name",
+                  "param_name":"input_layer_name",
+                  "type":"text",
+                  "icon":"fa-diamond",
+                  "label":"Layer to be buffered in schema.table format",
+                  "widget_type":"search box",
+                  "value":"admin.input_layer",
+                  "hidden":0},
+                "buffer_distance":
+                { "id":"buffer_distance",
+                  "param_name":"buffer_distance",
+                  "type":"numeric",
+                  "icon":"fa-tape",
+                  "limits":{"min":0,"max":100000},
+                  "abs_limits":{"min":0,"max":100000},
+                  "value":0,
+                  "label":"Buffer radius/distance in meters",
+                  "widget_type":"slider",
+                  "hidden":0,
+                  "units":"meters"},
+                "filter_attribute":
+                { "id":"filter_attribute",
+                  "param_name":"filter_attribute",
+                  "type":"text",
+                  "icon":"fa-filter",
+                  "label":"Layer attribute against which to filter",
+                  "widget_type":"search box",
+                  "value":"type",
+                  "hidden":0},
+                "filter_value":
+                { "id":"filter_value",
+                  "param_name":"filter_value",
+                  "type":"text",
+                  "icon":"fa-text-height",
+                  "label":"Only apply to features with this attribute",
+                  "widget_type":"search box",
+                  "value":"National roads",
+                  "hidden":0}
+            }';
+
     BEGIN
 
         defaults_json        := func_defaults::jsonb;
@@ -72,7 +115,8 @@ RETURNS bytea AS $$
          sanitized_json       := admin.params_sanity_check(defaults_json, requested_json);
 
         DROP TABLE IF EXISTS temp_buffer_union;
-        EXECUTE admin.tool_layer_buffer_core(z,x,y,sanitized_json,'temp_buffer_union');
+--        RAISE WARNING 'PERFORM admin.tool_layer_buffer_core(%,%,%,%,%)', z,x,y,sanitized_json,'temp_buffer_union';
+        EXECUTE format('SELECT * FROM admin.tool_layer_buffer_core(%s,%s,%s,''%s'',''temp_buffer_union'')',z,x,y,sanitized_json);
 
 --       SELECT count(*) FROM temp_buffer_union INTO res_counter;
 --       SELECT ST_AsText(geom) from temp_buffer_union INTO geom_text;

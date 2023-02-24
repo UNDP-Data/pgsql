@@ -10,7 +10,7 @@ CREATE OR REPLACE FUNCTION admin.tool_layer_intersect (
                   "icon":"fa-diamond",
                   "label":"Layer to be intersected, in schema.table format",
                   "widget_type":"search box",
-                  "value":"admin.input_layer_1",
+                  "value":"input_layer_1",
                   "hidden":0},
                 "input_layer_name_2":
                 { "id":"input_layer_name_2",
@@ -19,7 +19,7 @@ CREATE OR REPLACE FUNCTION admin.tool_layer_intersect (
                   "icon":"fa-diamond",
                   "label":"Layer to be intersected against, in schema.table format",
                   "widget_type":"search box",
-                  "value":"admin.input_layer_2",
+                  "value":"input_layer_2",
                   "hidden":0}
             }'
     )
@@ -95,7 +95,7 @@ RETURNS bytea AS $$
 -- TODO
 -- check/create spatial indexes
 
-        RAISE WARNING 'TOOL_LAYER_INTERSECT params: %', params;
+--        RAISE WARNING 'TOOL_LAYER_INTERSECT params: %', params;
 
         defaults_json        := func_defaults::jsonb;
         requested_json       := params::jsonb;
@@ -124,7 +124,7 @@ RETURNS bytea AS $$
         );
 
 
-        RAISE WARNING 'TOOL_LAYER_INTERSECT sql_stmt: %',sql_stmt;
+--        RAISE WARNING 'TOOL_LAYER_INTERSECT sql_stmt: %',sql_stmt;
 
         EXECUTE sql_stmt;
 

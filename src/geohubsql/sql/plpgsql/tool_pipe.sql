@@ -127,7 +127,7 @@ RETURNS bytea AS $$
 
         FOR requested_array_element IN SELECT * FROM jsonb_array_elements(requested_json)
         LOOP
-
+--            RAISE NOTICE '#################################';
             elem_label             := jsonb_object_keys(requested_array_element)::text;
             elem_id                := regexp_replace(LEFT((requested_array_element->elem_label->'id'->>'value')::text,2),'[^0-9.-]+','','g');
             elem_function_name     := requested_array_element->elem_label->'tool_function'->>'value' ;
@@ -170,18 +170,18 @@ RETURNS bytea AS $$
 -- 			   RAISE WARNING 'requested_array_element LABEL KEY: %', requested_array_element->elem_label->>_valid_key;
 --             IF (jsonb_path_exists(elem_valid_params, '$[*] ? (@ == "buffer_distance")')) THEN
                IF (requested_array_element->elem_label->>_valid_key IS NOT NULL) THEN
-                   --RAISE NOTICE 'KV OK %: %', _valid_key, _value;
+--                   RAISE NOTICE 'KV OK %: %', _valid_key, _value;
                    elem_valid_params = jsonb_set( elem_valid_params, ('{'||_valid_key||'}')::text[], requested_array_element->elem_label->_valid_key );
                ELSE
-                    --RAISE NOTICE 'KV NOT OK %: %', _valid_key, _value;
+--                    RAISE NOTICE 'KV NOT OK %: %', _valid_key, _value;
                     -- if the value was not requested, delete the corresponding key
 					elem_valid_params = elem_valid_params #- ('{'||_valid_key||'}')::text[];
                END IF;
             END LOOP;
 
-            RAISE NOTICE 'Array element % - function_name:%, function_is_valid:%, elem_output_layer_name:%',
-                         elem_id, elem_function_name, function_is_valid, elem_output_layer_name;
-            RAISE NOTICE 'elem_valid_params: %', elem_valid_params;
+--            RAISE NOTICE 'Array element % - function_name:%, function_is_valid:%, elem_output_layer_name:%',
+--                         elem_id, elem_function_name, function_is_valid, elem_output_layer_name;
+--            RAISE NOTICE 'elem_valid_params: %', elem_valid_params;
 --            RAISE NOTICE 'tool_function: %', JSONB_PATH_QUERY_ARRAY(requested_array_element, '$.*.tool_function.value');
 
 
@@ -192,7 +192,7 @@ RETURNS bytea AS $$
                 query_string := format (query_string_table, elem_output_layer_name, elem_output_layer_name, elem_function_name, z,x,y,elem_valid_params);
             END IF;
 
-            RAISE WARNING 'TOOL_PIPE query_string: %', query_string;
+--            RAISE WARNING 'TOOL_PIPE query_string: %', query_string;
 			EXECUTE query_string;
             last_elem_output_layer_name := elem_output_layer_name;
 
@@ -201,7 +201,7 @@ RETURNS bytea AS $$
 
 
 -- TODO check if needed / how to remove
-            CREATE INDEX IF NOT EXISTS output_from_tool_1_idx ON output_from_tool_1 USING GIST (geom);
+--            CREATE INDEX IF NOT EXISTS output_from_tool_1_idx ON output_from_tool_1 USING GIST (geom);
 
 --            EXECUTE format('SELECT COUNT(*) FROM %s', elem_output_layer_name) INTO res_counter;
 --            RAISE WARNING 'elem_output_layer_name has % features.', res_counter;
