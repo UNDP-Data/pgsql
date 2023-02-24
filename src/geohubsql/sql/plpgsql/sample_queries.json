@@ -1,0 +1,85 @@
+[
+   {
+      "Buffer around springs":{
+         "id":{
+            "value":"1"
+         },
+         "tool_function":{
+            "value":"tool_layer_buffer_core"
+         },
+         "input_layer_name":{
+            "value":"admin.water_facilities"
+         },
+         "buffer_distance":{
+            "value":500
+         }
+      }
+   },
+     {
+      "Buffer around National roads":{
+         "id":{
+            "value":"2"
+         },
+         "tool_function":{
+            "value":"tool_layer_buffer_core"
+         },
+         "input_layer_name":{
+            "value":"admin.roads"
+         },
+         "buffer_distance":{
+            "value":1000
+         },
+         "filter_attribute":{"value":"type"},
+         "filter_value":{"value":"National road"}
+      }
+   },
+   {
+      "Intersect roads with buffered springs":{
+         "id":{
+            "value":"3"
+         },
+         "tool_function":{
+            "value":"tool_layer_intersect_core"
+         },
+         "input_layer_name_1":{
+            "value":"output_from_tool_1"
+         },
+         "input_layer_name_2":{
+            "value":"output_from_tool_2"
+         }
+      }
+   },
+       {
+      "Buffer around villages":{
+         "id":{
+            "value":"4"
+         },
+         "tool_function":{
+            "value":"tool_layer_buffer_core"
+         },
+         "input_layer_name":{
+            "value":"admin.villages"
+         },
+         "buffer_distance":{
+            "value":2000
+         }
+      }
+   },
+
+   {
+      "Intersect the output of roads and springs buffers with village buffers":{
+         "id":{
+            "value":"5"
+         },
+         "tool_function":{
+            "value":"tool_layer_intersect_core"
+         },
+         "input_layer_name_1":{
+            "value":"output_from_tool_3"
+         },
+         "input_layer_name_2":{
+            "value":"output_from_tool_4"
+         }
+      }
+   }
+   ]
