@@ -7,7 +7,7 @@ from pathlib import Path
 
 def pad_sdg(sdg):
 
-    return str(sdg).zfill(2)
+    return 'sdg'+str(sdg).zfill(2)
 
 def sanitize_name(name):
     """
@@ -40,14 +40,14 @@ def process_value_fields(record, output_record_template):
     for field_name, field_value in record.items():
         if isinstance(field_value, (int, float)) and field_name.startswith('value'):
             if field_value != 0:
-                print("field_name: " + field_name + " field_value: " + str(field_value))
-                output_record = output_record_template
-                output_record['year'] = field_name
+#                print("field_name: " + field_name + " field_value: " + str(field_value))
+                output_record = output_record_template.copy()
+                output_record['year'] = str(field_name).removeprefix('value_').removeprefix('value ')
                 output_record['year_value'] = field_value
-                print(output_record)
+#                print(output_record)
                 process_output_records.append(output_record)
-                print(process_output_records)
-                print()
+#                print(process_output_records)
+#                print()
     return process_output_records
 
 def process_dbf_files(root_dir, allowed_fields):
@@ -65,14 +65,20 @@ def process_dbf_files(root_dir, allowed_fields):
                 file_details_list.append(file_details)
 
     output_records = {}
+    lut_file_names = {}
+
     for file_details in file_details_list:
+
         print()
         print (os.path.join(file_details['dir'], file_details['file_name']))
         dbf_file = dbfread.DBF(os.path.join(file_details['dir'], file_details['file_name']), encoding='cp852')
-        file_name=sanitize_name(file_details['file_name'])
-        sdg_code = 99
+        file_name = sanitize_name(file_details['file_name'])
+        sdg_code = 'sdg_others'
         record_count = 0
+        admin_level = 'admin0'
+
         for record in dbf_file:
+
             record_count+=1
             output_record_template = {}
             output_record_template['file_name'] = file_name
@@ -84,18 +90,47 @@ def process_dbf_files(root_dir, allowed_fields):
                     # print(sanitized_field_name + ' -> '+standardized_field_name)
                     output_record_template[standardized_field_name] = field_value
 
+
+
             if (record_count==1):
                 try:
                     sdg_code = pad_sdg(output_record_template['goal_code'])
+#                    if ((sanitized_field_name == 'type')&(output_record_template[standardized_field_name] != 'Country')):
+                    if (sanitized_field_name == 'type') :
+                        print (output_record_template[standardized_field_name])
+                        admin_level_name = output_record_template[standardized_field_name]
+                        admin_level = 'admin'+str(admin_level_lut[admin_level_name])
                 except:
                     print ('NOK '+file_name+' sdg_code: '+ str(sdg_code))
                 else:
                     print ('OK  '+file_name+' sdg_code: '+ str(sdg_code))
 
-            if sdg_code not in output_records:
-                output_records[sdg_code] =[]
+                try:
+                    if sdg_code not in lut_file_names:
+                        lut_file_names[sdg_code]= {}
+                    if admin_level not in lut_file_names[sdg_code]:
+                        lut_file_names[sdg_code][admin_level] = {}
 
-            output_records[sdg_code].extend(process_value_fields(record,output_record_template))
+                    file_name_hash = hash(sdg_code+'/'+admin_level+'/'+file_name)
+
+                    if file_name_hash not in lut_file_names[sdg_code][admin_level]:
+                        lut_file_names[sdg_code][admin_level][file_name_hash] = sdg_code+'/'+admin_level+'/'+file_name
+                        print('file name was added')
+                    else:
+                        print('file name was already present')
+                except:
+                    print('error on file name hash ')
+
+
+            output_record_template['file_name_hash'] = file_name_hash
+
+            if sdg_code not in output_records:
+                output_records[sdg_code] ={}
+            if admin_level not in output_records[sdg_code]:
+                output_records[sdg_code][admin_level] =[]
+
+            # print (output_record_template)
+            output_records[sdg_code][admin_level].extend(process_value_fields(record,output_record_template))
 
 #            output_record['file_name'] = file_details['file_name']
 #            output_records.append(output_record)
@@ -103,6 +138,9 @@ def process_dbf_files(root_dir, allowed_fields):
 
     with open('output_sql.json', 'w') as f:
         json.dump(output_records, f, indent=4)
+
+    with open('lut_file_names.json', 'w') as f:
+        json.dump(lut_file_names, f, indent=4)
 
 #allowed_fields = ["goal_code", "iso3", "objectid", "target_cod", "indicato_1"]
 
@@ -120,12 +158,18 @@ allowed_fields = {
     "indicato_1":"indicator_1",
     "indicator_1": "indicator_1",
     "units_code": "units_code",
+    "type": "type",
     "age_code": "age_code",
     "age code": "age_code",
     "sex_code": "sex_code",
     "sex code": "sex_code"
 }
 
+admin_level_lut = {
+    "Country":0,
+    "Region":1,
+    "Province":2
+}
 
 parser = argparse.ArgumentParser()
 parser.add_argument("file_path", type=Path)
