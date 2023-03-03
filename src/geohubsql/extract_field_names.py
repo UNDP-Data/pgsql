@@ -5,6 +5,10 @@ import unicodedata
 import argparse
 from pathlib import Path
 
+def pad_sdg(sdg):
+
+    return str(sdg).zfill(2)
+
 def sanitize_name(name):
     """
     Sanitizes a field name by removing non-ascii characters, converting
@@ -32,7 +36,7 @@ def process_value_fields(record, output_record_template):
     Processes value fields in a record and returns a list of dictionaries
     representing the valid values.
     """
-    output_records = []
+    process_output_records = []
     for field_name, field_value in record.items():
         if isinstance(field_value, (int, float)) and field_name.startswith('value'):
             if field_value != 0:
@@ -41,10 +45,10 @@ def process_value_fields(record, output_record_template):
                 output_record['year'] = field_name
                 output_record['year_value'] = field_value
                 print(output_record)
-                output_records.append(output_record)
-                print(output_records)
+                process_output_records.append(output_record)
+                print(process_output_records)
                 print()
-    return output_records
+    return process_output_records
 
 def process_dbf_files(root_dir, allowed_fields):
     """
@@ -60,7 +64,7 @@ def process_dbf_files(root_dir, allowed_fields):
                 file_details['file_name'] = file
                 file_details_list.append(file_details)
 
-    output_records = []
+    output_records = {}
     for file_details in file_details_list:
         print()
         print (os.path.join(file_details['dir'], file_details['file_name']))
@@ -79,15 +83,19 @@ def process_dbf_files(root_dir, allowed_fields):
                     standardized_field_name = allowed_fields[sanitized_field_name]
                     # print(sanitized_field_name + ' -> '+standardized_field_name)
                     output_record_template[standardized_field_name] = field_value
+
             if (record_count==1):
                 try:
-                    sdg_code = output_record_template['goal_code']
+                    sdg_code = pad_sdg(output_record_template['goal_code'])
                 except:
-                    print (file_name+' sdg_code: '+ str(sdg_code))
+                    print ('NOK '+file_name+' sdg_code: '+ str(sdg_code))
                 else:
-                    print (file_name+' sdg_code: '+ str(sdg_code))
+                    print ('OK  '+file_name+' sdg_code: '+ str(sdg_code))
 
-            output_records.extend(process_value_fields(record,output_record_template))
+            if sdg_code not in output_records:
+                output_records[sdg_code] =[]
+
+            output_records[sdg_code].extend(process_value_fields(record,output_record_template))
 
 #            output_record['file_name'] = file_details['file_name']
 #            output_records.append(output_record)
