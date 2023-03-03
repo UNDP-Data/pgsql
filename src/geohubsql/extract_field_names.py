@@ -10,8 +10,8 @@ def sanitize_name(name):
     Sanitizes a field name by removing non-ascii characters, converting
     the name to lowercase, and converting spaces to underscores.
     """
-#    return unicodedata.normalize('NFKD', name).encode('ASCII', 'ignore').decode('utf-8').lower().replace(' ', '_')
-    return name
+    return unicodedata.normalize('NFKD', name).encode('ASCII', 'ignore').decode('utf-8').lower().replace(' ', '_')
+#    return name
 
 def process_dbf_file(dbf_file_path):
     """
@@ -27,7 +27,7 @@ def process_dbf_file(dbf_file_path):
     }
     return file_details
 
-def process_value_fields(record, output_record_master, allowed_fields):
+def process_value_fields(record, output_record_template):
     """
     Processes value fields in a record and returns a list of dictionaries
     representing the valid values.
@@ -36,10 +36,14 @@ def process_value_fields(record, output_record_master, allowed_fields):
     for field_name, field_value in record.items():
         if isinstance(field_value, (int, float)) and field_name.startswith('value'):
             if field_value != 0:
-                output_record = output_record_master
-                output_record['year'] = sanitize_name(field_name)
-                output_record['yvalue'] = field_value
+                print("field_name: " + field_name + " field_value: " + str(field_value))
+                output_record = output_record_template
+                output_record['year'] = field_name
+                output_record['year_value'] = field_value
+                print(output_record)
                 output_records.append(output_record)
+                print(output_records)
+                print()
     return output_records
 
 def process_dbf_files(root_dir, allowed_fields):
@@ -58,28 +62,61 @@ def process_dbf_files(root_dir, allowed_fields):
 
     output_records = []
     for file_details in file_details_list:
-#        print (os.path.join(file_details['dir'], file_details['file_name']))
+        print()
+        print (os.path.join(file_details['dir'], file_details['file_name']))
         dbf_file = dbfread.DBF(os.path.join(file_details['dir'], file_details['file_name']), encoding='cp852')
-        fname=sanitize_name(file_details['file_name'])
+        file_name=sanitize_name(file_details['file_name'])
+        sdg_code = 99
+        record_count = 0
         for record in dbf_file:
-            output_record_master = {}
-            output_record_master['fname'] = fname
+            record_count+=1
+            output_record_template = {}
+            output_record_template['file_name'] = file_name
             for field_name, field_value in record.items():
                 sanitized_field_name = sanitize_name(field_name)
-                if sanitized_field_name in allowed_fields:
-                    output_record_master[sanitized_field_name] = field_value
 
-            output_records.extend(process_value_fields(record,output_record_master,allowed_fields))
+                if sanitized_field_name in allowed_fields.keys():
+                    standardized_field_name = allowed_fields[sanitized_field_name]
+                    # print(sanitized_field_name + ' -> '+standardized_field_name)
+                    output_record_template[standardized_field_name] = field_value
+            if (record_count==1):
+                try:
+                    sdg_code = output_record_template['goal_code']
+                except:
+                    print (file_name+' sdg_code: '+ str(sdg_code))
+                else:
+                    print (file_name+' sdg_code: '+ str(sdg_code))
+
+            output_records.extend(process_value_fields(record,output_record_template))
 
 #            output_record['file_name'] = file_details['file_name']
 #            output_records.append(output_record)
-#            print(output_record_master)
+#            print(output_record_template)
 
     with open('output_sql.json', 'w') as f:
         json.dump(output_records, f, indent=4)
 
-allowed_fields = ["goal_code", "iso3", "objectid", "target_cod", "indicato_1"]
+#allowed_fields = ["goal_code", "iso3", "objectid", "target_cod", "indicato_1"]
 
+allowed_fields = {
+    "goal_code":"goal_code",
+    "goal_cod": "goal_code",
+    "iso3":"iso3cd",
+    "iso3c":"iso3cd",
+    "iso3cd":"iso3cd",
+    "objectid":"objectid",
+    "objectid 1": "objectid_1",
+    "objectid_1": "objectid_1",
+    "target_cod":"target_code",
+    "target_code":"target_code",
+    "indicato_1":"indicator_1",
+    "indicator_1": "indicator_1",
+    "units_code": "units_code",
+    "age_code": "age_code",
+    "age code": "age_code",
+    "sex_code": "sex_code",
+    "sex code": "sex_code"
+}
 
 
 parser = argparse.ArgumentParser()
