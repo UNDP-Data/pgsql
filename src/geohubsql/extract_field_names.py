@@ -69,70 +69,9 @@ def process_dbf_files(root_dir, allowed_fields):
 
     for file_details in file_details_list:
 
-        print()
-        print (os.path.join(file_details['dir'], file_details['file_name']))
-        dbf_file = dbfread.DBF(os.path.join(file_details['dir'], file_details['file_name']), encoding='cp852')
-        file_name = sanitize_name(file_details['file_name'])
-        sdg_code = 'sdg_others'
-        record_count = 0
-        admin_level = 'admin0'
+        process_single_dbf_file(file_details, lut_file_names, output_records)
 
-        for record in dbf_file:
-
-            record_count+=1
-            output_record_template = {}
-            output_record_template['file_name'] = file_name
-            for field_name, field_value in record.items():
-                sanitized_field_name = sanitize_name(field_name)
-
-                if sanitized_field_name in allowed_fields.keys():
-                    standardized_field_name = allowed_fields[sanitized_field_name]
-                    # print(sanitized_field_name + ' -> '+standardized_field_name)
-                    output_record_template[standardized_field_name] = field_value
-
-
-
-            if (record_count==1):
-                try:
-                    sdg_code = pad_sdg(output_record_template['goal_code'])
-#                    if ((sanitized_field_name == 'type')&(output_record_template[standardized_field_name] != 'Country')):
-                    if (sanitized_field_name == 'type') :
-                        print (output_record_template[standardized_field_name])
-                        admin_level_name = output_record_template[standardized_field_name]
-                        admin_level = 'admin'+str(admin_level_lut[admin_level_name])
-                except:
-                    print ('NOK '+file_name+' sdg_code: '+ str(sdg_code))
-                else:
-                    print ('OK  '+file_name+' sdg_code: '+ str(sdg_code))
-
-                try:
-                    if sdg_code not in lut_file_names:
-                        lut_file_names[sdg_code]= {}
-                    if admin_level not in lut_file_names[sdg_code]:
-                        lut_file_names[sdg_code][admin_level] = {}
-
-                    file_name_hash = hash(sdg_code+'/'+admin_level+'/'+file_name)
-
-                    if file_name_hash not in lut_file_names[sdg_code][admin_level]:
-                        lut_file_names[sdg_code][admin_level][file_name_hash] = sdg_code+'/'+admin_level+'/'+file_name
-                        print('file name was added')
-                    else:
-                        print('file name was already present')
-                except:
-                    print('error on file name hash ')
-
-
-            output_record_template['file_name_hash'] = file_name_hash
-
-            if sdg_code not in output_records:
-                output_records[sdg_code] ={}
-            if admin_level not in output_records[sdg_code]:
-                output_records[sdg_code][admin_level] =[]
-
-            # print (output_record_template)
-            output_records[sdg_code][admin_level].extend(process_value_fields(record,output_record_template))
-
-#            output_record['file_name'] = file_details['file_name']
+    #            output_record['file_name'] = file_details['file_name']
 #            output_records.append(output_record)
 #            print(output_record_template)
 
@@ -141,6 +80,73 @@ def process_dbf_files(root_dir, allowed_fields):
 
     with open('lut_file_names.json', 'w') as f:
         json.dump(lut_file_names, f, indent=4)
+
+
+def process_single_dbf_file(file_details, lut_file_names, output_records):
+
+    print()
+    print(os.path.join(file_details['dir'], file_details['file_name']))
+
+    dbf_file = dbfread.DBF(os.path.join(file_details['dir'], file_details['file_name']), encoding='cp852')
+    file_name = sanitize_name(file_details['file_name'])
+
+    sdg_code = 'sdg_others'
+    record_count = 0
+    admin_level = 'admin0'
+
+    for record in dbf_file:
+
+        record_count += 1
+        output_record_template = {}
+        output_record_template['file_name'] = file_name
+        for field_name, field_value in record.items():
+            sanitized_field_name = sanitize_name(field_name)
+
+            if sanitized_field_name in allowed_fields.keys():
+                standardized_field_name = allowed_fields[sanitized_field_name]
+                # print(sanitized_field_name + ' -> '+standardized_field_name)
+                output_record_template[standardized_field_name] = field_value
+
+        if (record_count == 1):
+            try:
+                sdg_code = pad_sdg(output_record_template['goal_code'])
+                #                    if ((sanitized_field_name == 'type')&(output_record_template[standardized_field_name] != 'Country')):
+                if (sanitized_field_name == 'type'):
+                    print(output_record_template[standardized_field_name])
+                    admin_level_name = output_record_template[standardized_field_name]
+                    admin_level = 'admin' + str(admin_level_lut[admin_level_name])
+            except:
+                print('NOK ' + file_name + ' sdg_code: ' + str(sdg_code))
+            else:
+                print('OK  ' + file_name + ' sdg_code: ' + str(sdg_code))
+
+            try:
+                if sdg_code not in lut_file_names:
+                    lut_file_names[sdg_code] = {}
+                if admin_level not in lut_file_names[sdg_code]:
+                    lut_file_names[sdg_code][admin_level] = {}
+
+                file_name_hash = hash(sdg_code + '/' + admin_level + '/' + file_name)
+
+                if file_name_hash not in lut_file_names[sdg_code][admin_level]:
+                    lut_file_names[sdg_code][admin_level][
+                        file_name_hash] = sdg_code + '/' + admin_level + '/' + file_name
+                    print('file name was added')
+                else:
+                    print('file name was already present')
+            except:
+                print('error on file name hash ')
+
+        output_record_template['file_name_hash'] = file_name_hash
+
+        if sdg_code not in output_records:
+            output_records[sdg_code] = {}
+        if admin_level not in output_records[sdg_code]:
+            output_records[sdg_code][admin_level] = []
+
+        # print (output_record_template)
+        output_records[sdg_code][admin_level].extend(process_value_fields(record, output_record_template))
+
 
 #allowed_fields = ["goal_code", "iso3", "objectid", "target_cod", "indicato_1"]
 
