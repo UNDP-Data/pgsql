@@ -79,37 +79,6 @@ def process_value_fields(record, output_record_template):
 
     return process_output_records
 
-def process_dbf_files(root_dir, allowed_fields):
-    """
-    Recursively processes all DBF files in a directory and its subdirectories
-    and writes the output to a JSON file.
-    """
-    file_details_list = []
-    for root, dirs, files in os.walk(root_dir):
-        for file in files:
-            if file.endswith('.dbf'):
-                dbf_file_path = os.path.join(root, file)
-                file_details = process_dbf_file(dbf_file_path)
-                file_details['file_name'] = file
-                file_details_list.append(file_details)
-
-    output_records = {}
-    lut_file_names = {}
-
-    for file_details in file_details_list:
-
-        process_single_dbf_file(file_details, lut_file_names, output_records)
-
-    #            output_record['file_name'] = file_details['file_name']
-#            output_records.append(output_record)
-#            print(output_record_template)
-
-    with open('output_sql.json', 'w') as f:
-        json.dump(output_records, f, indent=4)
-
-    with open('lut_file_names.json', 'w') as f:
-        json.dump(lut_file_names, f, indent=4)
-
 
 def process_single_dbf_file(file_details, lut_file_names, output_records):
 
@@ -175,6 +144,39 @@ def process_single_dbf_file(file_details, lut_file_names, output_records):
 
         # print (output_record_template)
         output_records[sdg_code][admin_level].extend(process_value_fields(record, output_record_template))
+
+
+def process_dbf_files(root_dir, allowed_fields):
+    """
+    Recursively processes all DBF files in a directory and its subdirectories
+    and writes the output to a JSON file.
+    """
+    file_details_list = []
+    for root, dirs, files in os.walk(root_dir):
+        for file in files:
+            if file.endswith('.dbf'):
+                dbf_file_path = os.path.join(root, file)
+                file_details = process_dbf_file(dbf_file_path)
+                file_details['file_name'] = file
+                file_details_list.append(file_details)
+
+    output_records = {}
+    lut_file_names = {}
+
+    for file_details in file_details_list:
+
+        process_single_dbf_file(file_details, lut_file_names, output_records)
+
+    #            output_record['file_name'] = file_details['file_name']
+#            output_records.append(output_record)
+#            print(output_record_template)
+
+    with open('output_sql.json', 'w') as f:
+        json.dump(output_records, f, indent=4)
+
+    with open('lut_file_names.json', 'w') as f:
+        json.dump(lut_file_names, f, indent=4)
+
 
 
 #allowed_fields = ["goal_code", "iso3", "objectid", "target_cod", "indicato_1"]
