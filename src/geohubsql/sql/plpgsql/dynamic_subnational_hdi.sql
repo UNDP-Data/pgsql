@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION admin.hdi_subnat_extarg_simpl(
+CREATE OR REPLACE FUNCTION admin.dynamic_subnational_hdi(
     z integer default 0,
     x integer default 0,
     y integer default 0,
