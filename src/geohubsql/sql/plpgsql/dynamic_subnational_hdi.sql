@@ -59,7 +59,7 @@ RETURNS bytea AS $$
 
     DECLARE
         mvt bytea;
-        layer_name varchar := 'admin.hdi_subnat_extarg_simpl';
+        layer_name varchar := 'Dynamic Subnational HDI';
 
         simplified_table_name varchar := NULL;
 
@@ -315,11 +315,11 @@ RETURNS bytea AS $$
     END
 $$ LANGUAGE plpgsql VOLATILE STRICT PARALLEL SAFE;
 
-COMMENT ON FUNCTION admin.hdi_subnat_extarg_simpl IS 'This is hdi_subnat_extarg_simpl, please insert the desired increment values';
+COMMENT ON FUNCTION admin.dynamic_subnational_hdi IS 'This is dynamic subnational HDI, please insert the desired increment values';
 
 
 --
---SELECT * FROM admin.hdi_subnat_extarg_simpl(0,0,0,'{
+--SELECT * FROM admin.dynamic_subnational_hdi(0,0,0,'{
 --  "le_incr":
 --    {"value":11},
 --  "eys_incr":
@@ -331,9 +331,9 @@ COMMENT ON FUNCTION admin.hdi_subnat_extarg_simpl IS 'This is hdi_subnat_extarg_
 --}') AS OUTP;
 
 -- example URL:
--- wget http://172.18.0.6:7800/admin.hdi_subnat_extarg_simpl/0/0/0.pbf?params='%7B%0A%20%20%22le_incr%22%3A%0A%20%20%20%20%7B%22value%22%3A11%7D%2C%0A%20%20%22eys_incr%22%3A%0A%20%20%20%20%20%7B%22value%22%3A22%7D%2C%0A%20%20%20%20%22mys_incr%22%3A%0A%20%20%20%20%20%7B%22value%22%3A33%7D%2C%0A%20%20%22gni_incr%22%3A%0A%20%20%20%20%20%7B%22value%22%3A44%7D%0A%7D' -O ext.pbf
+-- wget http://172.18.0.6:7800/admin.dynamic_subnational_hdi/0/0/0.pbf?params='%7B%0A%20%20%22le_incr%22%3A%0A%20%20%20%20%7B%22value%22%3A11%7D%2C%0A%20%20%22eys_incr%22%3A%0A%20%20%20%20%20%7B%22value%22%3A22%7D%2C%0A%20%20%20%20%22mys_incr%22%3A%0A%20%20%20%20%20%7B%22value%22%3A33%7D%2C%0A%20%20%22gni_incr%22%3A%0A%20%20%20%20%20%7B%22value%22%3A44%7D%0A%7D' -O ext.pbf
 
--- http://172.18.0.6:7800/admin.hdi_subnat_extarg_simpl/{z}/{x}/{y}.pbf?params='%7B%0A%20%20%22le_incr%22%3A%0A%20%20%20%20%7B%22value%22%3A11%7D%2C%0A%20%20%22eys_incr%22%3A%0A%20%20%20%20%20%7B%22value%22%3A22%7D%2C%0A%20%20%20%20%22mys_incr%22%3A%0A%20%20%20%20%20%7B%22value%22%3A33%7D%2C%0A%20%20%22gni_incr%22%3A%0A%20%20%20%20%20%7B%22value%22%3A44%7D%0A%7D'
+-- http://172.18.0.6:7800/admin.dynamic_subnational_hdi/{z}/{x}/{y}.pbf?params='%7B%0A%20%20%22le_incr%22%3A%0A%20%20%20%20%7B%22value%22%3A11%7D%2C%0A%20%20%22eys_incr%22%3A%0A%20%20%20%20%20%7B%22value%22%3A22%7D%2C%0A%20%20%20%20%22mys_incr%22%3A%0A%20%20%20%20%20%7B%22value%22%3A33%7D%2C%0A%20%20%22gni_incr%22%3A%0A%20%20%20%20%20%7B%22value%22%3A44%7D%0A%7D'
 
 -- works in QGIS:
--- http://172.18.0.6:7800/admin.hdi_subnat_extarg_simpl/{z}/{x}/{y}.pbf?params={"le_incr":{"value":11},"eys_incr":{"value":22},"mys_incr":{"value":33},"gni_incr":{"value":44}}
+-- http://172.18.0.6:7800/admin.dynamic_subnational_hdi/{z}/{x}/{y}.pbf?params={"le_incr":{"value":11},"eys_incr":{"value":22},"mys_incr":{"value":33},"gni_incr":{"value":44}}
