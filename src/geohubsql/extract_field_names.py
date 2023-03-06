@@ -5,6 +5,11 @@ import unicodedata
 import argparse
 from pathlib import Path
 
+processing_options = {
+    'each_yearly_value_to_new_record':True,
+}
+
+
 def pad_sdg(sdg):
 
     return 'sdg'+str(sdg).zfill(2)
@@ -37,17 +42,41 @@ def process_value_fields(record, output_record_template):
     representing the valid values.
     """
     process_output_records = []
-    for field_name, field_value in record.items():
-        if isinstance(field_value, (int, float)) and field_name.startswith('value'):
-            if field_value != 0:
-#                print("field_name: " + field_name + " field_value: " + str(field_value))
-                output_record = output_record_template.copy()
-                output_record['year'] = str(field_name).removeprefix('value_').removeprefix('value ')
-                output_record['year_value'] = field_value
-#                print(output_record)
-                process_output_records.append(output_record)
-#                print(process_output_records)
-#                print()
+    if (processing_options['each_yearly_value_to_new_record']):
+        for field_name, field_value in record.items():
+            if isinstance(field_value, (int, float)) and field_name.startswith('value'):
+                if field_value != 0:
+    #                print("field_name: " + field_name + " field_value: " + str(field_value))
+
+                    output_record = output_record_template.copy()
+                    output_record['year'] = str(field_name).removeprefix('value_').removeprefix('value ')
+                    output_record['year_value'] = round(field_value,3)
+                    process_output_records.append(output_record)
+
+            ## Would create a type mismatch.
+            ## Create a SQL views instead with order by desc / limit
+            # if isinstance(field_value, (int, float)) and (field_name == ('latest')):
+            #     if field_value != 0:
+            #         output_record = output_record_template.copy()
+            #         output_record['year'] = 'latest'
+            #         output_record['year_value'] = round(field_value, 3)
+            #         process_output_records.append(output_record)
+
+    else:
+
+        output_record = output_record_template.copy()
+
+        for field_name, field_value in record.items():
+            if isinstance(field_value, (int, float)) and field_name.startswith('value'):
+                if field_value != 0:
+                    year = str(field_name).removeprefix('value_').removeprefix('value ')
+                    output_record['value_'+year] = round(field_value,3)
+            if isinstance(field_value, (int, float)) and (field_name == ('latest')):
+                if field_value != 0:
+                    output_record['value_latest'] = round(field_value, 3)
+
+        process_output_records.append(output_record)
+
     return process_output_records
 
 def process_dbf_files(root_dir, allowed_fields):
