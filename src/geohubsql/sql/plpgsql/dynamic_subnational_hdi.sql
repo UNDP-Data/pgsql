@@ -59,7 +59,7 @@ RETURNS bytea AS $$
 
     DECLARE
         mvt bytea;
-        layer_name varchar := 'Dynamic Subnational HDI';
+        layer_name varchar := 'admin.dynamic_subnational_hdi';
 
         simplified_table_name varchar := NULL;
 
@@ -235,7 +235,7 @@ RETURNS bytea AS $$
 --        END IF;
         --
 
-        RAISE WARNING 'Zoom Level is: %, mvt_extent is %', z, mvt_extent;
+--        RAISE WARNING 'Zoom Level is: %, mvt_extent is %', z, mvt_extent;
 
 --			                admin.utils_enforce_limits(h."Life expectancy"+le_incr,                    func_defaults->'le_incr'->'abs_limits'->'min'::float,  func_defaults->'le_incr'->'abs_limits'->'max'::float)::decimal,
 --			                admin.utils_enforce_limits(h."Expected years schooling"+eys_incr,          func_defaults->'eys_incr'->'abs_limits'->'min'::float, func_defaults->'eys_incr'->'abs_limits'->'max'::float)::decimal,
