@@ -59,6 +59,10 @@ def generate_sql_views(json_obj, lut_indicators, sql_file_path):
                         WHERE s."indicator_1"='{indicator}';\n
 '''
 
+                    # TODO
+                    # add comment on VIEW
+                    # add layer_name ?
+
 
                     sql_file.write(sql_statement)
                     #processing_options[base_admin0_vector_layer]
