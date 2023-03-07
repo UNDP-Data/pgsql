@@ -6,7 +6,8 @@ import argparse
 from pathlib import Path
 
 processing_options = {
-    'each_yearly_value_to_new_record':True,
+    'each_yearly_value_to_new_record':False,
+    'tileserv_user':'pg_tileserv'
 }
 
 
@@ -35,6 +36,51 @@ def process_dbf_file(dbf_file_path):
         'nof_recs': len(dbf_file),
     }
     return file_details
+
+
+def generate_sql_views(json_obj, lut_indicators, sql_file_path):
+    with open(sql_file_path, 'w') as sql_file:
+        data = lut_indicators
+        for schema_name, schema_data in data.items():
+            for indicator, indicator_data in schema_data.items():
+                indicator_clean=indicator.replace(".","_")
+                sql_file.write(f"CREATE VIEW {schema_name}.{indicator_clean}; \n")
+
+def load_json_to_table(json_obj, sql_file_path):
+
+    data = json_obj
+    with open(sql_file_path, 'w') as query:
+        for schema_name, schema_data in data.items():
+            for table_name, table_data in schema_data.items():
+                for row_data in table_data:
+                    columns = ", ".join(row_data.keys())
+                    values = ", ".join(f"'{v}'" for v in row_data.values())
+                    query.write(f"INSERT INTO {schema_name}.{table_name} ({columns}) VALUES ({values});\n\n")
+
+        query.write(");\n\n")
+
+def generate_sql_tables(json_obj, sql_file_path):
+    with open(sql_file_path, 'w') as sql_file:
+        data = json_obj
+        for schema_name, schema_data in data.items():
+            for table_name, table_data in schema_data.items():
+                column_names = set()
+                for row in table_data:
+                    column_names.update(row.keys())
+                sql_file.write(f"CREATE TABLE {schema_name}.{table_name} (\n")
+                for column_name in sorted(column_names):
+                    data_type = 'numeric' if column_name.startswith('value_') else 'text'
+                    sql_file.write(f"    {column_name} {data_type},\n")
+                sql_file.write(");\n\n")
+
+def generate_sql_schemas(json_obj, sql_file_path):
+    with open(sql_file_path, 'w') as sql_file:
+        data = json_obj
+        for schema_name, schema_data in data.items():
+            sql_file.write(f"CREATE SCHEMA {schema_name};\n")
+            sql_file.write(f"GRANT SELECT,EXECUTE,USAGE ON ALL TABLES IN SCHEMA {schema_name} TO {processing_options['tileserv_user']};\n")
+            sql_file.write("\n")
+
 
 def process_value_fields(record, output_record_template):
     """
@@ -71,7 +117,7 @@ def process_value_fields(record, output_record_template):
                 if field_value != 0:
                     year = str(field_name).removeprefix('value_').removeprefix('value ')
                     output_record['value_'+year] = round(field_value,3)
-            if isinstance(field_value, (int, float)) and (field_name == ('latest')):
+            if isinstance(field_value, (int, float)) and (field_name == ('latest_val')):
                 if field_value != 0:
                     output_record['value_latest'] = round(field_value, 3)
 
@@ -80,7 +126,7 @@ def process_value_fields(record, output_record_template):
     return process_output_records
 
 
-def process_single_dbf_file(file_details, lut_file_names, output_records):
+def process_single_dbf_file(file_details, lut_file_names, output_records, lut_indicators):
 
     print()
     print(os.path.join(file_details['dir'], file_details['file_name']))
@@ -108,6 +154,16 @@ def process_single_dbf_file(file_details, lut_file_names, output_records):
         if (record_count == 1):
             try:
                 sdg_code = pad_sdg(output_record_template['goal_code'])
+                indicator= output_record_template['indicator_1']
+                print(indicator+' '+file_name)
+                if sdg_code not in lut_indicators:
+                    lut_indicators[sdg_code] = {}
+                if indicator not in lut_indicators[sdg_code]:
+                    lut_indicators[sdg_code][indicator] = {}
+                if file_name not in lut_indicators[sdg_code][indicator]:
+                    lut_indicators[sdg_code][indicator][file_name] = 0
+                lut_indicators[sdg_code][indicator][file_name]+=1
+
                 #                    if ((sanitized_field_name == 'type')&(output_record_template[standardized_field_name] != 'Country')):
                 if (sanitized_field_name == 'type'):
                     print(output_record_template[standardized_field_name])
@@ -146,6 +202,8 @@ def process_single_dbf_file(file_details, lut_file_names, output_records):
         output_records[sdg_code][admin_level].extend(process_value_fields(record, output_record_template))
 
 
+
+
 def process_dbf_files(root_dir, allowed_fields):
     """
     Recursively processes all DBF files in a directory and its subdirectories
@@ -162,10 +220,12 @@ def process_dbf_files(root_dir, allowed_fields):
 
     output_records = {}
     lut_file_names = {}
+    #the following is mainly to inspect the indicators/file_name relationship:
+    lut_indicators = {}
 
     for file_details in file_details_list:
 
-        process_single_dbf_file(file_details, lut_file_names, output_records)
+        process_single_dbf_file(file_details, lut_file_names, output_records, lut_indicators)
 
     #            output_record['file_name'] = file_details['file_name']
 #            output_records.append(output_record)
@@ -177,7 +237,14 @@ def process_dbf_files(root_dir, allowed_fields):
     with open('lut_file_names.json', 'w') as f:
         json.dump(lut_file_names, f, indent=4)
 
+    with open('lut_indicators.json', 'w') as f:
+        json.dump(lut_indicators, f, indent=4)
 
+
+    generate_sql_schemas(output_records, 'create_schemas.sql')
+    generate_sql_tables(output_records, 'create_tables.sql')
+    load_json_to_table(output_records, 'populate_tables.sql')
+    generate_sql_views(output_records, lut_indicators, 'create_views.sql')
 
 #allowed_fields = ["goal_code", "iso3", "objectid", "target_cod", "indicato_1"]
 
@@ -187,9 +254,9 @@ allowed_fields = {
     "iso3":"iso3cd",
     "iso3c":"iso3cd",
     "iso3cd":"iso3cd",
-    "objectid":"objectid",
-    "objectid 1": "objectid_1",
-    "objectid_1": "objectid_1",
+    # "objectid":"objectid",
+    # "objectid 1": "objectid_1",
+    # "objectid_1": "objectid_1",
     "target_cod":"target_code",
     "target_code":"target_code",
     "indicato_1":"indicator_1",
