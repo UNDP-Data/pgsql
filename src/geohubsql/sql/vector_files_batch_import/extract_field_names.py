@@ -7,7 +7,10 @@ from pathlib import Path
 
 processing_options = {
     'each_yearly_value_to_new_record':False,
-    'tileserv_user':'pg_tileserv'
+    'tileserv_user':'pg_tileserv',
+    'base_admin0_vector_layer':'admin.admin0',
+    'base_admin1_vector_layer': 'admin.admin1',
+    'base_admin2_vector_layer': 'admin.admin2'
 }
 
 
@@ -42,9 +45,24 @@ def generate_sql_views(json_obj, lut_indicators, sql_file_path):
     with open(sql_file_path, 'w') as sql_file:
         data = lut_indicators
         for schema_name, schema_data in data.items():
-            for indicator, indicator_data in schema_data.items():
-                indicator_clean=indicator.replace(".","_")
-                sql_file.write(f"CREATE VIEW {schema_name}.{indicator_clean}; \n")
+            for admin_level, admin_data in schema_data.items():
+                for indicator, indicator_data in admin_data.items():
+                    indicator_clean = indicator.replace(".", "_")
+
+                    #each feature must be present only once, hence the "DISTINCT ON":
+                    sql_statement = f'''
+                        DROP VIEW IF EXISTS {schema_name}."{indicator_clean}_view";
+                        CREATE VIEW {schema_name}."{indicator_clean}_view" AS
+                        SELECT DISTINCT ON (a.geom) a.fid, a.geom, s.* from
+                        admin.{admin_level} AS a
+                        INNER JOIN {schema_name}.{admin_level} AS s ON (a.iso3cd = s.iso3cd)
+                        WHERE s."indicator_1"='{indicator}';\n
+'''
+
+
+                    sql_file.write(sql_statement)
+                    #processing_options[base_admin0_vector_layer]
+
 
 def load_json_to_table(json_obj, sql_file_path):
 
@@ -57,7 +75,7 @@ def load_json_to_table(json_obj, sql_file_path):
                     values = ", ".join(f"'{v}'" for v in row_data.values())
                     query.write(f"INSERT INTO {schema_name}.{table_name} ({columns}) VALUES ({values});\n\n")
 
-        query.write(");\n\n")
+        query.write("\n")
 
 def generate_sql_tables(json_obj, sql_file_path):
     with open(sql_file_path, 'w') as sql_file:
@@ -67,17 +85,22 @@ def generate_sql_tables(json_obj, sql_file_path):
                 column_names = set()
                 for row in table_data:
                     column_names.update(row.keys())
-                sql_file.write(f"CREATE TABLE {schema_name}.{table_name} (\n")
+                sql_file.write(f"CREATE TABLE IF NOT EXISTS {schema_name}.{table_name} (\n")
+                col_count=0
+                separator=''
                 for column_name in sorted(column_names):
+                    if col_count > 0:
+                        separator=',\n';
+                    col_count+=1
                     data_type = 'numeric' if column_name.startswith('value_') else 'text'
-                    sql_file.write(f"    {column_name} {data_type},\n")
+                    sql_file.write(f"{separator}    {column_name} {data_type}")
                 sql_file.write(");\n\n")
 
 def generate_sql_schemas(json_obj, sql_file_path):
     with open(sql_file_path, 'w') as sql_file:
         data = json_obj
         for schema_name, schema_data in data.items():
-            sql_file.write(f"CREATE SCHEMA {schema_name};\n")
+            sql_file.write(f"CREATE SCHEMA IF NOT EXISTS {schema_name};\n")
             sql_file.write(f"GRANT SELECT,EXECUTE,USAGE ON ALL TABLES IN SCHEMA {schema_name} TO {processing_options['tileserv_user']};\n")
             sql_file.write("\n")
 
@@ -153,26 +176,30 @@ def process_single_dbf_file(file_details, lut_file_names, output_records, lut_in
 
         if (record_count == 1):
             try:
+                admin_level_name = output_record_template['type']
+                admin_level = 'admin' + str(admin_level_lut[admin_level_name])
+
                 sdg_code = pad_sdg(output_record_template['goal_code'])
                 indicator= output_record_template['indicator_1']
-                print(indicator+' '+file_name)
+                admin_level_name = output_record_template['type']
+                admin_level = 'admin' + str(admin_level_lut[admin_level_name])
+                # print('PSDF: '+file_name+' '+sdg_code+' '+admin_level+' '+indicator)
                 if sdg_code not in lut_indicators:
                     lut_indicators[sdg_code] = {}
+                if admin_level not in lut_indicators[sdg_code]:
+                    lut_indicators[sdg_code][admin_level] = {}
                 if indicator not in lut_indicators[sdg_code]:
-                    lut_indicators[sdg_code][indicator] = {}
-                if file_name not in lut_indicators[sdg_code][indicator]:
-                    lut_indicators[sdg_code][indicator][file_name] = 0
-                lut_indicators[sdg_code][indicator][file_name]+=1
+                    lut_indicators[sdg_code][admin_level][indicator] = {}
+                if file_name not in lut_indicators[sdg_code][admin_level][indicator]:
+                    lut_indicators[sdg_code][admin_level][indicator][file_name] = 0
 
-                #                    if ((sanitized_field_name == 'type')&(output_record_template[standardized_field_name] != 'Country')):
-                if (sanitized_field_name == 'type'):
-                    print(output_record_template[standardized_field_name])
-                    admin_level_name = output_record_template[standardized_field_name]
-                    admin_level = 'admin' + str(admin_level_lut[admin_level_name])
+                lut_indicators[sdg_code][admin_level][indicator][file_name]+=1
+
+
             except:
                 print('NOK ' + file_name + ' sdg_code: ' + str(sdg_code))
             else:
-                print('OK  ' + file_name + ' sdg_code: ' + str(sdg_code))
+                print('OK ' + file_name + ' sdg_code: ' + str(sdg_code))
 
             try:
                 if sdg_code not in lut_file_names:
