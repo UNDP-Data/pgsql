@@ -8,7 +8,7 @@
             "value":"tool_layer_buffer_core"
          },
          "input_layer_name":{
-            "value":"admin.water_facilities"
+            "value":"admin.aqueducts"
          },
          "buffer_distance":{
             "value":500
@@ -61,7 +61,7 @@
             "value":"admin.villages"
          },
          "buffer_distance":{
-            "value":2000
+            "value":500
          }
       }
    },
