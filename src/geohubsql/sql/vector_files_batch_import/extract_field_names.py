@@ -58,7 +58,7 @@ def generate_sql_views(json_obj, lut_indicators, sql_file_path):
                         admin.{admin_level} AS a
                         INNER JOIN {schema_name}.{admin_level} AS s ON (a.iso3cd = s.iso3cd)
                         WHERE s."indicator_1"='{indicator}';
-                        COMMENT ON {schema_name}."{indicator_clean}_view" IS '{indicator_description}';
+                        COMMENT ON VIEW {schema_name}."{indicator_clean}_view" IS '{indicator_description}';
                         \n
 '''
 
