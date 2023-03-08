@@ -7,7 +7,7 @@ from pathlib import Path
 
 processing_options = {
     'each_yearly_value_to_new_record':False,
-    'tileserv_user':'pg_tileserv',
+    'tileserv_user':'tileserver',
     'base_admin0_vector_layer':'admin.admin0',
     'base_admin1_vector_layer': 'admin.admin1',
     'base_admin2_vector_layer': 'admin.admin2'
@@ -48,6 +48,7 @@ def generate_sql_views(json_obj, lut_indicators, sql_file_path):
             for admin_level, admin_data in schema_data.items():
                 for indicator, indicator_data in admin_data.items():
                     indicator_clean = indicator.replace(".", "_")
+                    indicator_description = lut_indicators[schema_name][admin_level][indicator]['description']
 
                     #each feature must be present only once, hence the "DISTINCT ON":
                     sql_statement = f'''
@@ -56,7 +57,9 @@ def generate_sql_views(json_obj, lut_indicators, sql_file_path):
                         SELECT DISTINCT ON (a.geom) a.fid, a.geom, s.* from
                         admin.{admin_level} AS a
                         INNER JOIN {schema_name}.{admin_level} AS s ON (a.iso3cd = s.iso3cd)
-                        WHERE s."indicator_1"='{indicator}';\n
+                        WHERE s."indicator_1"='{indicator}';
+                        COMMENT ON {schema_name}."{indicator_clean}_view" IS '{indicator_description}';
+                        \n
 '''
 
                     # TODO
@@ -153,7 +156,7 @@ def process_value_fields(record, output_record_template):
     return process_output_records
 
 
-def process_single_dbf_file(file_details, lut_file_names, output_records, lut_indicators):
+def process_single_dbf_file(file_details, allowed_fields, lut_file_names, output_records, lut_indicators):
 
     print()
     print(os.path.join(file_details['dir'], file_details['file_name']))
@@ -169,14 +172,21 @@ def process_single_dbf_file(file_details, lut_file_names, output_records, lut_in
 
         record_count += 1
         output_record_template = {}
+        lut_temp_values = {}
         output_record_template['file_name'] = file_name
+
         for field_name, field_value in record.items():
             sanitized_field_name = sanitize_name(field_name)
 
-            if sanitized_field_name in allowed_fields.keys():
-                standardized_field_name = allowed_fields[sanitized_field_name]
-                # print(sanitized_field_name + ' -> '+standardized_field_name)
+            if sanitized_field_name in allowed_fields['admin'].keys():
+                standardized_field_name = allowed_fields['admin'][sanitized_field_name]
+                #print(sanitized_field_name + ' -> '+standardized_field_name)
                 output_record_template[standardized_field_name] = field_value
+
+            if sanitized_field_name in allowed_fields['lut'].keys():
+                standardized_lut_field_name = allowed_fields['lut'][sanitized_field_name]
+                #print(sanitized_field_name + ' -> '+standardized_field_name)
+                lut_temp_values[standardized_lut_field_name] = field_value
 
         if (record_count == 1):
             try:
@@ -194,10 +204,18 @@ def process_single_dbf_file(file_details, lut_file_names, output_records, lut_in
                     lut_indicators[sdg_code][admin_level] = {}
                 if indicator not in lut_indicators[sdg_code]:
                     lut_indicators[sdg_code][admin_level][indicator] = {}
+                if 'file_name' not in lut_indicators[sdg_code][admin_level][indicator]:
+                    lut_indicators[sdg_code][admin_level][indicator]['file_name'] = {}
                 if file_name not in lut_indicators[sdg_code][admin_level][indicator]:
-                    lut_indicators[sdg_code][admin_level][indicator][file_name] = 0
+                    lut_indicators[sdg_code][admin_level][indicator]['file_name'][file_name] = 0
 
-                lut_indicators[sdg_code][admin_level][indicator][file_name]+=1
+                lut_indicators[sdg_code][admin_level][indicator]['file_name'][file_name]+=1
+
+                for lut_field_name, lut_field_value in lut_temp_values.items():
+                    if lut_field_name in lut_temp_values:
+                        lut_indicators[sdg_code][admin_level][indicator][lut_field_name] = lut_temp_values[lut_field_name]
+                # if 'series_tag' in lut_temp_values:
+                #     lut_indicators[sdg_code][admin_level][indicator]['series_tag'] = lut_temp_values['series_tag']
 
 
             except:
@@ -256,7 +274,7 @@ def process_dbf_files(root_dir, allowed_fields):
 
     for file_details in file_details_list:
 
-        process_single_dbf_file(file_details, lut_file_names, output_records, lut_indicators)
+        process_single_dbf_file(file_details, allowed_fields, lut_file_names, output_records, lut_indicators)
 
     #            output_record['file_name'] = file_details['file_name']
 #            output_records.append(output_record)
@@ -277,9 +295,9 @@ def process_dbf_files(root_dir, allowed_fields):
     load_json_to_table(output_records, 'populate_tables.sql')
     generate_sql_views(output_records, lut_indicators, 'create_views.sql')
 
-#allowed_fields = ["goal_code", "iso3", "objectid", "target_cod", "indicato_1"]
+allowed_fields = {}
 
-allowed_fields = {
+allowed_fields['admin'] = {
     "goal_code":"goal_code",
     "goal_cod": "goal_code",
     "iso3":"iso3cd",
@@ -300,11 +318,23 @@ allowed_fields = {
     "sex code": "sex_code"
 }
 
+#fields useful to gather one-per-file information like tags, descriptions, etc
+allowed_fields['lut'] = {
+    "indicato_2": "description",
+    "indicator_2": "description",
+    "series_rel":"series_rel",
+    "series_tag":"series_tag",
+    "series":"series",
+    "seriesDesc":"seriesDesc"
+}
+
 admin_level_lut = {
     "Country":0,
     "Region":1,
     "Province":2
 }
+
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument("file_path", type=Path)
