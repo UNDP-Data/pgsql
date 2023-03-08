@@ -316,6 +316,8 @@ def generate_sql_schemas(json_obj, sql_file_path):
         for schema_name, schema_data in data.items():
             sql_file.write(f"CREATE SCHEMA IF NOT EXISTS {schema_name};\n")
             sql_file.write(f"GRANT SELECT,USAGE ON ALL TABLES IN SCHEMA {schema_name} TO {processing_options['tileserv_user']};\n")
+            sql_file.write(f"GRANT CREATE,USAGE ON SCHEMA {schema_name} TO {processing_options['tileserv_user']};\n")
+           
             sql_file.write("\n")
 
 def extract_years(record):
