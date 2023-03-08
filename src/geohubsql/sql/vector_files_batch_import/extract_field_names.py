@@ -19,9 +19,62 @@ processing_options = {
 }
 
 
-def pad_sdg(sdg):
+allowed_fields = {}
 
+allowed_fields['admin'] = {
+    "goal_code":"goal_code",
+    "goal_cod": "goal_code",
+    "iso3":"iso3cd",
+    "iso3c":"iso3cd",
+    "iso3cd":"iso3cd",
+    # "objectid":"objectid",
+    # "objectid 1": "objectid_1",
+    # "objectid_1": "objectid_1",
+    "target_cod":"target_code",
+    "target_code":"target_code",
+    "indicato_1":"indicator",
+    "indicator_1": "indicator",
+    "Units_desc": "unit",
+    "units_desc": "unit",
+    "Units_code": "units_code",
+    "units_code": "units_code",
+    "type": "type",
+    "age_code": "age_code",
+    "age code": "age_code",
+    "sex_code": "sex_code",
+    "sex code": "sex_code"
+}
+
+#fields useful to gather one-per-file information like tags, descriptions, etc
+allowed_fields['lut'] = {
+    "indicato_2": "description",
+    "indicator_2": "description",
+    "series_rel":"series_rel",
+    "series_tag":"series_tag",
+    "series":"series",
+    "seriesDesc":"seriesDesc",
+    "Units_code":"unit_code",
+    "Units_desc":"units_desc"
+}
+
+#used to create a compound primary key, depending on the columns actually created in a specific table
+allowed_fields['pk'] = ["file_name_hash","indicator","iso3cd","age_code","sex_code"]
+
+admin_level_lut = {
+    "Country":0,
+    "Region":1,
+    "Province":2
+}
+
+def pad_sdg(sdg):
+#n -> sdg0n
     return 'sdg'+str(sdg).zfill(2)
+
+def unpad_sdg(sdg_code):
+#sdg0n -> n
+#import re
+#    return re.sub("sdg[01]?", "", sdg_code)
+    return sdg_code.removeprefix('sdg0').removeprefix('sdg1')
 
 def sanitize_name(name):
     """
@@ -31,26 +84,120 @@ def sanitize_name(name):
     return unicodedata.normalize('NFKD', name).encode('ASCII', 'ignore').decode('utf-8').lower().replace(' ', '_')
 #    return name
 
-def insert_into_geohub_dataset(lut_indicators, sql_file_path):
+def add_tag_in_use(global_tags_in_use,key,value):
+    if key not in global_tags_in_use:
+        global_tags_in_use[key] = []
+    if not value in global_tags_in_use[key]:
+        global_tags_in_use[key].append(value)
+
+    return global_tags_in_use
+def identify_tags_in_use(indicators_summary, file_path):
+
+    # will be used to update the "tag" table
+    #global_tags_in_use['extent'] = ['Global','Asia','China']
+    global_tags_in_use = {}
+
+    #will be used as a template for the deeper levels and, ultimately to update the "dataset_tag" table
+    proto_tags_in_use = {}
+
+#    global_tags_in_use = add_tag_in_use(global_tags_in_use, 'geometrytype','MultiPolygon')
+    proto_tags_in_use = add_tag_in_use(proto_tags_in_use, 'layertype', 'table')
+    proto_tags_in_use = add_tag_in_use(proto_tags_in_use, 'provider', 'United Nations Development Programme (UNDP)')
+    proto_tags_in_use = add_tag_in_use(proto_tags_in_use, 'type', 'pgtileserv')
+
+    global_tags_in_use = proto_tags_in_use.copy()
+
+    data = indicators_summary
+    for schema_name, schema_data in data.items():
+        tags_in_use_schema = proto_tags_in_use.copy()
+        #sdg_goal
+        global_tags_in_use = add_tag_in_use(global_tags_in_use, 'sdg_goal',unpad_sdg(schema_name))
+        tags_in_use_schema = add_tag_in_use(tags_in_use_schema, 'sdg_goal',unpad_sdg(schema_name))
+
+        #schema
+        global_tags_in_use = add_tag_in_use(global_tags_in_use, 'schema', schema_name)
+        tags_in_use_schema = add_tag_in_use(tags_in_use_schema, 'schema', schema_name)
+
+        for admin_level, admin_data in schema_data.items():
+            tags_in_use_admin_level = tags_in_use_schema.copy()
+
+            if admin_level == 'admin0':
+                global_tags_in_use = add_tag_in_use(global_tags_in_use, 'extent', 'Global')
+                tags_in_use_admin_level = add_tag_in_use(tags_in_use_admin_level, 'extent', 'Global')
+
+            for indicator, indicator_data in admin_data.items():
+                tags_in_use_indicator = tags_in_use_admin_level.copy()
+                local_tags_in_use = {}
+                #units
+                unit=indicators_summary[schema_name][admin_level][indicator]['unit']
+                global_tags_in_use = add_tag_in_use(global_tags_in_use,'unit',unit)
+                tags_in_use_indicator = add_tag_in_use(tags_in_use_indicator, 'unit', unit)
+
+                # years
+                for this_year in indicators_summary[schema_name][admin_level][indicator]['years']:
+                    global_tags_in_use = add_tag_in_use(global_tags_in_use, 'year', this_year)
+                    tags_in_use_indicator = add_tag_in_use(tags_in_use_indicator, 'year', this_year)
+#                print('TIUI: ')
+#                print(tags_in_use_indicator)
+                indicators_summary[schema_name][admin_level][indicator]['tags'] = tags_in_use_indicator
+
+    with open(file_path, 'w') as file:
+        json.dump(global_tags_in_use, file, indent=4)
+    return global_tags_in_use
+
+def insert_into_geohub_tag(global_tags_in_use, sql_file_path):
+
+    with open(sql_file_path, 'w') as sql_file:
+        for key, values in global_tags_in_use.items():
+            for value in values:
+
+                sql_statement = f'''
+                INSERT INTO geohub.tag (key, value)
+                SELECT '{key}', '{value}'
+                WHERE
+                    NOT EXISTS (
+                        SELECT key,value FROM geohub.tag WHERE key='{key}' AND value='{value}'
+                    );
+                --DELETE FROM geohub.tag WHERE key='{key}' AND value='{value}';
+                '''
+                sql_file.write(sql_statement)
+
+#    global_tags_in_use['extent'] = ['Global','Asia','China']
+
+
+
+def insert_into_geohub_dataset_tag(indicators_summary, file_path):
+
+    data = indicators_summary
+    for schema_name, schema_data in data.items():
+        for admin_level, admin_data in schema_data.items():
+            for indicator, indicator_data in admin_data.items():
+                sql_statemnent = indicators_summary[schema_name][admin_level][indicator]['tags']
+                print('SQL futures:')
+                print (sql_statemnent)
+
+
+def insert_into_geohub_dataset(indicators_summary, sql_file_path):
     # INSERT INTO geohub.dataset(id, url, is_raster, license, bounds, createdat, updatedat, name, description, created_user, updated_user)
     # VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
     with open(sql_file_path, 'w') as sql_file:
-        data = lut_indicators
+        data = indicators_summary
         for schema_name, schema_data in data.items():
             for admin_level, admin_data in schema_data.items():
                 bounds = '(SELECT ST_SetSRID(ST_Extent(geom),' + processing_options['SRID'] + ')  AS geom FROM ' + processing_options['base_'+admin_level+'_vector_layer'] + ')'
                 for indicator, indicator_data in admin_data.items():
-                    view_name = lut_indicators[schema_name][admin_level][indicator]['view_name']
+#                    view_name = indicators_summary[schema_name][admin_level][indicator]['view_name']
 
-                    url = processing_options['pg_tileserv_base_url'] + schema_name + '.'+ view_name + processing_options['pg_tileserv_suffix']
-                    id =  hashlib.md5(url.encode('utf-8')).hexdigest() # md5
+                    url = indicators_summary[schema_name][admin_level][indicator]['url']
+                    id = indicators_summary[schema_name][admin_level][indicator]['id']
+
                     is_raster = False
                     license = 'Creative Commons BY NonCommercial ShareAlike 4.0'
                     # type:geometry use ST_Bbox / global / subselect?
 
-                    name = lut_indicators[schema_name][admin_level][indicator]['description']
-                    description = lut_indicators[schema_name][admin_level][indicator]['description']
+                    name = indicators_summary[schema_name][admin_level][indicator]['description']
+                    description = indicators_summary[schema_name][admin_level][indicator]['description']
                     created_user = processing_options['created_by_user']
                     updated_user = processing_options['created_by_user']
 
@@ -77,15 +224,15 @@ def process_dbf_file(dbf_file_path):
     return file_details
 
 
-def generate_sql_views(json_obj, lut_indicators, sql_file_path):
+def generate_sql_views(json_obj, indicators_summary, sql_file_path):
     with open(sql_file_path, 'w') as sql_file:
-        data = lut_indicators
+        data = indicators_summary
         for schema_name, schema_data in data.items():
             for admin_level, admin_data in schema_data.items():
                 for indicator, indicator_data in admin_data.items():
                     indicator_clean = indicator.replace(".", "_")
-                    indicator_description = lut_indicators[schema_name][admin_level][indicator]['description']
-                    view_name = lut_indicators[schema_name][admin_level][indicator]['view_name']
+                    indicator_description = indicators_summary[schema_name][admin_level][indicator]['description']
+                    view_name = indicators_summary[schema_name][admin_level][indicator]['view_name']
 
                     #each feature must be present only once, hence the "DISTINCT ON":
                     sql_statement = f'''
@@ -148,6 +295,17 @@ def generate_sql_schemas(json_obj, sql_file_path):
             sql_file.write(f"GRANT SELECT,USAGE ON ALL TABLES IN SCHEMA {schema_name} TO {processing_options['tileserv_user']};\n")
             sql_file.write("\n")
 
+def extract_years(record):
+
+    years_in_use = []
+
+    for field_name, field_value in record.items():
+        if isinstance(field_value, (int, float)) and field_name.startswith('value'):
+            #extract years from all column names, does not check that at least one row ha non-zero values for each year column
+            year = str(field_name).removeprefix('value_').removeprefix('value ')
+            years_in_use.append(year)
+
+    return years_in_use
 
 def process_value_fields(record, output_record_template):
     """
@@ -193,7 +351,7 @@ def process_value_fields(record, output_record_template):
     return process_output_records
 
 
-def process_single_dbf_file(file_details, allowed_fields, lut_file_names, output_records, lut_indicators):
+def process_single_dbf_file(file_details, allowed_fields, lut_file_names, output_records, indicators_summary):
 
     print()
     print(os.path.join(file_details['dir'], file_details['file_name']))
@@ -236,28 +394,37 @@ def process_single_dbf_file(file_details, allowed_fields, lut_file_names, output
                 admin_level = 'admin' + str(admin_level_lut[admin_level_name])
                 indicator_clean = indicator.replace(".", "_")
                 view_name = indicator_clean+"_view"
+                unit = output_record_template['unit'].lower()
 
                 # print('PSDF: '+file_name+' '+sdg_code+' '+admin_level+' '+indicator)
-                if sdg_code not in lut_indicators:
-                    lut_indicators[sdg_code] = {}
-                if admin_level not in lut_indicators[sdg_code]:
-                    lut_indicators[sdg_code][admin_level] = {}
-                if indicator not in lut_indicators[sdg_code]:
-                    lut_indicators[sdg_code][admin_level][indicator] = {}
-                if 'file_name' not in lut_indicators[sdg_code][admin_level][indicator]:
-                    lut_indicators[sdg_code][admin_level][indicator]['file_name'] = {}
-                if file_name not in lut_indicators[sdg_code][admin_level][indicator]:
-                    lut_indicators[sdg_code][admin_level][indicator]['file_name'][file_name] = 0
-                if 'view_name' not in lut_indicators[sdg_code][admin_level][indicator]:
-                    lut_indicators[sdg_code][admin_level][indicator]['view_name'] = view_name
+                if sdg_code not in indicators_summary:
+                    indicators_summary[sdg_code] = {}
+                if admin_level not in indicators_summary[sdg_code]:
+                    indicators_summary[sdg_code][admin_level] = {}
+                if indicator not in indicators_summary[sdg_code]:
+                    indicators_summary[sdg_code][admin_level][indicator] = {}
+                if 'file_name' not in indicators_summary[sdg_code][admin_level][indicator]:
+                    indicators_summary[sdg_code][admin_level][indicator]['file_name'] = {}
+                if file_name not in indicators_summary[sdg_code][admin_level][indicator]:
+                    indicators_summary[sdg_code][admin_level][indicator]['file_name'][file_name] = 0
+                if 'view_name' not in indicators_summary[sdg_code][admin_level][indicator]:
+                    indicators_summary[sdg_code][admin_level][indicator]['view_name'] = view_name
 
-                lut_indicators[sdg_code][admin_level][indicator]['file_name'][file_name]+=1
+                if 'years' not in indicators_summary[sdg_code][admin_level][indicator]:
+                    indicators_summary[sdg_code][admin_level][indicator]['years'] = extract_years(record)
+
+                indicators_summary[sdg_code][admin_level][indicator]['file_name'][file_name]+=1
+                url = processing_options['pg_tileserv_base_url'] + sdg_code + '.' + view_name + processing_options['pg_tileserv_suffix']
+                id = hashlib.md5(url.encode('utf-8')).hexdigest()  # md5
+                indicators_summary[sdg_code][admin_level][indicator]['url'] = url
+                indicators_summary[sdg_code][admin_level][indicator]['id'] = id
+                indicators_summary[sdg_code][admin_level][indicator]['unit'] = unit
 
                 for lut_field_name, lut_field_value in lut_temp_values.items():
                     if lut_field_name in lut_temp_values:
-                        lut_indicators[sdg_code][admin_level][indicator][lut_field_name] = lut_temp_values[lut_field_name]
+                        indicators_summary[sdg_code][admin_level][indicator][lut_field_name] = lut_temp_values[lut_field_name]
                 # if 'series_tag' in lut_temp_values:
-                #     lut_indicators[sdg_code][admin_level][indicator]['series_tag'] = lut_temp_values['series_tag']
+                #     indicators_summary[sdg_code][admin_level][indicator]['series_tag'] = lut_temp_values['series_tag']
 
 
             except:
@@ -312,15 +479,27 @@ def process_dbf_files(root_dir, allowed_fields):
     output_records = {}
     lut_file_names = {}
     #the following is mainly to inspect the indicators/file_name relationship:
-    lut_indicators = {}
+    indicators_summary = {}
 
     for file_details in file_details_list:
 
-        process_single_dbf_file(file_details, allowed_fields, lut_file_names, output_records, lut_indicators)
+        process_single_dbf_file(file_details, allowed_fields, lut_file_names, output_records, indicators_summary)
 
     #            output_record['file_name'] = file_details['file_name']
 #            output_records.append(output_record)
 #            print(output_record_template)
+
+
+
+
+    generate_sql_schemas(output_records, 'create_schemas.sql')
+    generate_sql_tables(output_records, 'create_tables.sql')
+    load_json_to_table(output_records, 'populate_tables.sql')
+    generate_sql_views(output_records, indicators_summary, 'create_views.sql')
+    insert_into_geohub_dataset(indicators_summary, 'insert_into_dataset.sql')
+    global_tags_in_use = identify_tags_in_use(indicators_summary,'global_tags_in_use.json')
+    insert_into_geohub_tag(global_tags_in_use, 'insert_into_tags.sql')
+    insert_into_geohub_dataset_tag(indicators_summary, 'insert_into_dataset_tags.sql')
 
     with open('output_sql.json', 'w') as f:
         json.dump(output_records, f, indent=4)
@@ -328,60 +507,8 @@ def process_dbf_files(root_dir, allowed_fields):
     with open('lut_file_names.json', 'w') as f:
         json.dump(lut_file_names, f, indent=4)
 
-    with open('lut_indicators.json', 'w') as f:
-        json.dump(lut_indicators, f, indent=4)
-
-
-    generate_sql_schemas(output_records, 'create_schemas.sql')
-    generate_sql_tables(output_records, 'create_tables.sql')
-    load_json_to_table(output_records, 'populate_tables.sql')
-    generate_sql_views(output_records, lut_indicators, 'create_views.sql')
-    insert_into_geohub_dataset(lut_indicators, 'insert_into_dataset.sql')
-
-allowed_fields = {}
-
-allowed_fields['admin'] = {
-    "goal_code":"goal_code",
-    "goal_cod": "goal_code",
-    "iso3":"iso3cd",
-    "iso3c":"iso3cd",
-    "iso3cd":"iso3cd",
-    # "objectid":"objectid",
-    # "objectid 1": "objectid_1",
-    # "objectid_1": "objectid_1",
-    "target_cod":"target_code",
-    "target_code":"target_code",
-    "indicato_1":"indicator",
-    "indicator_1": "indicator",
-    "units_code": "units_code",
-    "type": "type",
-    "age_code": "age_code",
-    "age code": "age_code",
-    "sex_code": "sex_code",
-    "sex code": "sex_code"
-}
-
-#fields useful to gather one-per-file information like tags, descriptions, etc
-allowed_fields['lut'] = {
-    "indicato_2": "description",
-    "indicator_2": "description",
-    "series_rel":"series_rel",
-    "series_tag":"series_tag",
-    "series":"series",
-    "seriesDesc":"seriesDesc",
-    "Units_code":"unit_code",
-    "Units_desc":"units_desc"
-}
-
-#used to create a compound primary key, depending on the columns actually created in a specific table
-allowed_fields['pk'] = ["file_name_hash","indicator","iso3cd","age_code","sex_code"]
-
-admin_level_lut = {
-    "Country":0,
-    "Region":1,
-    "Province":2
-}
-
+    with open('indicators_summary.json', 'w') as f:
+        json.dump(indicators_summary, f, indent=4)
 
 
 parser = argparse.ArgumentParser()
@@ -399,7 +526,7 @@ if p.file_path.exists():
 
 
 #TODO add comment on columns in tables
-#TODO add attrs to lut_indicators like:
+#TODO add attrs to indicators_summary like:
     #tag
     #attribute
     #description
