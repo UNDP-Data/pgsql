@@ -4,13 +4,18 @@ import json
 import unicodedata
 import argparse
 from pathlib import Path
+import hashlib
 
 processing_options = {
     'each_yearly_value_to_new_record':False,
     'tileserv_user':'tileserver',
     'base_admin0_vector_layer':'admin.admin0',
     'base_admin1_vector_layer': 'admin.admin1',
-    'base_admin2_vector_layer': 'admin.admin2'
+    'base_admin2_vector_layer': 'admin.admin2',
+    'pg_tileserv_base_url': 'https://pgtileserv.undpgeohub.org/',
+    'pg_tileserv_suffix': '{z}/{x}/{y}.pbf',
+    'SRID': '4326',
+    'created_by_user': 'douglas.tommasi@undp.org'
 }
 
 
@@ -25,6 +30,37 @@ def sanitize_name(name):
     """
     return unicodedata.normalize('NFKD', name).encode('ASCII', 'ignore').decode('utf-8').lower().replace(' ', '_')
 #    return name
+
+def insert_into_geohub_dataset(lut_indicators, sql_file_path):
+    # INSERT INTO geohub.dataset(id, url, is_raster, license, bounds, createdat, updatedat, name, description, created_user, updated_user)
+    # VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+    with open(sql_file_path, 'w') as sql_file:
+        data = lut_indicators
+        for schema_name, schema_data in data.items():
+            for admin_level, admin_data in schema_data.items():
+                bounds = '(SELECT ST_SetSRID(ST_Extent(geom),' + processing_options['SRID'] + ')  AS geom FROM ' + processing_options['base_'+admin_level+'_vector_layer'] + ')'
+                for indicator, indicator_data in admin_data.items():
+                    view_name = lut_indicators[schema_name][admin_level][indicator]['view_name']
+
+                    url = processing_options['pg_tileserv_base_url'] + schema_name + '.'+ view_name + processing_options['pg_tileserv_suffix']
+                    id =  hashlib.md5(url.encode('utf-8')).hexdigest() # md5
+                    is_raster = False
+                    license = 'Creative Commons BY NonCommercial ShareAlike 4.0'
+                    # type:geometry use ST_Bbox / global / subselect?
+
+                    name = lut_indicators[schema_name][admin_level][indicator]['description']
+                    description = lut_indicators[schema_name][admin_level][indicator]['description']
+                    created_user = processing_options['created_by_user']
+                    updated_user = processing_options['created_by_user']
+
+                    sql_statement = f'''
+INSERT INTO geohub.dataset(id, url, is_raster, license, bounds, createdat, updatedat, name, description, created_user, updated_user)
+VALUES ('{id}', '{url}', {is_raster}, '{license}', {bounds}, current_timestamp, current_timestamp, '{name}', '{description}', '{created_user}', '{updated_user}');
+--DELETE FROM geohub.dataset WHERE id ='{id}';
+                    '''
+                    sql_file.write(sql_statement)
+
 
 def process_dbf_file(dbf_file_path):
     """
@@ -49,15 +85,16 @@ def generate_sql_views(json_obj, lut_indicators, sql_file_path):
                 for indicator, indicator_data in admin_data.items():
                     indicator_clean = indicator.replace(".", "_")
                     indicator_description = lut_indicators[schema_name][admin_level][indicator]['description']
+                    view_name = lut_indicators[schema_name][admin_level][indicator]['view_name']
 
                     #each feature must be present only once, hence the "DISTINCT ON":
                     sql_statement = f'''
-                        DROP VIEW IF EXISTS {schema_name}."{indicator_clean}_view";
+                        DROP VIEW IF EXISTS {schema_name}."{view_name}";
                         CREATE VIEW {schema_name}."{indicator_clean}_view" AS
-                        SELECT DISTINCT ON (a.geom) a.fid, a.geom, s.* from
+                        SELECT DISTINCT ON (a.geom) a.id, a.geom, s.* from
                         admin.{admin_level} AS a
                         INNER JOIN {schema_name}.{admin_level} AS s ON (a.iso3cd = s.iso3cd)
-                        WHERE s."indicator_1"='{indicator}';
+                        WHERE s."indicator"='{indicator}';
                         COMMENT ON VIEW {schema_name}."{indicator_clean}_view" IS '{indicator_description}';
                         \n
 '''
@@ -108,7 +145,7 @@ def generate_sql_schemas(json_obj, sql_file_path):
         data = json_obj
         for schema_name, schema_data in data.items():
             sql_file.write(f"CREATE SCHEMA IF NOT EXISTS {schema_name};\n")
-            sql_file.write(f"GRANT SELECT,EXECUTE,USAGE ON ALL TABLES IN SCHEMA {schema_name} TO {processing_options['tileserv_user']};\n")
+            sql_file.write(f"GRANT SELECT,USAGE ON ALL TABLES IN SCHEMA {schema_name} TO {processing_options['tileserv_user']};\n")
             sql_file.write("\n")
 
 
@@ -194,9 +231,12 @@ def process_single_dbf_file(file_details, allowed_fields, lut_file_names, output
                 admin_level = 'admin' + str(admin_level_lut[admin_level_name])
 
                 sdg_code = pad_sdg(output_record_template['goal_code'])
-                indicator= output_record_template['indicator_1']
+                indicator= output_record_template['indicator']
                 admin_level_name = output_record_template['type']
                 admin_level = 'admin' + str(admin_level_lut[admin_level_name])
+                indicator_clean = indicator.replace(".", "_")
+                view_name = indicator_clean+"_view"
+
                 # print('PSDF: '+file_name+' '+sdg_code+' '+admin_level+' '+indicator)
                 if sdg_code not in lut_indicators:
                     lut_indicators[sdg_code] = {}
@@ -208,6 +248,8 @@ def process_single_dbf_file(file_details, allowed_fields, lut_file_names, output
                     lut_indicators[sdg_code][admin_level][indicator]['file_name'] = {}
                 if file_name not in lut_indicators[sdg_code][admin_level][indicator]:
                     lut_indicators[sdg_code][admin_level][indicator]['file_name'][file_name] = 0
+                if 'view_name' not in lut_indicators[sdg_code][admin_level][indicator]:
+                    lut_indicators[sdg_code][admin_level][indicator]['view_name'] = view_name
 
                 lut_indicators[sdg_code][admin_level][indicator]['file_name'][file_name]+=1
 
@@ -294,6 +336,7 @@ def process_dbf_files(root_dir, allowed_fields):
     generate_sql_tables(output_records, 'create_tables.sql')
     load_json_to_table(output_records, 'populate_tables.sql')
     generate_sql_views(output_records, lut_indicators, 'create_views.sql')
+    insert_into_geohub_dataset(lut_indicators, 'insert_into_dataset.sql')
 
 allowed_fields = {}
 
@@ -308,8 +351,8 @@ allowed_fields['admin'] = {
     # "objectid_1": "objectid_1",
     "target_cod":"target_code",
     "target_code":"target_code",
-    "indicato_1":"indicator_1",
-    "indicator_1": "indicator_1",
+    "indicato_1":"indicator",
+    "indicator_1": "indicator",
     "units_code": "units_code",
     "type": "type",
     "age_code": "age_code",
@@ -325,8 +368,13 @@ allowed_fields['lut'] = {
     "series_rel":"series_rel",
     "series_tag":"series_tag",
     "series":"series",
-    "seriesDesc":"seriesDesc"
+    "seriesDesc":"seriesDesc",
+    "Units_code":"unit_code",
+    "Units_desc":"units_desc"
 }
+
+#used to create a compound primary key, depending on the columns actually created in a specific table
+allowed_fields['pk'] = ["file_name_hash","indicator","iso3cd","age_code","sex_code"]
 
 admin_level_lut = {
     "Country":0,
@@ -348,3 +396,11 @@ if p.file_path.exists():
 #    root_dir = '....../vector_data/Vector_data/SDG1'
     root_dir = p.file_path
     process_dbf_files(root_dir, allowed_fields)
+
+
+#TODO add comment on columns in tables
+#TODO add attrs to lut_indicators like:
+    #tag
+    #attribute
+    #description
+#TODO add PRIMARY KEY to tables @creation time, depending on the columns actually created
