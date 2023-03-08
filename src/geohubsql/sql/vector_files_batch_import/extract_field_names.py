@@ -13,7 +13,7 @@ processing_options = {
     'base_admin1_vector_layer': 'admin.admin1',
     'base_admin2_vector_layer': 'admin.admin2',
     'pg_tileserv_base_url': 'https://pgtileserv.undpgeohub.org/',
-    'pg_tileserv_suffix': '{z}/{x}/{y}.pbf',
+    'pg_tileserv_suffix': '/{z}/{x}/{y}.pbf',
     'SRID': '4326',
     'created_by_user': 'douglas.tommasi@undp.org'
 }
@@ -100,7 +100,7 @@ def identify_tags_in_use(indicators_summary, file_path):
     #will be used as a template for the deeper levels and, ultimately to update the "dataset_tag" table
     proto_tags_in_use = {}
 
-#    global_tags_in_use = add_tag_in_use(global_tags_in_use, 'geometrytype','MultiPolygon')
+    proto_tags_in_use = add_tag_in_use(proto_tags_in_use, 'geometrytype','MultiPolygon')
     proto_tags_in_use = add_tag_in_use(proto_tags_in_use, 'layertype', 'table')
     proto_tags_in_use = add_tag_in_use(proto_tags_in_use, 'provider', 'United Nations Development Programme (UNDP)')
     proto_tags_in_use = add_tag_in_use(proto_tags_in_use, 'type', 'pgtileserv')
@@ -129,9 +129,17 @@ def identify_tags_in_use(indicators_summary, file_path):
                 tags_in_use_indicator = tags_in_use_admin_level.copy()
                 local_tags_in_use = {}
                 #units
-                unit=indicators_summary[schema_name][admin_level][indicator]['unit']
+                unit = indicators_summary[schema_name][admin_level][indicator]['unit']
                 global_tags_in_use = add_tag_in_use(global_tags_in_use,'unit',unit)
                 tags_in_use_indicator = add_tag_in_use(tags_in_use_indicator, 'unit', unit)
+
+                view_name = indicators_summary[schema_name][admin_level][indicator]['view_name']
+                global_tags_in_use = add_tag_in_use(global_tags_in_use, 'table', view_name)
+                tags_in_use_indicator = add_tag_in_use(tags_in_use_indicator, 'table', view_name)
+
+                id = schema_name+'.'+view_name
+                global_tags_in_use = add_tag_in_use(global_tags_in_use, 'id', id)
+                tags_in_use_indicator = add_tag_in_use(tags_in_use_indicator, 'id', id)
 
                 # years
                 for this_year in indicators_summary[schema_name][admin_level][indicator]['years']:
@@ -166,15 +174,30 @@ def insert_into_geohub_tag(global_tags_in_use, sql_file_path):
 
 
 
-def insert_into_geohub_dataset_tag(indicators_summary, file_path):
+def insert_into_geohub_dataset_tag(indicators_summary, sql_file_path):
 
     data = indicators_summary
-    for schema_name, schema_data in data.items():
-        for admin_level, admin_data in schema_data.items():
-            for indicator, indicator_data in admin_data.items():
-                sql_statemnent = indicators_summary[schema_name][admin_level][indicator]['tags']
-                print('SQL futures:')
-                print (sql_statemnent)
+    with open(sql_file_path, 'w') as sql_file:
+        for schema_name, schema_data in data.items():
+            for admin_level, admin_data in schema_data.items():
+                for indicator, indicator_data in admin_data.items():
+                    indicator_tags = indicators_summary[schema_name][admin_level][indicator]['tags']
+                    indicator_id = indicators_summary[schema_name][admin_level][indicator]['id']
+                    sql_statement_del = f'''
+                        --DELETE FROM geohub.dataset_tag WHERE dataset_id = '{indicator_id}';
+                        '''
+                    sql_file.write(sql_statement_del)
+
+                    for key, values in indicator_tags.items():
+                        for value in values:
+                            sql_statement = f'''
+    INSERT INTO geohub.dataset_tag (dataset_id, tag_id) VALUES ('{indicator_id}',(SELECT id FROM geohub.tag WHERE key='{key}' AND value='{value}'));
+    '''
+                            #print (indicator+' '+indicator_id+' '+key+' '+value)
+
+                        # print (sql_statement)
+                        sql_file.write(sql_statement)
+                    # print('SQL futures:')
 
 
 def insert_into_geohub_dataset(indicators_summary, sql_file_path):
