@@ -29,6 +29,10 @@ CREATE OR REPLACE FUNCTION admin.calc_hdi(
 		mean_years_of_schooling_index := mean_years_of_schooling/15;
 		expected_years_of_schooling_index := expected_years_of_schooling/18;
 		education_index := (mean_years_of_schooling_index+expected_years_of_schooling_index)/2;
+        -- make sure we have a LN of a non-zero number
+		IF (gross_national_income <=100) THEN
+			gross_national_income:=101;
+		END IF;
 		income_index :=  (LN(gross_national_income)-LN(100))/LN(750);
 
         HDI := cbrt(life_expectancy_index*education_index*income_index);

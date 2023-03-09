@@ -142,7 +142,7 @@ RETURNS bytea AS $$
                   "type":"numeric",
                   "icon":"fa-hand-holding-dollar",
                   "limits":{"min":-30000,"max":30000},
-                  "abs_limits":{"min":0,"max":350000},
+                  "abs_limits":{"min":101,"max":350000},
                   "value":0,
                   "label":"Income increment",
                   "widget_type":"slider",
