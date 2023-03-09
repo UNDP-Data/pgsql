@@ -6,6 +6,9 @@ import argparse
 from pathlib import Path
 import hashlib
 
+# to load the longest files (03_populate_tables.sql in particular) use pgAdmin, loading the file from the disk,
+# as psql -1 -f echos back each INSERT, thus taking a very long time.
+
 processing_options = {
     'each_yearly_value_to_new_record': False,
     'tileserv_user': 'tileserver',
@@ -50,6 +53,7 @@ allowed_fields['lut'] = {
     "indicator_2": "description",
     "target_cod": "sdg_target",
     "target_code": "sdg_target",
+
     "series_rel": "create_date",
     "series_tag": "series_tag",
     "series": "series",
@@ -326,6 +330,7 @@ def generate_sql_views(json_obj, indicators_summary, sql_file_path):
                         INNER JOIN {schema_name}.{admin_level} AS s ON (a.iso3cd = s.iso3cd)
                         WHERE s."indicator"='{indicator}';
                         COMMENT ON VIEW {schema_name}."{indicator_clean}_view" IS '{indicator_description}';
+                        --  DELETE VIEW {schema_name}."{indicator_clean}_view";
                         \n
 '''
 
@@ -340,12 +345,15 @@ def generate_sql_views(json_obj, indicators_summary, sql_file_path):
 def load_json_to_table(json_obj, sql_file_path):
     data = json_obj
     with open(sql_file_path, 'w') as query:
-        for schema_name, schema_data in data.items():
+
+        for schema_name, schema_data in sorted(data.items()):
+            query.write("BEGIN TRANSACTION;\n")
             for table_name, table_data in schema_data.items():
                 for row_data in table_data:
                     columns = ", ".join(row_data.keys())
                     values = ", ".join(f"'{v}'" for v in row_data.values())
                     query.write(f"INSERT INTO {schema_name}.{table_name} ({columns}) VALUES ({values});\n\n")
+            query.write("COMMIT;")
 
         query.write("\n")
 
@@ -381,9 +389,10 @@ def generate_sql_schemas(json_obj, sql_file_path):
         data = json_obj
         for schema_name, schema_data in data.items():
             sql_file.write(f"CREATE SCHEMA IF NOT EXISTS {schema_name};\n")
-            sql_file.write(
-                f"GRANT SELECT,USAGE ON ALL TABLES IN SCHEMA {schema_name} TO {processing_options['tileserv_user']};\n")
+            sql_file.write(f"GRANT SELECT,USAGE ON ALL TABLES IN SCHEMA {schema_name} TO {processing_options['tileserv_user']};\n")
             sql_file.write(f"GRANT CREATE,USAGE ON SCHEMA {schema_name} TO {processing_options['tileserv_user']};\n")
+            # sql_file.write(f"ALTER DEFAULT PRIVILEGES IN SCHEMA {schema_name} GRANT READ ON TABLES  TO {processing_options['tileserv_user']} WITH GRANT OPTION;\n")
+            sql_file.write(f"ALTER DEFAULT PRIVILEGES IN SCHEMA {schema_name} GRANT SELECT ON TABLES  TO {processing_options['tileserv_user']};\n")
 
             sql_file.write("\n")
 
@@ -483,6 +492,7 @@ def process_single_dbf_file(file_details, allowed_fields_in, lut_file_names, out
 
                 sdg_code = pad_sdg(output_record_template['goal_code'])
                 indicator = output_record_template['indicator']
+
                 admin_level_name = output_record_template['type']
                 admin_level = 'admin' + str(admin_level_lut[admin_level_name])
                 indicator_clean = indicator.replace(".", "_")
@@ -586,14 +596,14 @@ def process_dbf_files(root_dir_in, allowed_fields_in):
     #            output_records.append(output_record)
     #            print(output_record_template)
 
-    generate_sql_schemas(output_records, 'create_schemas.sql')
-    generate_sql_tables(output_records, 'create_tables.sql')
-    load_json_to_table(output_records, 'populate_tables.sql')
-    generate_sql_views(output_records, indicators_summary, 'create_views.sql')
-    insert_into_geohub_dataset(indicators_summary, 'insert_into_dataset.sql')
+    generate_sql_schemas(output_records, '01_create_schemas.sql')
+    generate_sql_tables(output_records, '02_create_tables.sql')
+    load_json_to_table(output_records, '03_populate_tables.sql')
+    generate_sql_views(output_records, indicators_summary, '04_create_views.sql')
+    insert_into_geohub_dataset(indicators_summary, '05_insert_into_dataset.sql')
     global_tags_in_use = identify_tags_in_use(indicators_summary, 'global_tags_in_use.json')
-    insert_into_geohub_tag(global_tags_in_use, 'insert_into_tags.sql')
-    insert_into_geohub_dataset_tag(indicators_summary, 'insert_into_dataset_tags.sql')
+    insert_into_geohub_tag(global_tags_in_use, '06_insert_into_tags.sql')
+    insert_into_geohub_dataset_tag(indicators_summary, '07_insert_into_dataset_tags.sql')
 
     with open('output_sql.json', 'w') as f:
         json.dump(output_records, f, indent=4)
