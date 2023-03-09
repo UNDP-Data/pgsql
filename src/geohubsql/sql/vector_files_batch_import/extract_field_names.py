@@ -210,9 +210,10 @@ def identify_tags_in_use(indicators_summary, file_path):
                 series_tags = []
                 series_tags.append(json.loads(series_string))
 
-                for series_tag in series_tags:
-                    global_tags_in_use = add_tag_in_use(global_tags_in_use, 'theme', series_tag)
-                    tags_in_use_indicator = add_tag_in_use(tags_in_use_indicator, 'theme', series_tag)
+                # needs fixing
+                # for series_tag in series_tags:
+                #     global_tags_in_use = add_tag_in_use(global_tags_in_use, 'theme', series_tag)
+                #     tags_in_use_indicator = add_tag_in_use(tags_in_use_indicator, 'theme', series_tag)
 
                 indicators_summary[schema_name][admin_level][indicator]['tags'] = tags_in_use_indicator
 
@@ -256,7 +257,7 @@ def insert_into_geohub_dataset_tag(indicators_summary, sql_file_path):
                     for key, values in indicator_tags.items():
                         for value in values:
                             sql_statement = f'''
-    INSERT INTO geohub.dataset_tag (dataset_id, tag_id) VALUES ('{indicator_id}',(SELECT id FROM geohub.tag WHERE key='{key}' AND value='{value}'));
+    INSERT INTO geohub.dataset_tag (dataset_id, tag_id) VALUES ('{indicator_id}',(SELECT id FROM geohub.tag WHERE key='{key}' AND value='{value}'))  ON CONFLICT DO NOTHING;
     '''
                             # print (indicator+' '+indicator_id+' '+key+' '+value)
 
