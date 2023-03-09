@@ -112,13 +112,13 @@ def sanitize_name(name):
 
 #    return name
 
-def add_tag_in_use(global_tags_in_use, key, value):
-    if key not in global_tags_in_use:
-        global_tags_in_use[key] = []
-    if value not in global_tags_in_use[key]:
-        global_tags_in_use[key].append(value)
+def add_tag_in_use(local_tags_in_use, key, value):
+    if key not in local_tags_in_use:
+        local_tags_in_use[key] = []
+    if value not in local_tags_in_use[key]:
+        local_tags_in_use[key].append(value)
 
-    return global_tags_in_use
+    return local_tags_in_use
 
 
 def identify_tags_in_use(indicators_summary, file_path):
@@ -133,7 +133,6 @@ def identify_tags_in_use(indicators_summary, file_path):
     proto_tags_in_use = add_tag_in_use(proto_tags_in_use, 'provider', 'United Nations Development Programme (UNDP)')
     proto_tags_in_use = add_tag_in_use(proto_tags_in_use, 'type', 'pgtileserv')
     #    proto_tags_in_use = add_tag_in_use(proto_tags_in_use, 'attribution', 'pgtileserv')
-    proto_tags_in_use = add_tag_in_use(proto_tags_in_use, 'multi_year_format', 'value_{yyyy}')
     proto_tags_in_use = add_tag_in_use(proto_tags_in_use, 'multi_year_format', 'value_{yyyy}')
 
     global_tags_in_use = proto_tags_in_use.copy()
@@ -192,11 +191,13 @@ def identify_tags_in_use(indicators_summary, file_path):
                 #   print(tags_in_use_indicator)
 
 
-
-                global_tags_in_use = add_tag_in_use(global_tags_in_use, 'multi_year_from', min_year)
-                tags_in_use_indicator = add_tag_in_use(tags_in_use_indicator, 'multi_year_from', min_year)
-                global_tags_in_use = add_tag_in_use(global_tags_in_use, 'multi_year_to', max_year)
-                tags_in_use_indicator = add_tag_in_use(tags_in_use_indicator, 'multi_year_to', max_year)
+                if (min_year < 9999) and ( max_year > 0):
+                    global_tags_in_use = add_tag_in_use(global_tags_in_use, 'multi_year_from', min_year)
+                    tags_in_use_indicator = add_tag_in_use(tags_in_use_indicator, 'multi_year_from', min_year)
+                    global_tags_in_use = add_tag_in_use(global_tags_in_use, 'multi_year_to', max_year)
+                    tags_in_use_indicator = add_tag_in_use(tags_in_use_indicator, 'multi_year_to', max_year)
+                else:
+                    tags_in_use_indicator.pop('multi_year_format')
 
                 series_string = indicators_summary[schema_name][admin_level][indicator]['series_tag']
                 series_string = series_string.replace("'", '"')
@@ -537,9 +538,9 @@ def process_single_dbf_file(file_details, allowed_fields_in, lut_file_names, out
 
                 if file_name_md5 not in lut_file_names[sdg_code][admin_level]:
                     lut_file_names[sdg_code][admin_level][file_name_md5] = sdg_code + '/' + admin_level + '/' + file_name
-                    print('file name was added')
+                    print('OK file name was added')
                 else:
-                    print('file name was already present')
+                    print("\n"+'####file name was already present: '+sdg_code + '/' + admin_level + '/' + file_name)
             except:
                 print('error on file name hash ')
 
