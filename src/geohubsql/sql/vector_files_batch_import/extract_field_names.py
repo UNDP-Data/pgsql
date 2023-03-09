@@ -29,8 +29,8 @@ allowed_fields['admin'] = {
     # "objectid":"objectid",
     # "objectid 1": "objectid_1",
     # "objectid_1": "objectid_1",
-    # "target_cod": "target_code",
-    # "target_code": "target_code",
+    # "target_cod": "sdg_target",
+    # "target_code": "sdg_target",
     "indicato_1": "indicator",
     "indicator_1": "indicator",
     # "Units_desc": "unit",
@@ -48,9 +48,9 @@ allowed_fields['admin'] = {
 allowed_fields['lut'] = {
     "indicato_2": "description",
     "indicator_2": "description",
-    "target_cod": "target_code",
-    "target_code": "target_code",
-    "series_rel": "series_rel",
+    "target_cod": "sdg_target",
+    "target_code": "sdg_target",
+    "series_rel": "create_date",
     "series_tag": "series_tag",
     "series": "series",
     "seriesDesc": "seriesDesc",
@@ -59,6 +59,26 @@ allowed_fields['lut'] = {
     "Units_code": "units_code",
     "units_code": "units_code"
 }
+
+allowed_fields['column_comment'] = {
+    "file_name": "Name of the original file",
+    "goal_code": "SDG Goal code",
+    "indicator": "SDG indicator",
+    "iso3cd": "Standard ISO Country Code (3 letters)",
+    "age_code": "Age Group code",
+    "sex_code": "Gender code"
+}
+
+#
+# "sdg_goal": [
+#     "1"
+# ],
+# "sdg_indicator": [
+#     "1.5.2"
+# ],
+# "sdg_target": [
+#     "1.5"
+# ],
 
 # used to create a compound primary key, depending on the columns actually created in a specific table
 allowed_fields['pk'] = ["file_name_hash", "indicator", "iso3cd", "age_code", "sex_code"]
@@ -114,6 +134,7 @@ def identify_tags_in_use(indicators_summary, file_path):
     proto_tags_in_use = add_tag_in_use(proto_tags_in_use, 'type', 'pgtileserv')
     #    proto_tags_in_use = add_tag_in_use(proto_tags_in_use, 'attribution', 'pgtileserv')
     proto_tags_in_use = add_tag_in_use(proto_tags_in_use, 'multi_year_format', 'value_{yyyy}')
+    proto_tags_in_use = add_tag_in_use(proto_tags_in_use, 'multi_year_format', 'value_{yyyy}')
 
     global_tags_in_use = proto_tags_in_use.copy()
 
@@ -138,10 +159,10 @@ def identify_tags_in_use(indicators_summary, file_path):
             for indicator, indicator_data in admin_data.items():
                 tags_in_use_indicator = tags_in_use_admin_level.copy()
 
-                # target_code
-                target_code = indicators_summary[schema_name][admin_level][indicator]['target_code']
-                global_tags_in_use = add_tag_in_use(global_tags_in_use, 'target_code', target_code)
-                tags_in_use_indicator = add_tag_in_use(tags_in_use_indicator, 'target_code', target_code)
+                # sdg_target
+                sdg_target = indicators_summary[schema_name][admin_level][indicator]['sdg_target']
+                global_tags_in_use = add_tag_in_use(global_tags_in_use, 'sdg_target', sdg_target)
+                tags_in_use_indicator = add_tag_in_use(tags_in_use_indicator, 'sdg_target', sdg_target)
 
                 # units
                 unit = indicators_summary[schema_name][admin_level][indicator]['unit']
@@ -159,15 +180,34 @@ def identify_tags_in_use(indicators_summary, file_path):
                 tags_in_use_indicator = add_tag_in_use(tags_in_use_indicator, 'id', schema_view_id)
 
                 # years
+                min_year = 9999
+                max_year = -9999
                 for this_year in indicators_summary[schema_name][admin_level][indicator]['years']:
                     global_tags_in_use = add_tag_in_use(global_tags_in_use, 'year', this_year)
                     tags_in_use_indicator = add_tag_in_use(tags_in_use_indicator, 'year', this_year)
+                    if int(this_year) < min_year:
+                        min_year = int(this_year)
+                    if int(this_year) > max_year:
+                        max_year = int(this_year)
                 #   print(tags_in_use_indicator)
 
-                # global_tags_in_use = add_tag_in_use(global_tags_in_use, 'multi_year_from', min_year)
-                # tags_in_use_indicator = add_tag_in_use(tags_in_use_indicator, 'multi_year_from', min_year)
-                # global_tags_in_use = add_tag_in_use(global_tags_in_use, 'multi_year_to', max_year)
-                # tags_in_use_indicator = add_tag_in_use(tags_in_use_indicator, 'multi_year_to', max_year)
+
+
+                global_tags_in_use = add_tag_in_use(global_tags_in_use, 'multi_year_from', min_year)
+                tags_in_use_indicator = add_tag_in_use(tags_in_use_indicator, 'multi_year_from', min_year)
+                global_tags_in_use = add_tag_in_use(global_tags_in_use, 'multi_year_to', max_year)
+                tags_in_use_indicator = add_tag_in_use(tags_in_use_indicator, 'multi_year_to', max_year)
+
+                series_string = indicators_summary[schema_name][admin_level][indicator]['series_tag']
+                series_string = series_string.replace("'", '"')
+                #print('series_string:'+series_string)
+
+                series_tags = []
+                series_tags.append(json.loads(series_string))
+
+                for series_tag in series_tags:
+                    global_tags_in_use = add_tag_in_use(global_tags_in_use, 'theme', series_tag)
+                    tags_in_use_indicator = add_tag_in_use(tags_in_use_indicator, 'theme', series_tag)
 
                 indicators_summary[schema_name][admin_level][indicator]['tags'] = tags_in_use_indicator
 
@@ -234,10 +274,10 @@ def insert_into_geohub_dataset(indicators_summary, sql_file_path):
                     #                    view_name = indicators_summary[schema_name][admin_level][indicator]['view_name']
 
                     url = indicators_summary[schema_name][admin_level][indicator]['url']
-                    id = indicators_summary[schema_name][admin_level][indicator]['id']
+                    indicator_id = indicators_summary[schema_name][admin_level][indicator]['id']
 
                     is_raster = False
-                    license = 'Creative Commons BY NonCommercial ShareAlike 4.0'
+                    layer_license = 'Creative Commons BY NonCommercial ShareAlike 4.0'
                     name = indicators_summary[schema_name][admin_level][indicator]['description']
                     description = indicators_summary[schema_name][admin_level][indicator]['description']
                     created_user = processing_options['created_by_user']
@@ -245,8 +285,8 @@ def insert_into_geohub_dataset(indicators_summary, sql_file_path):
 
                     sql_statement = f'''
 INSERT INTO geohub.dataset(id, url, is_raster, license, bounds, createdat, updatedat, name, description, created_user, updated_user)
-VALUES ('{id}', '{url}', {is_raster}, '{license}', {bounds}, current_timestamp, current_timestamp, '{name}', '{description}', '{created_user}', '{updated_user}');
---DELETE FROM geohub.dataset WHERE id ='{id}';
+VALUES ('{indicator_id}', '{url}', {is_raster}, '{layer_license}', {bounds}, current_timestamp, current_timestamp, '{name}', '{description}', '{created_user}', '{updated_user}');
+--DELETE FROM geohub.dataset WHERE id ='{indicator_id}';
                     '''
                     sql_file.write(sql_statement)
 
@@ -327,6 +367,12 @@ def generate_sql_tables(json_obj, sql_file_path):
                     data_type = 'numeric' if column_name.startswith('value_') else 'text'
                     sql_file.write(f"{separator}    {column_name} {data_type}")
                 sql_file.write(");\n\n")
+
+                for column_name in sorted(column_names):
+                    if column_name in allowed_fields['column_comment'].keys():
+                        col_comment = allowed_fields['column_comment'][column_name]
+                        sql_file.write(f"COMMENT ON COLUMN {schema_name}.{table_name}.{column_name} IS '{col_comment}';\n")
+                        sql_file.write("\n")
 
 
 def generate_sql_schemas(json_obj, sql_file_path):
@@ -455,6 +501,8 @@ def process_single_dbf_file(file_details, allowed_fields_in, lut_file_names, out
                     indicators_summary[sdg_code][admin_level][indicator]['file_name'][file_name] = 0
                 if 'view_name' not in indicators_summary[sdg_code][admin_level][indicator]:
                     indicators_summary[sdg_code][admin_level][indicator]['view_name'] = view_name
+                if 'sdg_indicator' not in indicators_summary[sdg_code][admin_level][indicator]:
+                    indicators_summary[sdg_code][admin_level][indicator]['sdg_indicator'] = indicator
 
                 if 'years' not in indicators_summary[sdg_code][admin_level][indicator]:
                     indicators_summary[sdg_code][admin_level][indicator]['years'] = extract_years(record)
@@ -569,8 +617,4 @@ if p.file_path.exists():
     process_dbf_files(root_dir, allowed_fields)
 
 # TODO add comment on columns in tables
-# TODO add attrs to indicators_summary like:
-# tag
-# attribute
-# description
 # TODO add PRIMARY KEY to tables @creation time, depending on the columns actually created
