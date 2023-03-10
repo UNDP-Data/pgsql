@@ -103,7 +103,7 @@ def unpad_sdg(sdg_code):
     # sdg0n -> n
     # import re
     #    return re.sub("sdg[01]?", "", sdg_code)
-    return sdg_code.removeprefix('sdg0').removeprefix('sdg1')
+    return sdg_code.removeprefix('sdg0').removeprefix('sdg')
 
 
 def sanitize_name(name):
@@ -224,6 +224,7 @@ def identify_tags_in_use(indicators_summary, file_path):
 
 def insert_into_geohub_tag(global_tags_in_use, sql_file_path):
     with open(sql_file_path, 'w') as sql_file:
+        sql_file.write("BEGIN TRANSACTION;")
         for key, values in global_tags_in_use.items():
             for value in values:
                 sql_statement = f'''
@@ -236,7 +237,7 @@ def insert_into_geohub_tag(global_tags_in_use, sql_file_path):
                 --DELETE FROM geohub.tag WHERE key='{key}' AND value='{value}';
                 '''
                 sql_file.write(sql_statement)
-
+        sql_file.write("COMMIT;")
 
 #    global_tags_in_use['extent'] = ['Global','Asia','China']
 
@@ -244,6 +245,7 @@ def insert_into_geohub_tag(global_tags_in_use, sql_file_path):
 def insert_into_geohub_dataset_tag(indicators_summary, sql_file_path):
     data = indicators_summary
     with open(sql_file_path, 'w') as sql_file:
+        sql_file.write("BEGIN TRANSACTION;")
         for schema_name, schema_data in data.items():
             for admin_level, admin_data in schema_data.items():
                 for indicator, indicator_data in admin_data.items():
@@ -258,19 +260,21 @@ def insert_into_geohub_dataset_tag(indicators_summary, sql_file_path):
                         for value in values:
                             sql_statement = f'''
     INSERT INTO geohub.dataset_tag (dataset_id, tag_id) VALUES ('{indicator_id}',(SELECT id FROM geohub.tag WHERE key='{key}' AND value='{value}'))  ON CONFLICT DO NOTHING;
+    --DELETE FROM geohub.dataset_tag WHERE dataset_id='{indicator_id}';
     '''
                             # print (indicator+' '+indicator_id+' '+key+' '+value)
 
                         # print (sql_statement)
                         sql_file.write(sql_statement)
                     # print('SQL futures:')
-
+        sql_file.write("COMMIT;")
 
 def insert_into_geohub_dataset(indicators_summary, sql_file_path):
     # INSERT INTO geohub.dataset(id, url, is_raster, license, bounds, createdat, updatedat, name, description, created_user, updated_user)
     # VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
     with open(sql_file_path, 'w') as sql_file:
+        sql_file.write("BEGIN TRANSACTION;")
         data = indicators_summary
         for schema_name, schema_data in data.items():
             for admin_level, admin_data in schema_data.items():
@@ -295,7 +299,7 @@ VALUES ('{indicator_id}', '{url}', {is_raster}, '{layer_license}', {bounds}, cur
 --DELETE FROM geohub.dataset WHERE id ='{indicator_id}';
                     '''
                     sql_file.write(sql_statement)
-
+        sql_file.write("COMMIT;")
 
 def process_dbf_file(dbf_file_path):
     """
