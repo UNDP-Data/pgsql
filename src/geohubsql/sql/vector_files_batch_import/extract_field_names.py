@@ -335,7 +335,7 @@ def generate_sql_views(json_obj, indicators_summary, sql_file_path):
                         INNER JOIN {schema_name}.{admin_level} AS s ON (a.iso3cd = s.iso3cd)
                         WHERE s."indicator"='{indicator}';
                         COMMENT ON VIEW {schema_name}."{indicator_clean}_view" IS '{indicator_description}';
-                        --  DELETE VIEW {schema_name}."{indicator_clean}_view";
+                        --  DROP VIEW {schema_name}."{indicator_clean}_view";
                         \n
 '''
 
@@ -378,7 +378,13 @@ def generate_sql_tables(json_obj, sql_file_path):
                     if col_count > 0:
                         separator = ',\n'
                     col_count += 1
-                    data_type = 'numeric' if column_name.startswith('value_') else 'text'
+                    # use double precision, not numeric or decimal,
+                    # otherwise maplibre/pg_tileserv will not recognize those columns as numeric,
+                    # and they will not be able to apply colormaps !
+                    data_type = '"double precision"' if column_name.startswith('value_') else 'text'
+                    # one off to convert exisiting tables (after dropping all views)
+                    # views need to be re-created after the ALTERing.
+                    # sql_file.write(f"\n--ALTER TABLE {schema_name}.{table_name} ALTER COLUMN {column_name} TYPE double precision ;\n")
                     sql_file.write(f"{separator}    {column_name} {data_type}")
                 sql_file.write(");\n\n")
 
