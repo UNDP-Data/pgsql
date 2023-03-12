@@ -36,7 +36,9 @@ allowed_fields['admin'] = {
     # "target_code": "sdg_target",
     "indicato_1": "indicator",
     "indicator_1": "indicator",
-    "series": "series",
+    "series": "series1",
+    "timeseries": "series",
+    "timeSeries": "series",
     # "Units_desc": "unit",
     # "units_desc": "unit",
     # "Units_code": "units_code",
@@ -58,6 +60,7 @@ allowed_fields['lut'] = {
     "series_tag": "series_tag",
     "seriesdesc": "description",
     "seriesDesc": "description",
+    "name_of_in": "name_of_in",
     "Units_desc": "unit",
     "units_desc": "unit",
     "Units_code": "units_code",
@@ -387,7 +390,7 @@ def generate_sql_tables(json_obj, sql_file_path):
                 column_names = set()
                 for row in table_data:
                     column_names.update(row.keys())
-                sql_file.write(f"--DELETE TABLE IF EXISTS {schema_name}.{table_name};\n")
+                sql_file.write(f"--DROP TABLE IF EXISTS {schema_name}.{table_name};\n")
                 sql_file.write(f"CREATE TABLE IF NOT EXISTS {schema_name}.{table_name} (\n")
                 col_count = 0
                 separator = ''
