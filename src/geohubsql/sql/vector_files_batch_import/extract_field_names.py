@@ -95,7 +95,7 @@ allowed_fields['unicode'] = {
 # ],
 
 # used to create a compound primary key, depending on the columns actually created in a specific table
-allowed_fields['pk'] = ["file_name_hash", "indicator", "series", "iso3cd", "age_code", "sex_code"]
+allowed_fields['pk'] = ["view_name_hash", "indicator", "series", "iso3cd", "age_code", "sex_code"]
 
 admin_level_lut = {
     "Country": 0,
@@ -583,8 +583,8 @@ def process_single_dbf_file(file_details, allowed_fields_in, lut_file_names, pro
                 if admin_level not in lut_file_names[sdg_code]:
                     lut_file_names[sdg_code][admin_level] = {}
 
-                file_name_path = sdg_code + '/' + admin_level + '/' + file_name
-                file_name_md5 = hashlib.md5(file_name_path.encode('utf-8')).hexdigest()  # md5
+                view_name_path = sdg_code + '/' + admin_level + '/' + view_name
+                view_name_md5 = hashlib.md5(view_name_path.encode('utf-8')).hexdigest()  # md5
 
                 if file_name_md5 not in lut_file_names[sdg_code][admin_level]:
                     lut_file_names[sdg_code][admin_level][file_name_md5] = sdg_code + '/' + admin_level + '/' + file_name
@@ -594,10 +594,10 @@ def process_single_dbf_file(file_details, allowed_fields_in, lut_file_names, pro
             except:
                 print('error on file name hash ')
 
-        if len(str(file_name_md5)) == 32:
-            processed_record_template['file_name_hash'] = file_name_md5
+        if len(str(view_name_md5)) == 32:
+            processed_record_template['view_name_hash'] = view_name_md5
         else:
-            #print('ERROR - no HASH created for file '+ file_name + ' hash:' + str(file_name_hash) + ' len:'+str(len(str(file_name_hash))))
+            #print('ERROR - no HASH created for file '+ file_name + ' hash:' + str(view_name_hash) + ' len:'+str(len(str(view_name_hash))))
             print('ERROR - no HASH created for file ' + file_name)
 
 
