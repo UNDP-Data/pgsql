@@ -36,9 +36,9 @@ allowed_fields['admin'] = {
     # "target_code": "sdg_target",
     "indicato_1": "indicator",
     "indicator_1": "indicator",
-    "series": "series",
-    "timeseries": "timeseries",
-    "timeSeries": "timeseries",
+    "series": "series1",
+    "timeseries": "series",
+    "timeSeries": "series",
     # "Units_desc": "unit",
     # "units_desc": "unit",
     # "Units_code": "units_code",
@@ -71,7 +71,7 @@ allowed_fields['column_comment'] = {
     "file_name": "Name of the original file",
     "goal_code": "SDG Goal code",
     "indicator": "SDG indicator",
-    "iso3cd": "Standard ISO Country Code (3 le)",
+    "iso3cd": "Standard ISO Country Code (3 letters)",
     "age_code": "Age Group code",
     "sex_code": "Gender code"
 }
@@ -95,7 +95,7 @@ allowed_fields['unicode'] = {
 # ],
 
 # used to create a compound primary key, depending on the columns actually created in a specific table
-allowed_fields['pk'] = ["view_name_hash", "indicator", "timeseries", "iso3cd", "age_code", "sex_code"]
+allowed_fields['pk'] = ["view_name_hash", "indicator", "series", "iso3cd", "age_code", "sex_code"]
 
 admin_level_lut = {
     "Country": 0,
@@ -135,7 +135,7 @@ def add_tag_in_use(local_tags_in_use, key, value):
     return local_tags_in_use
 
 
-def identify_tags_in_use(timeseries_summary, file_path):
+def identify_tags_in_use(series_summary, file_path):
     # will be used to update the "tag" table
     # global_tags_in_use['extent'] = ['Global','Asia','China']
 
@@ -151,7 +151,7 @@ def identify_tags_in_use(timeseries_summary, file_path):
 
     global_tags_in_use = proto_tags_in_use.copy()
 
-    data = timeseries_summary
+    data = series_summary
     for schema_name, schema_data in data.items():
         tags_in_use_schema = proto_tags_in_use.copy()
         # sdg_goal
@@ -170,22 +170,22 @@ def identify_tags_in_use(timeseries_summary, file_path):
                 tags_in_use_admin_level = add_tag_in_use(tags_in_use_admin_level, 'extent', 'Global')
 
             for indicator, indicator_data in admin_data.items():
-                for timeseries, timeseries_data in indicator_data.items():
+                for series, seies_data in indicator_data.items():
 
                     tags_in_use_series = tags_in_use_admin_level.copy()
 
                     # sdg_target
-                    sdg_target = timeseries_summary[schema_name][admin_level][indicator][timeseries]['sdg_target']
+                    sdg_target = series_summary[schema_name][admin_level][indicator][series]['sdg_target']
                     global_tags_in_use = add_tag_in_use(global_tags_in_use, 'sdg_target', sdg_target)
                     tags_in_use_series = add_tag_in_use(tags_in_use_series, 'sdg_target', sdg_target)
 
                     # units
-                    unit = timeseries_summary[schema_name][admin_level][indicator][timeseries]['unit']
+                    unit = series_summary[schema_name][admin_level][indicator][series]['unit']
                     global_tags_in_use = add_tag_in_use(global_tags_in_use, 'unit', unit)
                     tags_in_use_series = add_tag_in_use(tags_in_use_series, 'unit', unit)
 
                     #view
-                    view_name = timeseries_summary[schema_name][admin_level][indicator][timeseries]['view_name']
+                    view_name = series_summary[schema_name][admin_level][indicator][series]['view_name']
                     global_tags_in_use = add_tag_in_use(global_tags_in_use, 'table', view_name)
                     tags_in_use_series = add_tag_in_use(tags_in_use_series, 'table', view_name)
 
@@ -197,7 +197,7 @@ def identify_tags_in_use(timeseries_summary, file_path):
                     # years
                     min_year = 9999
                     max_year = -9999
-                    for this_year in timeseries_summary[schema_name][admin_level][indicator][timeseries]['years']:
+                    for this_year in series_summary[schema_name][admin_level][indicator][series]['years']:
                         global_tags_in_use = add_tag_in_use(global_tags_in_use, 'year', this_year)
                         tags_in_use_series = add_tag_in_use(tags_in_use_series, 'year', this_year)
                         if int(this_year) < min_year:
@@ -215,7 +215,7 @@ def identify_tags_in_use(timeseries_summary, file_path):
                     else:
                         tags_in_use_series.pop('multi_year_format')
 
-                    series_string = timeseries_summary[schema_name][admin_level][indicator][timeseries]['series_tag']
+                    series_string = series_summary[schema_name][admin_level][indicator][series]['series_tag']
                     series_string = series_string.replace("'", '"')
                     #print('series_string:'+series_string)
 
@@ -227,7 +227,7 @@ def identify_tags_in_use(timeseries_summary, file_path):
                     #     global_tags_in_use = add_tag_in_use(global_tags_in_use, 'theme', series_tag)
                     #     tags_in_use_series = add_tag_in_use(tags_in_use_series, 'theme', series_tag)
 
-                    timeseries_summary[schema_name][admin_level][indicator][timeseries]['tags'] = tags_in_use_series
+                    series_summary[schema_name][admin_level][indicator][series]['tags'] = tags_in_use_series
 
     with open(file_path, 'w') as file:
         json.dump(global_tags_in_use, file, indent=4)
@@ -254,66 +254,66 @@ def insert_into_geohub_tag(global_tags_in_use, sql_file_path):
 #    global_tags_in_use['extent'] = ['Global','Asia','China']
 
 
-def insert_into_geohub_dataset_tag(timeseries_summary, sql_file_path):
-    data = timeseries_summary
+def insert_into_geohub_dataset_tag(series_summary, sql_file_path):
+    data = series_summary
     with open(sql_file_path, 'w') as sql_file:
         sql_file.write("BEGIN TRANSACTION;")
         for schema_name, schema_data in data.items():
             for admin_level, admin_data in schema_data.items():
                 for indicator, indicator_data in admin_data.items():
-                    for timeseries, timeseries_data in indicator_data.items():
-                        series_tags = timeseries_summary[schema_name][admin_level][indicator][timeseries]['tags']
-                        timeseries_id = timeseries_summary[schema_name][admin_level][indicator][timeseries]['id']
+                    for series, series_data in indicator_data.items():
+                        series_tags = series_summary[schema_name][admin_level][indicator][series]['tags']
+                        series_id = series_summary[schema_name][admin_level][indicator][series]['id']
                         sql_statement_del = f'''
-                            --DELETE FROM geohub.dataset_tag WHERE dataset_id = '{timeseries_id}';
+                            --DELETE FROM geohub.dataset_tag WHERE dataset_id = '{series_id}';
                             '''
                         sql_file.write(sql_statement_del)
 
                         for key, values in series_tags.items():
                             for value in values:
                                 sql_statement = f'''
-        -- -- -- series:{timeseries} timeseries_id: {timeseries_id} tag: {value}
-        INSERT INTO geohub.dataset_tag (dataset_id, tag_id) VALUES ('{timeseries_id}',(SELECT id FROM geohub.tag WHERE key='{key}' AND value='{value}'))  ON CONFLICT DO NOTHING;
-        --DELETE FROM geohub.dataset_tag WHERE dataset_id='{timeseries_id}';
+        -- -- -- series:{series} series_id: {series_id} tag: {value}
+        INSERT INTO geohub.dataset_tag (dataset_id, tag_id) VALUES ('{series_id}',(SELECT id FROM geohub.tag WHERE key='{key}' AND value='{value}'))  ON CONFLICT DO NOTHING;
+        --DELETE FROM geohub.dataset_tag WHERE dataset_id='{series_id}';
         '''
-                                # print (timeseries+' '+timeseries_id+' '+key+' '+value)
+                                # print (series+' '+series_id+' '+key+' '+value)
 
                             # print (sql_statement)
                             sql_file.write(sql_statement)
                         # print('SQL futures:')
         sql_file.write("\nCOMMIT;")
 
-def insert_into_geohub_dataset(timeseries_summary, sql_file_path):
+def insert_into_geohub_dataset(series_summary, sql_file_path):
     # INSERT INTO geohub.dataset(id, url, is_raster, license, bounds, createdat, updatedat, name, description, created_user, updated_user)
     # VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
     with open(sql_file_path, 'w') as sql_file:
         sql_file.write("BEGIN TRANSACTION;")
-        data = timeseries_summary
+        data = series_summary
         for schema_name, schema_data in data.items():
             for admin_level, admin_data in schema_data.items():
                 bounds = '(SELECT ST_SetSRID(ST_Extent(geom),' + processing_options['SRID'] + ')  AS geom FROM ' + \
                          processing_options['base_' + admin_level + '_vector_layer'] + ')'
                 for indicator, indicator_data in admin_data.items():
-                    for timeseries, timeseries_data in indicator_data.items():
-                        #view_name = timeseries_summary[schema_name][admin_level][indicator][timeseries]['view_name']
+                    for series, series_data in indicator_data.items():
+                        #view_name = series_summary[schema_name][admin_level][indicator][series]['view_name']
 
-                        url = timeseries_summary[schema_name][admin_level][indicator][timeseries]['url']
-                        timeseries_id = timeseries_summary[schema_name][admin_level][indicator][timeseries]['id']
+                        url = series_summary[schema_name][admin_level][indicator][series]['url']
+                        series_id = series_summary[schema_name][admin_level][indicator][series]['id']
 
                         is_raster = False
                         layer_license = 'Creative Commons BY NonCommercial ShareAlike 4.0'
-                        name = timeseries_summary[schema_name][admin_level][indicator][timeseries]['description']
+                        name = series_summary[schema_name][admin_level][indicator][series]['description']
                         name = name.replace("'", "''")
-                        timeseries_description = timeseries_summary[schema_name][admin_level][indicator][timeseries]['description']
-                        timeseries_description = timeseries_description.replace("'", "''")
+                        series_description = series_summary[schema_name][admin_level][indicator][series]['description']
+                        series_description = series_description.replace("'", "''")
                         created_user = processing_options['created_by_user']
                         updated_user = processing_options['created_by_user']
 
                         sql_statement = f'''
     INSERT INTO geohub.dataset(id, url, is_raster, license, bounds, createdat, updatedat, name, description, created_user, updated_user)
-    VALUES ('{timeseries_id}', '{url}', {is_raster}, '{layer_license}', {bounds}, current_timestamp, current_timestamp, '{name}', '{timeseries_description}', '{created_user}', '{updated_user}');
-    --DELETE FROM geohub.dataset WHERE id ='{timeseries_id}';
+    VALUES ('{series_id}', '{url}', {is_raster}, '{layer_license}', {bounds}, current_timestamp, current_timestamp, '{name}', '{series_description}', '{created_user}', '{updated_user}');
+    --DELETE FROM geohub.dataset WHERE id ='{series_id}';
                         '''
                         sql_file.write(sql_statement)
         sql_file.write("\nCOMMIT;")
@@ -333,17 +333,17 @@ def process_dbf_file(dbf_file_path):
     return file_details
 
 
-def generate_sql_views(json_obj, timeseries_summary, sql_file_path):
+def generate_sql_views(json_obj, series_summary, sql_file_path):
     with open(sql_file_path, 'w') as sql_file:
-        data = timeseries_summary
+        data = series_summary
         for schema_name, schema_data in data.items():
             for admin_level, admin_data in schema_data.items():
                 for indicator, indicator_data in admin_data.items():
                     indicator_clean = indicator.replace(".", "_")
-                    for timeseries, timeseries_data in indicator_data.items():
-                        timeseries_description = timeseries_summary[schema_name][admin_level][indicator][timeseries]['description']
-                        timeseries_description = timeseries_description.replace("'","''")
-                        view_name = timeseries_summary[schema_name][admin_level][indicator][timeseries]['view_name']
+                    for series, series_data in indicator_data.items():
+                        series_description = series_summary[schema_name][admin_level][indicator][series]['description']
+                        series_description = series_description.replace("'","''")
+                        view_name = series_summary[schema_name][admin_level][indicator][series]['view_name']
 
                         # each feature must be present only once, hence the "DISTINCT ON":
                         sql_statement = f'''
@@ -352,8 +352,8 @@ def generate_sql_views(json_obj, timeseries_summary, sql_file_path):
                             SELECT DISTINCT ON (a.geom) a.id, a.geom, s.* from
                             admin.{admin_level} AS a
                             INNER JOIN {schema_name}.{admin_level} AS s ON (a.iso3cd = s.iso3cd)
-                            WHERE s."indicator"='{indicator}' AND s."series" ='{timeseries}';
-                            COMMENT ON VIEW {schema_name}."{view_name}" IS '{timeseries_description}';
+                            WHERE s."indicator"='{indicator}' AND s."series" ='{series}';
+                            COMMENT ON VIEW {schema_name}."{view_name}" IS '{series_description}';
                             --  DROP VIEW {schema_name}."{view_name}";
                             \n
     '''
@@ -485,7 +485,7 @@ def process_value_fields(record, processed_record_template):
     return process_processed_records
 
 
-def process_single_dbf_file(file_details, allowed_fields_in, lut_file_names, processed_records, timeseries_summary, error_files):
+def process_single_dbf_file(file_details, allowed_fields_in, lut_file_names, processed_records, series_summary):
     print()
     print(os.path.join(file_details['dir'], file_details['file_name']))
 
@@ -523,74 +523,57 @@ def process_single_dbf_file(file_details, allowed_fields_in, lut_file_names, pro
             try:
                 admin_level_name = processed_record_template['type']
                 admin_level = 'admin' + str(admin_level_lut[admin_level_name])
+
                 sdg_code = pad_sdg(processed_record_template['goal_code'])
-
-                if 'indicator' in processed_record_template:
-                    indicator = processed_record_template['indicator']
-
-                #some files do not have 'timeseries', some neither 'series'
-                if 'timeseries' in processed_record_template:
-                    timeseries = processed_record_template['timeseries']
-                elif 'series' in processed_record_template:
-                    timeseries = processed_record_template['series']
-                else:
-                    timeseries = 'none'
+                indicator = processed_record_template['indicator']
+                series = processed_record_template['series']
 
                 admin_level_name = processed_record_template['type']
                 admin_level = 'admin' + str(admin_level_lut[admin_level_name])
                 indicator_clean = indicator.replace(".", "_")
-
-                view_name = indicator_clean + "_" + timeseries + "_view"
-                # print('view_name: ' + view_name)
+                view_name = indicator_clean + "_" + series + "_view"
                 unit = lut_temp_values['unit'].lower()
 
-                #print('PSDF: '+file_name+' '+sdg_code+' '+admin_level+' '+indicator_clean+' '+timeseries+' '+view_name)
-                if sdg_code not in timeseries_summary:
-                    timeseries_summary[sdg_code] = {}
-                if admin_level not in timeseries_summary[sdg_code]:
-                    timeseries_summary[sdg_code][admin_level] = {}
-                if indicator not in timeseries_summary[sdg_code][admin_level]:
-                    timeseries_summary[sdg_code][admin_level][indicator] = {}
+                #print('PSDF: '+file_name+' '+sdg_code+' '+admin_level+' '+indicator_clean+' '+series+' '+view_name)
+                if sdg_code not in series_summary:
+                    series_summary[sdg_code] = {}
+                if admin_level not in series_summary[sdg_code]:
+                    series_summary[sdg_code][admin_level] = {}
+                if indicator not in series_summary[sdg_code][admin_level]:
+                    series_summary[sdg_code][admin_level][indicator] = {}
 
-                if timeseries not in timeseries_summary[sdg_code][admin_level][indicator]:
-                    timeseries_summary[sdg_code][admin_level][indicator][timeseries] = {}
+                if series not in series_summary[sdg_code][admin_level][indicator]:
+                    series_summary[sdg_code][admin_level][indicator][series] = {}
 
-                if 'file_name' not in timeseries_summary[sdg_code][admin_level][indicator][timeseries]:
-                    timeseries_summary[sdg_code][admin_level][indicator][timeseries]['file_name'] = {}
+                if 'file_name' not in series_summary[sdg_code][admin_level][indicator][series]:
+                    series_summary[sdg_code][admin_level][indicator][series]['file_name'] = {}
 
-                if file_name not in timeseries_summary[sdg_code][admin_level][indicator][timeseries]:
-                    timeseries_summary[sdg_code][admin_level][indicator][timeseries]['file_name'][file_name] = 0
-                if 'view_name' not in timeseries_summary[sdg_code][admin_level][indicator][timeseries]:
-                    timeseries_summary[sdg_code][admin_level][indicator][timeseries]['view_name'] = view_name
-                if 'sdg_indicator' not in timeseries_summary[sdg_code][admin_level][indicator][timeseries]:
-                    timeseries_summary[sdg_code][admin_level][indicator][timeseries]['sdg_indicator'] = indicator
+                if file_name not in series_summary[sdg_code][admin_level][indicator][series]:
+                    series_summary[sdg_code][admin_level][indicator][series]['file_name'][file_name] = 0
+                if 'view_name' not in series_summary[sdg_code][admin_level][indicator][series]:
+                    series_summary[sdg_code][admin_level][indicator][series]['view_name'] = view_name
+                if 'sdg_indicator' not in series_summary[sdg_code][admin_level][indicator][series]:
+                    series_summary[sdg_code][admin_level][indicator][series]['sdg_indicator'] = indicator
 
-                if 'years' not in timeseries_summary[sdg_code][admin_level][indicator][timeseries]:
-                    timeseries_summary[sdg_code][admin_level][indicator][timeseries]['years'] = extract_years(record)
+                if 'years' not in series_summary[sdg_code][admin_level][indicator][series]:
+                    series_summary[sdg_code][admin_level][indicator][series]['years'] = extract_years(record)
 
-                timeseries_summary[sdg_code][admin_level][indicator][timeseries]['file_name'][file_name] += 1
+                series_summary[sdg_code][admin_level][indicator][series]['file_name'][file_name] += 1
                 url = processing_options['pg_tileserv_base_url'] + sdg_code + '.' + view_name + processing_options[
                     'pg_tileserv_suffix']
                 md5_id = hashlib.md5(url.encode('utf-8')).hexdigest()  # md5
-                timeseries_summary[sdg_code][admin_level][indicator][timeseries]['url'] = url
-                timeseries_summary[sdg_code][admin_level][indicator][timeseries]['id'] = md5_id
-                timeseries_summary[sdg_code][admin_level][indicator][timeseries]['unit'] = unit
+                series_summary[sdg_code][admin_level][indicator][series]['url'] = url
+                series_summary[sdg_code][admin_level][indicator][series]['id'] = md5_id
+                series_summary[sdg_code][admin_level][indicator][series]['unit'] = unit
 
                 for lut_field_name, lut_field_value in lut_temp_values.items():
                     if lut_field_name in lut_temp_values:
-                        timeseries_summary[sdg_code][admin_level][indicator][timeseries][lut_field_name] = lut_temp_values[lut_field_name]
+                        series_summary[sdg_code][admin_level][indicator][series][lut_field_name] = lut_temp_values[lut_field_name]
                 # if 'series_tag' in lut_temp_values:
-                #     timeseries_summary[sdg_code][admin_level][indicator][timeseries]['series_tag'] = lut_temp_values['series_tag']
+                #     series_summary[sdg_code][admin_level][indicator][series]['series_tag'] = lut_temp_values['series_tag']
 
             except:
                 print('NOK ' + file_name + ' sdg_code: ' + str(sdg_code))
-                print(processed_record_template)
-                if 'indicator' not in processed_record_template:
-                    # do not process a file without indicator
-                    err_str = 'ERROR: ' + sdg_code + ' ' + file_details['file_name'] + ' does not have a valid indicator field'
-                    print(err_str)
-                    error_files.append(err_str)
-                    return
             else:
                 print('OK ' + file_name + ' sdg_code: ' + str(sdg_code))
 
@@ -603,8 +586,8 @@ def process_single_dbf_file(file_details, allowed_fields_in, lut_file_names, pro
                 view_name_path = sdg_code + '/' + admin_level + '/' + view_name
                 view_name_md5 = hashlib.md5(view_name_path.encode('utf-8')).hexdigest()  # md5
 
-                if view_name_md5 not in lut_file_names[sdg_code][admin_level]:
-                    lut_file_names[sdg_code][admin_level][view_name_md5] = sdg_code + '/' + admin_level + '/' + file_name
+                if file_name_md5 not in lut_file_names[sdg_code][admin_level]:
+                    lut_file_names[sdg_code][admin_level][file_name_md5] = sdg_code + '/' + admin_level + '/' + file_name
                     print('OK file name was added')
                 else:
                     print("\n"+'####file name was already present: '+ sdg_code + '/' + admin_level + '/' + file_name)
@@ -643,15 +626,11 @@ def process_dbf_files(root_dir_in, allowed_fields_in):
 
     processed_records = {}
     lut_file_names = {}
-    # the following is mainly to inspect the timeseries/file_name relationship:
-    timeseries_summary = {}
-
-    error_files = []
-
-
+    # the following is mainly to inspect the series/file_name relationship:
+    series_summary = {}
 
     for file_details in file_details_list:
-        process_single_dbf_file(file_details, allowed_fields_in, lut_file_names, processed_records, timeseries_summary, error_files)
+        process_single_dbf_file(file_details, allowed_fields_in, lut_file_names, processed_records, series_summary)
 
     #            output_record['file_name'] = file_details['file_name']
     #            processed_records.append(output_record)
@@ -660,11 +639,11 @@ def process_dbf_files(root_dir_in, allowed_fields_in):
     generate_sql_schemas(processed_records, '01_create_schemas.sql')
     generate_sql_tables(processed_records, '02_create_tables.sql')
     load_json_to_table(processed_records, '03_populate_tables.sql')
-    generate_sql_views(processed_records, timeseries_summary, '04_create_views.sql')
-    insert_into_geohub_dataset(timeseries_summary, '05_insert_into_dataset.sql')
-    global_tags_in_use = identify_tags_in_use(timeseries_summary, 'global_tags_in_use.json')
+    generate_sql_views(processed_records, series_summary, '04_create_views.sql')
+    insert_into_geohub_dataset(series_summary, '05_insert_into_dataset.sql')
+    global_tags_in_use = identify_tags_in_use(series_summary, 'global_tags_in_use.json')
     insert_into_geohub_tag(global_tags_in_use, '06_insert_into_tags.sql')
-    insert_into_geohub_dataset_tag(timeseries_summary, '07_insert_into_dataset_tags.sql')
+    insert_into_geohub_dataset_tag(series_summary, '07_insert_into_dataset_tags.sql')
 
     with open('output_sql.json', 'w') as f:
         json.dump(processed_records, f, indent=4)
@@ -672,11 +651,8 @@ def process_dbf_files(root_dir_in, allowed_fields_in):
     with open('lut_file_names.json', 'w') as f:
         json.dump(lut_file_names, f, indent=4)
 
-    with open('timeseries_summary.json', 'w') as f:
-        json.dump(timeseries_summary, f, indent=4)
-
-    with open('error_files.json', 'w') as f:
-        json.dump(error_files, f, indent=4)
+    with open('series_summary.json', 'w') as f:
+        json.dump(series_summary, f, indent=4)
 
 ####################################################################################
 
@@ -693,4 +669,3 @@ if p.file_path.exists():
 
 # TODO add comment on columns in tables
 # TODO add PRIMARY KEY to tables @creation time, depending on the columns actually created
-# TODO add indexes as a last step
