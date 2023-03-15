@@ -504,14 +504,9 @@ def process_single_dbf_file(file_details, allowed_fields_in, lut_file_names, pro
     record = split_dbf_by_timeseries(allowed_fields_in, dbf_by_time_series, dbf_file, file_name, record_count)
 
     global_dbf_by_time_series.update(dbf_by_time_series)
-    # print('LLL record_count: ' + str(max_record_count))
 
-    # print('YYYYY')
-    # print(dbf_by_time_series.keys())
 
-    # for splitter in dbf_by_time_series.keys():
-    #     record_count[splitter] = 0
-    #     # print('SPLITTER: ' + file_name + ' ' +splitter)
+
 
     for splitter, split_records in dbf_by_time_series.items():
 
@@ -784,6 +779,9 @@ def process_dbf_files(root_dir_in, allowed_fields_in):
     # with open('global_dbf_by_time_series.json', 'w') as f:
     #     json.dump(global_dbf_by_time_series, f, indent=4)
 
+    # count individual views if dif
+    # for splitter in global_dbf_by_time_series.keys():
+    #     print('SPLITTER: ' + splitter)
 
 ####################################################################################
 
