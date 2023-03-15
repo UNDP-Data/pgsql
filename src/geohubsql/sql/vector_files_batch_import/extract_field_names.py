@@ -5,6 +5,7 @@ import unicodedata
 import argparse
 from pathlib import Path
 import hashlib
+from collections import OrderedDict
 
 # to load the longest files (03_populate_tables.sql in particular) use pgAdmin, loading the file from the disk,
 # as psql -1 -f echos back each INSERT, thus taking a very long time.
@@ -81,6 +82,8 @@ allowed_fields['unicode'] = {
     'ÔÇô': "-"
 }
 
+
+global_dbf_by_time_series = {}
 
 
 #
@@ -342,7 +345,7 @@ def generate_sql_views(json_obj, timeseries_summary, sql_file_path):
                     indicator_clean = indicator.replace(".", "_")
                     for timeseries, timeseries_data in indicator_data.items():
                         timeseries_description = timeseries_summary[schema_name][admin_level][indicator][timeseries]['description']
-                        timeseries_description = timeseries_description.replace("'","''")
+                        timeseries_description = timeseries_description.replace("'", "''")
                         view_name = timeseries_summary[schema_name][admin_level][indicator][timeseries]['view_name']
 
                         # each feature must be present only once, hence the "DISTINCT ON":
@@ -354,7 +357,6 @@ def generate_sql_views(json_obj, timeseries_summary, sql_file_path):
                             INNER JOIN {schema_name}.{admin_level} AS s ON (a.iso3cd = s.iso3cd)
                             WHERE s."indicator"='{indicator}' AND s."series" ='{timeseries}';
                             COMMENT ON VIEW {schema_name}."{view_name}" IS '{timeseries_description}';
-                            --  DROP VIEW {schema_name}."{view_name}";
                             \n
     '''
 
@@ -492,139 +494,235 @@ def process_single_dbf_file(file_details, allowed_fields_in, lut_file_names, pro
     dbf_file = dbfread.DBF(os.path.join(file_details['dir'], file_details['file_name']), encoding='cp852')
     file_name = sanitize_name(file_details['file_name'])
 
+    #defaults
     sdg_code = 'sdg_others'
-    record_count = 0
     admin_level = 'admin0'
+    record_count = {}
 
+    dbf_by_time_series = {}
+
+    record = split_dbf_by_timeseries(allowed_fields_in, dbf_by_time_series, dbf_file, file_name, record_count)
+
+    global_dbf_by_time_series.update(dbf_by_time_series)
+
+
+
+
+    for splitter, split_records in dbf_by_time_series.items():
+
+        for rec_count, split_record in split_records.items():
+
+            processed_record_template = {}
+            lut_temp_values = {}
+            record_count[splitter] += 1
+            processed_record_template['record'] = record_count[splitter]
+            processed_record_template['file_name'] = file_name
+            #print("\n")
+            # print('HHH ########## ' + splitter + ' ' +str(split_record))
+
+            extract_processed_record_template(allowed_fields_in, processed_record_template, split_record)
+
+            extract_lut_temp_values(allowed_fields_in, lut_temp_values, split_record)
+
+            # files like 4.7.1 have some incomplete rows:
+            if ('goal_code' not in processed_record_template) or ('indicator' not in processed_record_template) or (len(processed_record_template['goal_code'])<1) or (len(processed_record_template['indicator'])<1):
+                err_str = 'CONTINUE on ' + sdg_code + ' ' + file_name
+                print(err_str)
+                error_files.append(err_str)
+                continue
+
+            # print(processed_record_template)
+
+            if record_count[splitter] == 1:
+                # print(all_rec_fields)
+
+                try:
+                    admin_level_name = processed_record_template['type']
+                    admin_level = 'admin' + str(admin_level_lut[admin_level_name])
+                    sdg_code = pad_sdg(processed_record_template['goal_code'])
+
+                    if 'indicator' in processed_record_template:
+                        indicator = processed_record_template['indicator']
+                    indicator_clean = indicator.replace(".", "_")
+
+                    timeseries = splitter
+                    view_name = indicator_clean + "_" + timeseries + "_view"
+                    unit = lut_temp_values['unit'].lower()
+
+                    populate_timeseries_summary(admin_level, file_name, indicator, record, sdg_code, timeseries,
+                                                timeseries_summary, unit, view_name)
+
+                    for lut_field_name, lut_field_value in lut_temp_values.items():
+                        if lut_field_name in lut_temp_values:
+                            timeseries_summary[sdg_code][admin_level][indicator][timeseries][lut_field_name] = lut_temp_values[lut_field_name]
+
+                except:
+                    print('NOK ' + file_name + ' sdg_code: ' + str(sdg_code))
+                    print(processed_record_template)
+                    if 'indicator' not in processed_record_template:
+                        # do not process a file without indicator
+                        err_str = 'ERROR: ' + sdg_code + ' ' + file_details['file_name'] + ' does not have a valid indicator field'
+                        print(err_str)
+                        error_files.append(err_str)
+                        return
+                else:
+                    print('OK ' + file_name + ' sdg_code: ' + str(sdg_code))
+
+                view_name_md5 = calculate_view_name_md5(admin_level, file_name, lut_file_names, sdg_code, split_record,
+                                                        splitter, view_name)
+
+            # print('AA1: ' + splitter + ' record_counter: ' + str(record_count[splitter]))
+            # print(timeseries_summary)
+            # print('AA2: ' + splitter + ' view_name: ' + view_name)
+
+            if len(str(view_name_md5)) == 32:
+                processed_record_template['view_name_hash'] = view_name_md5
+            else:
+                #print('ERROR - no HASH created for file '+ file_name + ' hash:' + str(view_name_hash) + ' len:'+str(len(str(view_name_hash))))
+                print('ERROR - no HASH created for file ' + file_name)
+
+
+
+            if sdg_code not in processed_records:
+                processed_records[sdg_code] = {}
+            if admin_level not in processed_records[sdg_code]:
+                processed_records[sdg_code][admin_level] = []
+
+            #print('RRR record_counter: ' + str(record_count))
+            # print (processed_record_template)
+            processed_records[sdg_code][admin_level].extend(process_value_fields(split_record, processed_record_template))
+
+
+def calculate_view_name_md5(admin_level, file_name, lut_file_names, sdg_code, split_record, splitter, view_name):
+    try:
+        if sdg_code not in lut_file_names:
+            lut_file_names[sdg_code] = {}
+        if admin_level not in lut_file_names[sdg_code]:
+            lut_file_names[sdg_code][admin_level] = {}
+
+        view_name_path = sdg_code + '/' + admin_level + '/' + view_name
+        view_name_md5 = hashlib.md5(view_name_path.encode('utf-8')).hexdigest()  # md5
+
+        if view_name_md5 not in lut_file_names[sdg_code][admin_level]:
+            lut_file_names[sdg_code][admin_level][
+                view_name_md5] = sdg_code + '/' + admin_level + '/' + file_name + ':' + view_name_path
+            print('OK file name was added')
+        else:
+            print(
+                "\n" + '####file name was already present: ' + sdg_code + '/' + admin_level + '/' + file_name + ' as: ' + view_name_md5 + ' spliiter: ' + splitter)
+            print(split_record)
+    except:
+        print('error on file name hash ')
+    return view_name_md5
+
+
+def populate_timeseries_summary(admin_level, file_name, indicator, record, sdg_code, timeseries, timeseries_summary,
+                                unit, view_name):
+    # print('PSDF: '+file_name+' '+sdg_code+' '+admin_level+' '+indicator_clean+' '+timeseries+' '+view_name)
+    if sdg_code not in timeseries_summary:
+        timeseries_summary[sdg_code] = {}
+    if admin_level not in timeseries_summary[sdg_code]:
+        timeseries_summary[sdg_code][admin_level] = {}
+    if indicator not in timeseries_summary[sdg_code][admin_level]:
+        timeseries_summary[sdg_code][admin_level][indicator] = {}
+    if timeseries not in timeseries_summary[sdg_code][admin_level][indicator]:
+        timeseries_summary[sdg_code][admin_level][indicator][timeseries] = {}
+    if 'file_name' not in timeseries_summary[sdg_code][admin_level][indicator][timeseries]:
+        timeseries_summary[sdg_code][admin_level][indicator][timeseries]['file_name'] = {}
+    if file_name not in timeseries_summary[sdg_code][admin_level][indicator][timeseries]:
+        timeseries_summary[sdg_code][admin_level][indicator][timeseries]['file_name'][file_name] = 0
+    if 'view_name' not in timeseries_summary[sdg_code][admin_level][indicator][timeseries]:
+        timeseries_summary[sdg_code][admin_level][indicator][timeseries]['view_name'] = view_name
+    if 'sdg_indicator' not in timeseries_summary[sdg_code][admin_level][indicator][timeseries]:
+        timeseries_summary[sdg_code][admin_level][indicator][timeseries]['sdg_indicator'] = indicator
+    if 'years' not in timeseries_summary[sdg_code][admin_level][indicator][timeseries]:
+        timeseries_summary[sdg_code][admin_level][indicator][timeseries]['years'] = extract_years(record)
+    timeseries_summary[sdg_code][admin_level][indicator][timeseries]['file_name'][file_name] += 1
+    url = processing_options['pg_tileserv_base_url'] + sdg_code + '.' + view_name + processing_options[
+        'pg_tileserv_suffix']
+    md5_id = hashlib.md5(url.encode('utf-8')).hexdigest()  # md5
+    timeseries_summary[sdg_code][admin_level][indicator][timeseries]['url'] = url
+    timeseries_summary[sdg_code][admin_level][indicator][timeseries]['id'] = md5_id
+    timeseries_summary[sdg_code][admin_level][indicator][timeseries]['unit'] = unit
+
+
+def extract_lut_temp_values(allowed_fields_in, lut_temp_values, split_record):
+    # loop on record's fields to extract lut_temp_values
+    for field_name, field_value in split_record.items():
+        sanitized_field_name = sanitize_name(field_name)
+        # all_rec_fields.append(sanitized_field_name)
+
+        if sanitized_field_name in allowed_fields_in['lut'].keys():
+            standardized_lut_field_name = allowed_fields_in['lut'][sanitized_field_name]
+            # print(sanitized_field_name + ' -> '+standardized_field_name)
+            lut_temp_values[standardized_lut_field_name] = field_value
+
+
+
+
+def extract_processed_record_template(allowed_fields_in, processed_record_template, split_record):
+    # loop on record's fields to extract processed_record_template
+    for field_name, field_value in split_record.items():
+        sanitized_field_name = sanitize_name(field_name)
+        # all_rec_fields.append(sanitized_field_name)
+
+        if sanitized_field_name in allowed_fields_in['admin'].keys():
+            standardized_field_name = allowed_fields_in['admin'][sanitized_field_name]
+            # print(sanitized_field_name + ' -> '+standardized_field_name)
+            processed_record_template[standardized_field_name] = field_value
+
+    # print('JJJ processed_record_template: ' + str(processed_record_template))
+    # print('COUNT: ' + splitter + ': '+ str(record_count[splitter]) + '/' + str(nof_records))
+
+
+def split_dbf_by_timeseries(allowed_fields_in, dbf_by_time_series, dbf_file, file_name, record_count):
+    # subdivide the dbf file into subfiles by timeseries/series
+    max_record_count = {}
+    nof_records = 0
     for record in dbf_file:
+        nof_records += 1
+        curr_record_temp = {}
 
-        record_count += 1
-        processed_record_template = {}
-        lut_temp_values = {}
-        processed_record_template['file_name'] = file_name
-        # all_rec_fields = []
-
+        # field name sanitization
         for field_name, field_value in record.items():
             sanitized_field_name = sanitize_name(field_name)
-            # all_rec_fields.append(sanitized_field_name)
-
             if sanitized_field_name in allowed_fields_in['admin'].keys():
                 standardized_field_name = allowed_fields_in['admin'][sanitized_field_name]
-                # print(sanitized_field_name + ' -> '+standardized_field_name)
-                processed_record_template[standardized_field_name] = field_value
+                curr_record_temp[standardized_field_name] = field_value
 
-            if sanitized_field_name in allowed_fields_in['lut'].keys():
-                standardized_lut_field_name = allowed_fields_in['lut'][sanitized_field_name]
-                # print(sanitized_field_name + ' -> '+standardized_field_name)
-                lut_temp_values[standardized_lut_field_name] = field_value
+        split_by = ''
 
-        if record_count == 1:
-            # print(all_rec_fields)
-            try:
-                admin_level_name = processed_record_template['type']
-                admin_level = 'admin' + str(admin_level_lut[admin_level_name])
-                sdg_code = pad_sdg(processed_record_template['goal_code'])
+        if 'goal_code' in curr_record_temp and len(curr_record_temp['goal_code']) > 0:
+            split_by = str(curr_record_temp['goal_code']) + '_'
 
-                if 'indicator' in processed_record_template:
-                    indicator = processed_record_template['indicator']
+        if 'indicator' in curr_record_temp and len(curr_record_temp['indicator']) > 0:
+            split_by = split_by + str(curr_record_temp['indicator']) + '_'
 
-                #some files do not have 'timeseries', some neither 'series'
-                if 'timeseries' in processed_record_template:
-                    timeseries = processed_record_template['timeseries']
-                elif 'series' in processed_record_template:
-                    timeseries = processed_record_template['series']
-                else:
-                    timeseries = 'none'
-
-                admin_level_name = processed_record_template['type']
-                admin_level = 'admin' + str(admin_level_lut[admin_level_name])
-                indicator_clean = indicator.replace(".", "_")
-
-                view_name = indicator_clean + "_" + timeseries + "_view"
-                # print('view_name: ' + view_name)
-                unit = lut_temp_values['unit'].lower()
-
-                #print('PSDF: '+file_name+' '+sdg_code+' '+admin_level+' '+indicator_clean+' '+timeseries+' '+view_name)
-                if sdg_code not in timeseries_summary:
-                    timeseries_summary[sdg_code] = {}
-                if admin_level not in timeseries_summary[sdg_code]:
-                    timeseries_summary[sdg_code][admin_level] = {}
-                if indicator not in timeseries_summary[sdg_code][admin_level]:
-                    timeseries_summary[sdg_code][admin_level][indicator] = {}
-
-                if timeseries not in timeseries_summary[sdg_code][admin_level][indicator]:
-                    timeseries_summary[sdg_code][admin_level][indicator][timeseries] = {}
-
-                if 'file_name' not in timeseries_summary[sdg_code][admin_level][indicator][timeseries]:
-                    timeseries_summary[sdg_code][admin_level][indicator][timeseries]['file_name'] = {}
-
-                if file_name not in timeseries_summary[sdg_code][admin_level][indicator][timeseries]:
-                    timeseries_summary[sdg_code][admin_level][indicator][timeseries]['file_name'][file_name] = 0
-                if 'view_name' not in timeseries_summary[sdg_code][admin_level][indicator][timeseries]:
-                    timeseries_summary[sdg_code][admin_level][indicator][timeseries]['view_name'] = view_name
-                if 'sdg_indicator' not in timeseries_summary[sdg_code][admin_level][indicator][timeseries]:
-                    timeseries_summary[sdg_code][admin_level][indicator][timeseries]['sdg_indicator'] = indicator
-
-                if 'years' not in timeseries_summary[sdg_code][admin_level][indicator][timeseries]:
-                    timeseries_summary[sdg_code][admin_level][indicator][timeseries]['years'] = extract_years(record)
-
-                timeseries_summary[sdg_code][admin_level][indicator][timeseries]['file_name'][file_name] += 1
-                url = processing_options['pg_tileserv_base_url'] + sdg_code + '.' + view_name + processing_options[
-                    'pg_tileserv_suffix']
-                md5_id = hashlib.md5(url.encode('utf-8')).hexdigest()  # md5
-                timeseries_summary[sdg_code][admin_level][indicator][timeseries]['url'] = url
-                timeseries_summary[sdg_code][admin_level][indicator][timeseries]['id'] = md5_id
-                timeseries_summary[sdg_code][admin_level][indicator][timeseries]['unit'] = unit
-
-                for lut_field_name, lut_field_value in lut_temp_values.items():
-                    if lut_field_name in lut_temp_values:
-                        timeseries_summary[sdg_code][admin_level][indicator][timeseries][lut_field_name] = lut_temp_values[lut_field_name]
-                # if 'series_tag' in lut_temp_values:
-                #     timeseries_summary[sdg_code][admin_level][indicator][timeseries]['series_tag'] = lut_temp_values['series_tag']
-
-            except:
-                print('NOK ' + file_name + ' sdg_code: ' + str(sdg_code))
-                print(processed_record_template)
-                if 'indicator' not in processed_record_template:
-                    # do not process a file without indicator
-                    err_str = 'ERROR: ' + sdg_code + ' ' + file_details['file_name'] + ' does not have a valid indicator field'
-                    print(err_str)
-                    error_files.append(err_str)
-                    return
-            else:
-                print('OK ' + file_name + ' sdg_code: ' + str(sdg_code))
-
-            try:
-                if sdg_code not in lut_file_names:
-                    lut_file_names[sdg_code] = {}
-                if admin_level not in lut_file_names[sdg_code]:
-                    lut_file_names[sdg_code][admin_level] = {}
-
-                view_name_path = sdg_code + '/' + admin_level + '/' + view_name
-                view_name_md5 = hashlib.md5(view_name_path.encode('utf-8')).hexdigest()  # md5
-
-                if view_name_md5 not in lut_file_names[sdg_code][admin_level]:
-                    lut_file_names[sdg_code][admin_level][view_name_md5] = sdg_code + '/' + admin_level + '/' + file_name
-                    print('OK file name was added')
-                else:
-                    print("\n"+'####file name was already present: '+ sdg_code + '/' + admin_level + '/' + file_name)
-            except:
-                print('error on file name hash ')
-
-        if len(str(view_name_md5)) == 32:
-            processed_record_template['view_name_hash'] = view_name_md5
+        if 'timeseries' in curr_record_temp and len(curr_record_temp['timeseries']) > 0:
+            split_by = split_by + curr_record_temp['timeseries']
+        elif 'series' in curr_record_temp and len(curr_record_temp['series']) > 0:
+            split_by = split_by + curr_record_temp['series']
         else:
-            #print('ERROR - no HASH created for file '+ file_name + ' hash:' + str(view_name_hash) + ' len:'+str(len(str(view_name_hash))))
-            print('ERROR - no HASH created for file ' + file_name)
+            split_by = split_by + 'none'
 
+        #print('split_by: ' + split_by)
 
-        if sdg_code not in processed_records:
-            processed_records[sdg_code] = {}
-        if admin_level not in processed_records[sdg_code]:
-            processed_records[sdg_code][admin_level] = []
+        if len(split_by) < 1:
+            print('Short splitter: ' + split_by + ' for: ' + file_name)
 
-        # print (processed_record_template)
-        processed_records[sdg_code][admin_level].extend(process_value_fields(record, processed_record_template))
+        if split_by not in record_count:
+            record_count[split_by] = 0
+        if split_by not in max_record_count:
+            max_record_count[split_by] = 0
+
+        max_record_count[split_by] += 1
+        current_split_rec_count = max_record_count[split_by]
+
+        if split_by not in dbf_by_time_series:
+            dbf_by_time_series[split_by] = {}
+
+        dbf_by_time_series[split_by][current_split_rec_count] = record
+    return record
 
 
 def process_dbf_files(root_dir_in, allowed_fields_in):
@@ -647,8 +745,8 @@ def process_dbf_files(root_dir_in, allowed_fields_in):
     timeseries_summary = {}
 
     error_files = []
-
-
+    #
+    # sorted_file_details_list = file_details_list.sort()
 
     for file_details in file_details_list:
         process_single_dbf_file(file_details, allowed_fields_in, lut_file_names, processed_records, timeseries_summary, error_files)
@@ -677,6 +775,13 @@ def process_dbf_files(root_dir_in, allowed_fields_in):
 
     with open('error_files.json', 'w') as f:
         json.dump(error_files, f, indent=4)
+
+    # with open('global_dbf_by_time_series.json', 'w') as f:
+    #     json.dump(global_dbf_by_time_series, f, indent=4)
+
+    # count individual views if dif
+    # for splitter in global_dbf_by_time_series.keys():
+    #     print('SPLITTER: ' + splitter)
 
 ####################################################################################
 
