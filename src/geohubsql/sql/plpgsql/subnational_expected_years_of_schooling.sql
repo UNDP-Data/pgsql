@@ -26,8 +26,8 @@ RETURNS bytea AS $$
 -- PL/PgSQL function to create a dynamic function layer (delivered as Vector Tiles) with a representation of one of the components of the Human Development Index
 --
 --			life_expectancy               "Life expectancy"
---			expected_years_of_schooling   "Expected years schooling"
---			mean_years_of_schooling       "Mean years schooling"
+--			expected_years_of_schooling   "Expected years of schooling"
+--			mean_years_of_schooling       "Mean years of schooling"
 --			gross_national_income         "Gross National Income per capita"
 --
 
