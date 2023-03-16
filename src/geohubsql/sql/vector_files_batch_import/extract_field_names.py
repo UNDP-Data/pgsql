@@ -519,7 +519,7 @@ def process_value_fields(record, processed_record_template):
     return process_processed_records
 
 
-def process_single_dbf_file(file_details, allowed_fields_in, lut_file_names, processed_records, timeseries_summary, subsets_summary, error_files):
+def process_single_dbf_file(file_details, allowed_fields_in, lut_file_names, processed_records, timeseries_summary, subsets_summary, field_list, error_files):
     print()
     print(os.path.join(file_details['dir'], file_details['file_name']))
 
@@ -573,6 +573,9 @@ def process_single_dbf_file(file_details, allowed_fields_in, lut_file_names, pro
 
 
                 try:
+
+                    extract_field_names(field_list,split_record)
+
                     admin_level_name = processed_record_template['type']
                     admin_level = 'admin' + str(admin_level_lut[admin_level_name])
                     sdg_code = pad_sdg(processed_record_template['goal_code'])
@@ -722,6 +725,15 @@ def populate_subsets_summary(admin_level, file_name, indicator, record, sdg_code
     subsets_summary[sdg_code][admin_level][indicator]['url'] = url
 
 
+def extract_field_names(field_list,split_record):
+    # loop on record's fields to extract field_list
+    for field_name, field_value in split_record.items():
+
+        if field_name not in field_list:
+            field_list[field_name] = 0
+        field_list[field_name] += 1
+
+
 def extract_lut_temp_values(allowed_fields_in, lut_temp_values, split_record):
     # loop on record's fields to extract lut_temp_values
     for field_name, field_value in split_record.items():
@@ -858,13 +870,14 @@ def process_dbf_files(root_dir_in, allowed_fields_in):
     # the following is mainly to inspect the timeseries/file_name relationship:
     timeseries_summary = {}
     subsets_summary = {}
+    field_list = {}
 
     error_files = []
     #
     # sorted_file_details_list = file_details_list.sort()
 
     for file_details in file_details_list:
-        process_single_dbf_file(file_details, allowed_fields_in, lut_file_names, processed_records, timeseries_summary, subsets_summary, error_files)
+        process_single_dbf_file(file_details, allowed_fields_in, lut_file_names, processed_records, timeseries_summary, subsets_summary, field_list, error_files)
 
     #            output_record['file_name'] = file_details['file_name']
     #            processed_records.append(output_record)
@@ -883,16 +896,21 @@ def process_dbf_files(root_dir_in, allowed_fields_in):
         json.dump(processed_records, f, indent=4)
 
     with open('lut_file_names.json', 'w') as f:
-        json.dump(lut_file_names, f, indent=4)
+        json.dump(lut_file_names, f, indent=4, sort_keys=True)
 
     with open('timeseries_summary.json', 'w') as f:
-        json.dump(timeseries_summary, f, indent=4)
+        json.dump(timeseries_summary, f, indent=4, sort_keys=True)
 
     with open('error_files.json', 'w') as f:
-        json.dump(error_files, f, indent=4)
+        json.dump(error_files, f, indent=4, sort_keys=True)
 
     with open('subsets_summary.json', 'w') as f:
-        json.dump(subsets_summary, f, indent=4)
+        json.dump(subsets_summary, f, indent=4, sort_keys=True)
+
+    with open('field_list.json', 'w') as f:
+        json.dump(field_list, f, indent=4, sort_keys=True)
+
+
 
 
     # with open('global_dbf_by_time_series.json', 'w') as f:
