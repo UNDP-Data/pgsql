@@ -40,6 +40,9 @@ allowed_fields['admin'] = {
     "series": "series",
     "timeseries": "timeseries",
     "timeSeries": "timeseries",
+    "type_of": "qualifier",
+    "type_of_": "qualifier",
+    "type_of__": "qualifier",
     # "Units_desc": "unit",
     # "units_desc": "unit",
     # "Units_code": "units_code",
@@ -66,6 +69,17 @@ allowed_fields['lut'] = {
     "units_desc": "unit",
     "Units_code": "units_code",
     "units_code": "units_code"
+}
+
+# fields used as subset identifiers.
+# these will become the arguments of pg_tilserv query params.
+
+allowed_fields['subsets'] = {
+    "qualifier": "qualifier",
+    "age code": "age_code",
+    "sex_code": "sex_code",
+    "location": "location",
+    "series": "series"
 }
 
 allowed_fields['column_comment'] = {
@@ -487,7 +501,7 @@ def process_value_fields(record, processed_record_template):
     return process_processed_records
 
 
-def process_single_dbf_file(file_details, allowed_fields_in, lut_file_names, processed_records, timeseries_summary, error_files):
+def process_single_dbf_file(file_details, allowed_fields_in, lut_file_names, processed_records, timeseries_summary, subsets_summary, error_files):
     print()
     print(os.path.join(file_details['dir'], file_details['file_name']))
 
@@ -536,6 +550,7 @@ def process_single_dbf_file(file_details, allowed_fields_in, lut_file_names, pro
             if record_count[splitter] == 1:
                 # print(all_rec_fields)
 
+
                 try:
                     admin_level_name = processed_record_template['type']
                     admin_level = 'admin' + str(admin_level_lut[admin_level_name])
@@ -551,6 +566,9 @@ def process_single_dbf_file(file_details, allowed_fields_in, lut_file_names, pro
 
                     populate_timeseries_summary(admin_level, file_name, indicator, record, sdg_code, timeseries,
                                                 timeseries_summary, unit, view_name)
+
+                    populate_subsets_summary(admin_level, file_name, indicator, record, sdg_code, timeseries,
+                                                 subsets_summary, view_name)
 
                     for lut_field_name, lut_field_value in lut_temp_values.items():
                         if lut_field_name in lut_temp_values:
@@ -644,6 +662,40 @@ def populate_timeseries_summary(admin_level, file_name, indicator, record, sdg_c
     timeseries_summary[sdg_code][admin_level][indicator][timeseries]['url'] = url
     timeseries_summary[sdg_code][admin_level][indicator][timeseries]['id'] = md5_id
     timeseries_summary[sdg_code][admin_level][indicator][timeseries]['unit'] = unit
+
+def populate_subsets_summary(admin_level, file_name, indicator, record, sdg_code, timeseries, subsets_summary,
+                                view_name):
+    # print('PSDF: '+file_name+' '+sdg_code+' '+admin_level+' '+indicator_clean+' '+timeseries+' '+view_name)
+    if sdg_code not in subsets_summary:
+        subsets_summary[sdg_code] = {}
+    if admin_level not in subsets_summary[sdg_code]:
+        subsets_summary[sdg_code][admin_level] = {}
+    if indicator not in subsets_summary[sdg_code][admin_level]:
+        subsets_summary[sdg_code][admin_level][indicator] = {}
+
+    if 'timeseries' not in subsets_summary[sdg_code][admin_level][indicator]:
+        subsets_summary[sdg_code][admin_level][indicator]['timeseries'] = []
+
+    if timeseries not in subsets_summary[sdg_code][admin_level][indicator]['timeseries']:
+        subsets_summary[sdg_code][admin_level][indicator]['timeseries'].append(timeseries)
+
+    if 'file_name' not in subsets_summary[sdg_code][admin_level][indicator]:
+        subsets_summary[sdg_code][admin_level][indicator]['file_name'] = []
+    if file_name not in subsets_summary[sdg_code][admin_level][indicator]['file_name']:
+        subsets_summary[sdg_code][admin_level][indicator]['file_name'].append(file_name)
+
+
+    if 'years' not in subsets_summary[sdg_code][admin_level][indicator]:
+        subsets_summary[sdg_code][admin_level][indicator]['years'] = []
+
+    temp_list = subsets_summary[sdg_code][admin_level][indicator]['years']
+    temp_list.extend(extract_years(record))
+    temp_list = list(set(temp_list))
+    subsets_summary[sdg_code][admin_level][indicator]['years'] = temp_list
+
+    url = processing_options['pg_tileserv_base_url'] + sdg_code + '.' + view_name + processing_options[
+        'pg_tileserv_suffix']
+    subsets_summary[sdg_code][admin_level][indicator]['url'] = url
 
 
 def extract_lut_temp_values(allowed_fields_in, lut_temp_values, split_record):
@@ -743,13 +795,14 @@ def process_dbf_files(root_dir_in, allowed_fields_in):
     lut_file_names = {}
     # the following is mainly to inspect the timeseries/file_name relationship:
     timeseries_summary = {}
+    subsets_summary = {}
 
     error_files = []
     #
     # sorted_file_details_list = file_details_list.sort()
 
     for file_details in file_details_list:
-        process_single_dbf_file(file_details, allowed_fields_in, lut_file_names, processed_records, timeseries_summary, error_files)
+        process_single_dbf_file(file_details, allowed_fields_in, lut_file_names, processed_records, timeseries_summary, subsets_summary, error_files)
 
     #            output_record['file_name'] = file_details['file_name']
     #            processed_records.append(output_record)
@@ -775,6 +828,10 @@ def process_dbf_files(root_dir_in, allowed_fields_in):
 
     with open('error_files.json', 'w') as f:
         json.dump(error_files, f, indent=4)
+
+    with open('subsets_summary.json', 'w') as f:
+        json.dump(subsets_summary, f, indent=4)
+
 
     # with open('global_dbf_by_time_series.json', 'w') as f:
     #     json.dump(global_dbf_by_time_series, f, indent=4)
