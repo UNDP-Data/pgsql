@@ -195,7 +195,7 @@ RETURNS bytea AS $$
         -- use 'default' as a layer name to make it possible to visualize it via pg_tileServ's internal map viewer
         --layer_name := 'default';
 
-		DROP TABLE IF EXISTS hdi_extarg_tmp_table_simpl;
+
 
         --let's set St_AsMVT's extent as a function of the zoom level
         --in order to reduce network usage and increase the UX.
@@ -242,6 +242,7 @@ RETURNS bytea AS $$
 --			                admin.utils_enforce_limits(h."Mean years schooling"+mys_incr,              func_defaults->'mys_incr'->'abs_limits'->'min'::float, func_defaults->'mys_incr'->'abs_limits'->'max'::float)::decimal,
 --			                admin.utils_enforce_limits(h."Gross National Income per capita"+gni_incr,  func_defaults->'gni_incr'->'abs_limits'->'min'::float, func_defaults->'gni_incr'->'abs_limits'->'max'::float)::decimal
 
+        DROP TABLE IF EXISTS hdi_extarg_tmp_table_simpl;
 
         CREATE TEMPORARY TABLE hdi_extarg_tmp_table_simpl AS (
             SELECT
@@ -272,7 +273,7 @@ RETURNS bytea AS $$
 
         EXECUTE format('SELECT * FROM admin.util_lookup_simplified_table_name(''admin'',''admin1_3857'',%s)',z) INTO simplified_table_name;
 
---        RAISE WARNING 'Uding implified table %', simplified_table_name;
+--        RAISE WARNING 'Using simplified table %', simplified_table_name;
 
         EXECUTE format('CREATE TEMPORARY TABLE mvtgeom AS (
 
