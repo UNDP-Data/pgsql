@@ -43,6 +43,7 @@ allowed_fields['admin'] = {
     "type_of": "qualifier",
     "type_of_": "qualifier",
     "type_of__": "qualifier",
+    "type_of_sk": "qualifier",
     # "Units_desc": "unit",
     # "units_desc": "unit",
     # "Units_code": "units_code",
@@ -51,7 +52,13 @@ allowed_fields['admin'] = {
     "age_code": "age_code",
     "age code": "age_code",
     "sex_code": "sex_code",
-    "sex code": "sex_code"
+    "sex code": "sex_code",
+    "location": "location",
+    "location_c": "location",
+    "location_": "location",
+    "education": "education",
+    "education_": "education",
+    "educatio_": "education"
 }
 
 # fields useful to gather one-per-file information like tags, descriptions, etc
@@ -75,11 +82,22 @@ allowed_fields['lut'] = {
 # these will become the arguments of pg_tilserv query params.
 
 allowed_fields['subsets'] = {
-    "qualifier": "qualifier",
+    "type_of": "qualifier",
+    "type_of_": "qualifier",
+    "type_of__": "qualifier",
+    "type_of_sk": "qualifier",
+    "age_code": "age_code",
     "age code": "age_code",
     "sex_code": "sex_code",
+    "sex code": "sex_code",
     "location": "location",
-    "series": "series"
+    "location_c": "location",
+    "location_": "location",
+
+    "series": "series",
+    "education": "education",
+    "education_": "education",
+    "educatio_": "education",
 }
 
 allowed_fields['column_comment'] = {
@@ -528,6 +546,7 @@ def process_single_dbf_file(file_details, allowed_fields_in, lut_file_names, pro
 
             processed_record_template = {}
             lut_temp_values = {}
+            subset_temp_values = {}
             record_count[splitter] += 1
             processed_record_template['record'] = record_count[splitter]
             processed_record_template['file_name'] = file_name
@@ -538,9 +557,11 @@ def process_single_dbf_file(file_details, allowed_fields_in, lut_file_names, pro
 
             extract_lut_temp_values(allowed_fields_in, lut_temp_values, split_record)
 
+
+
             # files like 4.7.1 have some incomplete rows:
             if ('goal_code' not in processed_record_template) or ('indicator' not in processed_record_template) or (len(processed_record_template['goal_code'])<1) or (len(processed_record_template['indicator'])<1):
-                err_str = 'CONTINUE on ' + sdg_code + ' ' + file_name
+                err_str = 'CONTINUE on ' + sdg_code + ' ' + file_name + ' RECORD: ' + str(processed_record_template)
                 print(err_str)
                 error_files.append(err_str)
                 continue
@@ -593,6 +614,8 @@ def process_single_dbf_file(file_details, allowed_fields_in, lut_file_names, pro
             # print(timeseries_summary)
             # print('AA2: ' + splitter + ' view_name: ' + view_name)
 
+            extract_subsets_values(allowed_fields_in, subset_temp_values, split_record)
+
             if len(str(view_name_md5)) == 32:
                 processed_record_template['view_name_hash'] = view_name_md5
             else:
@@ -610,6 +633,7 @@ def process_single_dbf_file(file_details, allowed_fields_in, lut_file_names, pro
             # print (processed_record_template)
             processed_records[sdg_code][admin_level].extend(process_value_fields(split_record, processed_record_template))
 
+        merge_subsets_summary (subsets_summary, sdg_code, admin_level, indicator ,subset_temp_values)
 
 def calculate_view_name_md5(admin_level, file_name, lut_file_names, sdg_code, split_record, splitter, view_name):
     try:
@@ -709,7 +733,45 @@ def extract_lut_temp_values(allowed_fields_in, lut_temp_values, split_record):
             # print(sanitized_field_name + ' -> '+standardized_field_name)
             lut_temp_values[standardized_lut_field_name] = field_value
 
+def extract_subsets_values(allowed_fields_in, subset_temp_values, split_record):
+    # loop on record's fields to extract subset_temp_values
+    for field_name, field_value in split_record.items():
+        sanitized_field_name = sanitize_name(field_name)
+        # all_rec_fields.append(sanitized_field_name)
 
+        if sanitized_field_name in allowed_fields_in['subsets'].keys():
+            standardized_lut_field_name = allowed_fields_in['subsets'][sanitized_field_name]
+            # print(sanitized_field_name + ' -> '+standardized_field_name)
+            if standardized_lut_field_name not in subset_temp_values:
+                subset_temp_values[standardized_lut_field_name] = []
+
+            temp_array = subset_temp_values[standardized_lut_field_name]
+            temp_array.append(field_value)
+            temp_array = list(set(temp_array))
+            subset_temp_values[standardized_lut_field_name] = temp_array
+def merge_subsets_summary (subsets_summary, sdg_code, admin_level, indicator ,subset_temp_values):
+
+    for subset_name, subset_array in subset_temp_values.items():
+        if sdg_code not in subsets_summary:
+            subsets_summary[sdg_code] = {}
+        if admin_level not in subsets_summary[sdg_code]:
+            subsets_summary[sdg_code][admin_level] = {}
+        if indicator not in subsets_summary[sdg_code][admin_level]:
+            subsets_summary[sdg_code][admin_level][indicator] = {}
+
+        if 'subsets' not in subsets_summary[sdg_code][admin_level][indicator]:
+            subsets_summary[sdg_code][admin_level][indicator]['subsets'] = {}
+
+        if subset_name not in subsets_summary[sdg_code][admin_level][indicator]['subsets']:
+            subsets_summary[sdg_code][admin_level][indicator]['subsets'][subset_name] = []
+
+        # print( subsets_summary[sdg_code][admin_level][indicator]['subsets'][subset_name])
+        # print(subset_array)
+
+        temp_list = subsets_summary[sdg_code][admin_level][indicator]['subsets'][subset_name]
+        temp_list.extend(subset_array)
+        temp_list = list(set(temp_list))
+        subsets_summary[sdg_code][admin_level][indicator]['subsets'][subset_name] = temp_list
 
 
 def extract_processed_record_template(allowed_fields_in, processed_record_template, split_record):
