@@ -43,7 +43,7 @@ allowed_fields['admin'] = {
     "type_of": "qualifier",
     "type_of_": "qualifier",
     "type_of__": "qualifier",
-    "type_of_sk": "qualifier",
+    "type_of_sk": "type_of_skill",
     # "Units_desc": "unit",
     # "units_desc": "unit",
     # "Units_code": "units_code",
@@ -55,10 +55,18 @@ allowed_fields['admin'] = {
     "sex code": "sex_code",
     "location": "location",
     "location_c": "location",
-    "location_": "location",
     "education": "education",
     "education_": "education",
-    "educatio_": "education"
+    "disabili_1": "disability",
+    "migrator_1":"migrator_1",
+    "mode_of__1":"mode_of__1",
+    "reportin_1":"reportin_1",
+    "type_of_oc": "type_of_oc",
+    "type_of_pr": "type_of_pr",
+    "type_of_sp": "type_of_sp",
+    "name_of__1":"name_of__1",
+    "policy_d_1":"policy_d_1",
+    "activity_c":"activity_c"
 }
 
 # fields useful to gather one-per-file information like tags, descriptions, etc
@@ -82,22 +90,29 @@ allowed_fields['lut'] = {
 # these will become the arguments of pg_tilserv query params.
 
 allowed_fields['subsets'] = {
+#    "series": "series",
     "type_of": "qualifier",
     "type_of_": "qualifier",
     "type_of__": "qualifier",
-    "type_of_sk": "qualifier",
     "age_code": "age_code",
     "age code": "age_code",
     "sex_code": "sex_code",
     "sex code": "sex_code",
     "location": "location",
     "location_c": "location",
-    "location_": "location",
-
-    "series": "series",
     "education": "education",
     "education_": "education",
-    "educatio_": "education",
+    "disabili_1": "disability",
+    "migrator_1":"migrator_1",
+    "mode_of__1":"mode_of__1",
+    "reportin_1":"reportin_1",
+    "type_of_oc": "type_of_oc",
+    "type_of_pr": "type_of_pr",
+    "type_of_sk": "type_of_skill",
+    "type_of_sp": "type_of_sp",
+    "name_of__1":"name_of__1",
+    "policy_d_1":"policy_d_1",
+    "activity_c":"activity_c"
 }
 
 allowed_fields['column_comment'] = {
@@ -529,6 +544,7 @@ def process_single_dbf_file(file_details, allowed_fields_in, lut_file_names, pro
     #defaults
     sdg_code = 'sdg_others'
     admin_level = 'admin0'
+    indicator = ''
     record_count = {}
 
     dbf_by_time_series = {}
@@ -636,7 +652,9 @@ def process_single_dbf_file(file_details, allowed_fields_in, lut_file_names, pro
             # print (processed_record_template)
             processed_records[sdg_code][admin_level].extend(process_value_fields(split_record, processed_record_template))
 
-        merge_subsets_summary (subsets_summary, sdg_code, admin_level, indicator ,subset_temp_values)
+        # some files do not have an indicator at all: skip them
+        if len(indicator) > 0:
+            merge_subsets_summary(subsets_summary, sdg_code, admin_level, indicator, subset_temp_values)
 
 def calculate_view_name_md5(admin_level, file_name, lut_file_names, sdg_code, split_record, splitter, view_name):
     try:
