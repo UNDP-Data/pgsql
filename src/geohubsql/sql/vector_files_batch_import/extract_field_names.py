@@ -207,9 +207,15 @@ def parse_template_subset_function(subsets_summary, template_name_in):
                 parsing_strings['schema_name'] = schema_name
                 parsing_strings['admin_level'] = admin_level
                 parsing_strings['indicator'] = indicator
-                parsing_strings['indicator_clean'] = indicator.replace(".", "_")
-                parsing_strings['url'] = indicator_data['url']
-                parsing_strings['md5'] = hashlib.md5(parsing_strings['url'].encode('utf-8')).hexdigest()
+                indicator_clean = indicator.replace(".", "_")
+                parsing_strings['indicator_clean'] = indicator_clean
+
+
+                url = 'https://pgtileserv.undpgeohub.org/' + schema_name + '.f_' + indicator_clean + '/{z}/{x}/{y}.pbf'
+
+
+                parsing_strings['url'] = url
+                parsing_strings['md5'] = hashlib.md5(url.encode('utf-8')).hexdigest()
 
                 parsing_strings['subsets_json'] = {}
                 parsing_strings['json_request'] = {}
@@ -230,13 +236,14 @@ def parse_template_subset_function(subsets_summary, template_name_in):
                         parsing_strings['json_request'][subset_name] = {}
                         parsing_strings['json_request'][subset_name]['value'] = subset_data[0]
 
-                        parsing_strings['years'] = indicator_data['years']
+                        if 'years' in indicator_data:
+                            parsing_strings['years'] = indicator_data['years']
 
-                    print(str(parsing_strings))
+                    #print(str(parsing_strings))
 
                 parsed_output = template.render(parsing_strings=parsing_strings)
 
-                template.stream(parsing_strings=parsing_strings).dump('./batch_functions/f_' + parsing_strings['schema_name'] + '_' + parsing_strings['indicator_clean'] + '.sql')
+                template.stream(parsing_strings=parsing_strings).dump('./batch_functions/f_' + schema_name + '_' + indicator_clean + '.sql')
                 #print(parsed_output)
 
 
