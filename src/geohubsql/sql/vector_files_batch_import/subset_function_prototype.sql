@@ -1,15 +1,14 @@
-CREATE OR REPLACE FUNCTION REPLACE_SDG.f_REPLACE_INDICATOR_CLEAN(
+CREATE OR REPLACE FUNCTION {{ parsing_strings.schema_name }}.f_{{ parsing_strings.indicator_clean }}(
     z integer default 0,
     x integer default 0,
     y integer default 0,
     params varchar default '{
     "subsets":
-    REPLACE_DEFAULT_SUBSETS_JSON
+    {{ parsing_strings.subsets_json }}
     }'
     )
 --    "subsets":
 --    {
---    "series":{"value":"FI_FSI_FSKRTC","options":["FI_FSI_FSKRTC","FI_FSI_FSERA","FI_FSI_FSLS","FI_FSI_FSSNO"]},
 --    "sex_code":{"value":"F","options":["F","M","_T"]},
 --    "age_code":{"value":"18-24 years","options":["0-12 years","12-18 years","18-24 years","older than 24 years","total"]},
 --    "location":{"value":"urban","options":["urban","rural","total"]},
@@ -17,13 +16,20 @@ CREATE OR REPLACE FUNCTION REPLACE_SDG.f_REPLACE_INDICATOR_CLEAN(
 --    }
 --    }'
 
-
+--to be replaced:
+--{{ parsing_strings.schema_name }}
+--REPLACE_INDICATOR
+--{{ parsing_strings.indicator_clean }}
+--subsets
+--REPLACE_DEFAULT_SUBSETS_JSON
+--REPLACE_SQL_QUERY_1
+--REPLACE_SQL_QUERY_2
 
 RETURNS bytea AS $$
 
     DECLARE
         mvt bytea;
-        layer_name varchar := 'REPLACE_SDG.f_REPLACE_INDICATOR_CLEAN';
+        layer_name varchar := '{{ parsing_strings.schema_name }}.f_{{ parsing_strings.indicator_clean }}';
 
 
         simplified_table_name varchar := NULL;
@@ -38,11 +44,15 @@ RETURNS bytea AS $$
         my_query   varchar;
         feat_limit integer := 3000;
 
-        series     varchar := '';
-        sex_code   varchar := '';
-        age_code   varchar := '';
-        location   varchar := '';
-        qualifier  varchar := '';
+        {% for subset_name in parsing_strings.subsets_json -%}
+            {{ subset_name }}   varchar := '';
+        {% endfor %}
+
+--        series     varchar := '';
+--        sex_code   varchar := '';
+--        age_code   varchar := '';
+--        location   varchar := '';
+--        qualifier  varchar := '';
 
         mvt_extent integer := 1024;
         mvt_buffer integer := 32;
@@ -50,7 +60,7 @@ RETURNS bytea AS $$
         func_defaults jsonb :=
             '{
             "subsets":
-            REPLACE_DEFAULT_SUBSETS_JSON
+            {{ parsing_strings.subsets_json }}
             }';
 
 -- PL/PgSQL function to create a dynamic function layer (delivered as Vector Tiles) with filters
@@ -64,11 +74,16 @@ RETURNS bytea AS $$
         --sanitized_subset_json:=admin.params_sanity_check(defaults_json->'subsets', requested_json->'subsets');
 
         -- extract the relevant parameters
-        series     := requested_json->'subsets'->'series'->>'value';
-        sex_code   := requested_json->'subsets'->'sex_code'->>'value';
-        age_code   := requested_json->'subsets'->'age_code'->>'value';
-        location   := requested_json->'subsets'->'location'->>'value';
-        qualifier  := requested_json->'subsets'->'qualifier'->>'value';
+
+        {% for subset_name in parsing_strings.subsets_json -%}
+            {{ subset_name }}   := requested_json->'subsets'->'{{ subset_name }}'->>'value';
+        {% endfor %}
+
+--        series     := requested_json->'subsets'->'series'->>'value';
+--        sex_code   := requested_json->'subsets'->'sex_code'->>'value';
+--        age_code   := requested_json->'subsets'->'age_code'->>'value';
+--        location   := requested_json->'subsets'->'location'->>'value';
+--        qualifier  := requested_json->'subsets'->'qualifier'->>'value';
 
 --        SELECT jsonb_pretty(requested_json) INTO my_query;
 --        RAISE WARNING 'JSON: %',my_query;
@@ -80,14 +95,45 @@ RETURNS bytea AS $$
 
 		DROP TABLE IF EXISTS sdg_tmp_table;
 
+        SELECT format('CREATE TEMPORARY TABLE sdg_tmp_table AS (
+            SELECT
+			a."iso3cd" AS iso3cd
 
-        REPLACE_SQL_QUERY_1
+			{% for year in parsing_strings.years -%}
+                , a.value_{{ year }}
+            {% endfor %}
+
+            {% if parsing_strings.value_latest > 0 %}
+                , a.value_latest
+            {% endif %}
+
+			FROM {{ parsing_strings.schema_name }}. {{ parsing_strings.admin_level }} a
+			WHERE
+    			indicator = '{{ parsing_strings.indicator }}'
+
+			{% for subset_name in parsing_strings.subsets_json -%}
+                AND a.{{ subset_name }} = %s
+            {% endfor %}
+
+            {% if parsing_strings.value_latest > 0 %}
+                AND a.value_latest IS NOT NULL
+            {% endif %}
+
+
+        );'
+
+        {% for subset_name in parsing_strings.subsets_json -%}
+            , {{ subset_name }}
+        {% endfor %}
+
+        ) INTO my_query;
+
 --        SELECT format('CREATE TEMPORARY TABLE sdg_tmp_table AS (
 --            SELECT
 --			a."iso3cd" AS iso3cd,
 --			a.value_2020 AS value_2020,
 --			a.value_latest AS value_latest
---			FROM REPLACE_SDG.admin0 a
+--			FROM {{ parsing_strings.schema_name }}.admin0 a
 --			WHERE
 --			indicator = ''%1$s''
 --            AND
@@ -116,11 +162,35 @@ RETURNS bytea AS $$
 
 		DROP TABLE IF EXISTS mvtgeom;
 
-        EXECUTE format('SELECT * FROM admin.util_lookup_simplified_table_name(''admin'',''admin0'',%s)',z) INTO simplified_table_name;
+        EXECUTE format('SELECT * FROM admin.util_lookup_simplified_table_name(''admin'',''{{ parsing_strings.admin_level }}'',%s)',z) INTO simplified_table_name;
 
 --        RAISE WARNING 'Using simplified table %', simplified_table_name;
 
-        REPLACE_SQL_QUERY_2
+
+        EXECUTE format('CREATE TEMPORARY TABLE mvtgeom AS (
+
+            SELECT ST_AsMVTGeom(a.geom, bounds.geom, extent => %s, buffer => %s) AS geom,
+			ROW_NUMBER () OVER (ORDER BY a.iso3cd) AS fid,
+			a.iso3cd
+
+            {% for year in parsing_strings.years -%}
+                , CAST(h.value_{{ year }} as FLOAT),
+            {% endfor %}
+
+            {% if parsing_strings.value_latest > 0 %}
+                , CAST(h.value_latest as FLOAT),
+            {% endif %}
+
+			--definition_multiplier as ext_multiplier_val
+            FROM admin."%s" a
+			JOIN bounds ON ST_Intersects(a.geom, bounds.geom)
+            JOIN sdg_tmp_table h ON a.iso3cd = h.iso3cd
+            ORDER BY a.iso3cd
+            --LIMIT feat_limit
+            );',
+            mvt_extent, mvt_buffer,
+            simplified_table_name
+            );
 
 --        EXECUTE format('CREATE TEMPORARY TABLE mvtgeom AS (
 --
@@ -158,62 +228,10 @@ RETURNS bytea AS $$
     END
 $$ LANGUAGE plpgsql VOLATILE STRICT PARALLEL SAFE;
 
-COMMENT ON FUNCTION REPLACE_SDG.f_REPLACE_INDICATOR_CLEAN IS 'This is dynamic subnational HDI, please insert the desired increment values';
+COMMENT ON FUNCTION {{ parsing_strings.schema_name }}.f_{{ parsing_strings.indicator_clean }} IS 'This is f_{{ parsing_strings.indicator_clean }}
+{% if parsing_strings.description is defined %} - {{ parsing_strings.description }}
+{% endif %}';
 
-
---
---SELECT * FROM REPLACE_SDG.f_REPLACE_INDICATOR_CLEAN(0,0,0,'{
---  "le_incr":
---    {"value":11},
---  "eys_incr":
---     {"value":22},
---    "mys_incr":
---     {"value":33},
---  "gni_incr":
---     {"value":44}
---}') AS OUTP;
-
--- example URL:
--- wget http://172.18.0.6:7800/REPLACE_SDG.f_REPLACE_INDICATOR_CLEAN/0/0/0.pbf?params='%7B%0A%20%20%22le_incr%22%3A%0A%20%20%20%20%7B%22value%22%3A11%7D%2C%0A%20%20%22eys_incr%22%3A%0A%20%20%20%20%20%7B%22value%22%3A22%7D%2C%0A%20%20%20%20%22mys_incr%22%3A%0A%20%20%20%20%20%7B%22value%22%3A33%7D%2C%0A%20%20%22gni_incr%22%3A%0A%20%20%20%20%20%7B%22value%22%3A44%7D%0A%7D' -O ext.pbf
-
--- http://172.18.0.6:7800/REPLACE_SDG.f_REPLACE_INDICATOR_CLEAN/{z}/{x}/{y}.pbf?params='%7B%0A%20%20%22le_incr%22%3A%0A%20%20%20%20%7B%22value%22%3A11%7D%2C%0A%20%20%22eys_incr%22%3A%0A%20%20%20%20%20%7B%22value%22%3A22%7D%2C%0A%20%20%20%20%22mys_incr%22%3A%0A%20%20%20%20%20%7B%22value%22%3A33%7D%2C%0A%20%20%22gni_incr%22%3A%0A%20%20%20%20%20%7B%22value%22%3A44%7D%0A%7D'
-
--- works in QGIS:
--- http://172.18.0.6:7800/REPLACE_SDG.f_REPLACE_INDICATOR_CLEAN/{z}/{x}/{y}.pbf?params={"le_incr":{"value":11},"eys_incr":{"value":22},"mys_incr":{"value":33},"gni_incr":{"value":44}}
-
-
-
-
---DROP VIEW IF EXISTS REPLACE_SDG."f_REPLACE_INDICATOR_CLEAN";
---
---CREATE VIEW REPLACE_SDG."f_REPLACE_INDICATOR_CLEAN" AS
---SELECT DISTINCT ON (a.geom) a.id, a.geom, s.*
---FROM admin.admin0 AS a
---INNER JOIN REPLACE_SDG.admin0 AS s
---ON (a.iso3cd = s.iso3cd)
---WHERE
---s."indicator"='10.5.1' AND
---s."series" ='10_10.5.1_FI_FSI_FSKRTC';
---
---COMMENT ON VIEW REPLACE_SDG."f_REPLACE_INDICATOR_CLEAN" IS 'Regulatory Tier 1 capital to risk-weighted assets (%)';
-
---
---SELECT * FROM REPLACE_SDG.f_REPLACE_INDICATOR_CLEAN(0,0,0,'{
---    "subsets":
---    {
---    "sex_code":{"value":"F","options":["Female","Male","Total"]},
---    "age_code":{"value":"18-24 years","options":["0-12 years","12-18 years","18-24 years","older than 24 years","total"]},
---    "location":{"value":"urban","options":["urban","rural","total"]}
---    }
+--SELECT * FROM "{{ parsing_strings.schema_name }}"."f_{{ parsing_strings.indicator_clean }}"(0,0,0,'{"subsets":
+--    {{ parsing_strings.json_request }}
 --    }') AS OUTP;
-
---SELECT * FROM "REPLACE_SDG"."f_REPLACE_INDICATOR_CLEAN"(0,0,0,'{"subsets":
---    {"sex_code":{"value":"F"},
---    "qualifier":{"value":"Numeracy"}
---    }}') AS OUTP;
---
---
---SELECT * FROM "REPLACE_SDG"."f_REPLACE_INDICATOR_CLEAN"(0,0,0,'{"subsets":
---    {"sex_code":{"value":"F"},
---    "qualifier":{"value":"Literacy"}
---    }}') AS OUTP;
