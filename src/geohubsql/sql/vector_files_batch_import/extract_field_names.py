@@ -7,8 +7,13 @@ from pathlib import Path
 import hashlib
 from collections import OrderedDict
 
+# ! pipenv install jinja2
+from jinja2 import Environment, FileSystemLoader
+
 # to load the longest files (03_populate_tables.sql in particular) use pgAdmin, loading the file from the disk,
 # as psql -1 -f echos back each INSERT, thus taking a very long time.
+
+template_name = 'subset_function_prototype.sql'
 
 processing_options = {
     'each_yearly_value_to_new_record': False,
@@ -43,7 +48,7 @@ allowed_fields['admin'] = {
     "type_of": "qualifier",
     "type_of_": "qualifier",
     "type_of__": "qualifier",
-    "type_of_sk": "qualifier",
+    "type_of_sk": "type_of_skill",
     # "Units_desc": "unit",
     # "units_desc": "unit",
     # "Units_code": "units_code",
@@ -55,10 +60,18 @@ allowed_fields['admin'] = {
     "sex code": "sex_code",
     "location": "location",
     "location_c": "location",
-    "location_": "location",
     "education": "education",
     "education_": "education",
-    "educatio_": "education"
+    "disabili_1": "disability",
+    "migrator_1":"migrator_1",
+    "mode_of__1":"mode_of__1",
+    "reportin_1":"reportin_1",
+    "type_of_oc": "type_of_oc",
+    "type_of_pr": "type_of_pr",
+    "type_of_sp": "type_of_sp",
+    "name_of__1":"name_of__1",
+    "policy_d_1":"policy_d_1",
+    "activity_c":"activity_c"
 }
 
 # fields useful to gather one-per-file information like tags, descriptions, etc
@@ -82,22 +95,29 @@ allowed_fields['lut'] = {
 # these will become the arguments of pg_tilserv query params.
 
 allowed_fields['subsets'] = {
+#    "series": "series",
     "type_of": "qualifier",
     "type_of_": "qualifier",
     "type_of__": "qualifier",
-    "type_of_sk": "qualifier",
     "age_code": "age_code",
     "age code": "age_code",
     "sex_code": "sex_code",
     "sex code": "sex_code",
     "location": "location",
     "location_c": "location",
-    "location_": "location",
-
-    "series": "series",
     "education": "education",
     "education_": "education",
-    "educatio_": "education",
+    "disabili_1": "disability",
+    "migrator_1":"migrator_1",
+    "mode_of__1":"mode_of__1",
+    "reportin_1":"reportin_1",
+    "type_of_oc": "type_of_oc",
+    "type_of_pr": "type_of_pr",
+    "type_of_sk": "type_of_skill",
+    "type_of_sp": "type_of_sp",
+    "name_of__1":"name_of__1",
+    "policy_d_1":"policy_d_1",
+    "activity_c":"activity_c"
 }
 
 allowed_fields['column_comment'] = {
@@ -168,6 +188,64 @@ def add_tag_in_use(local_tags_in_use, key, value):
         local_tags_in_use[key].append(value)
 
     return local_tags_in_use
+
+
+def parse_template_subset_function(subsets_summary, template_name_in):
+    file_loader = FileSystemLoader('./')
+    env = Environment(loader=file_loader)
+    template = env.get_template(template_name_in)
+
+    if not os.path.exists("./batch_functions"):
+        os.makedirs("./batch_functions")
+
+    for schema_name, schema_data in subsets_summary.items():
+
+        for admin_level, admin_data in schema_data.items():
+            for indicator, indicator_data in admin_data.items():
+
+                parsing_strings = {}
+                parsing_strings['schema_name'] = schema_name
+                parsing_strings['admin_level'] = admin_level
+                parsing_strings['indicator'] = indicator
+                indicator_clean = indicator.replace(".", "_")
+                parsing_strings['indicator_clean'] = indicator_clean
+
+
+                url = 'https://pgtileserv.undpgeohub.org/' + schema_name + '.f_' + indicator_clean + '/{z}/{x}/{y}.pbf'
+
+
+                parsing_strings['url'] = url
+                parsing_strings['md5'] = hashlib.md5(url.encode('utf-8')).hexdigest()
+
+                parsing_strings['subsets_json'] = {}
+                parsing_strings['json_request'] = {}
+                parsing_strings['years'] = []
+
+                parsing_strings['value_latest'] = 0
+                if 'value_latest' in parsing_strings:
+                    parsing_strings['value_latest'] = 1
+
+
+                if 'subsets' in indicator_data:
+                    available_subsets = indicator_data['subsets']
+                    for subset_name, subset_data in available_subsets.items():
+                        parsing_strings['subsets_json'][subset_name] = {}
+                        parsing_strings['subsets_json'][subset_name]['options'] = subset_data
+                        parsing_strings['subsets_json'][subset_name]['value'] = subset_data[0]
+
+                        parsing_strings['json_request'][subset_name] = {}
+                        parsing_strings['json_request'][subset_name]['value'] = subset_data[0]
+
+                        if 'years' in indicator_data:
+                            parsing_strings['years'] = indicator_data['years']
+
+                    #print(str(parsing_strings))
+
+                parsed_output = template.render(parsing_strings=parsing_strings)
+
+                template.stream(parsing_strings=parsing_strings).dump('./batch_functions/f_' + schema_name + '_' + indicator_clean + '.sql')
+                #print(parsed_output)
+
 
 
 def identify_tags_in_use(timeseries_summary, file_path):
@@ -519,7 +597,8 @@ def process_value_fields(record, processed_record_template):
     return process_processed_records
 
 
-def process_single_dbf_file(file_details, allowed_fields_in, lut_file_names, processed_records, timeseries_summary, subsets_summary, field_list, error_files):
+def process_single_dbf_file(file_details, allowed_fields_in, lut_file_names, processed_records,
+                            timeseries_summary, subsets_summary, field_list, error_files):
     print()
     print(os.path.join(file_details['dir'], file_details['file_name']))
 
@@ -529,6 +608,7 @@ def process_single_dbf_file(file_details, allowed_fields_in, lut_file_names, pro
     #defaults
     sdg_code = 'sdg_others'
     admin_level = 'admin0'
+    indicator = ''
     record_count = {}
 
     dbf_by_time_series = {}
@@ -591,12 +671,14 @@ def process_single_dbf_file(file_details, allowed_fields_in, lut_file_names, pro
                     populate_timeseries_summary(admin_level, file_name, indicator, record, sdg_code, timeseries,
                                                 timeseries_summary, unit, view_name)
 
-                    populate_subsets_summary(admin_level, file_name, indicator, record, sdg_code, timeseries,
-                                                 subsets_summary, view_name)
 
                     for lut_field_name, lut_field_value in lut_temp_values.items():
                         if lut_field_name in lut_temp_values:
                             timeseries_summary[sdg_code][admin_level][indicator][timeseries][lut_field_name] = lut_temp_values[lut_field_name]
+
+                    populate_subsets_summary(admin_level, file_name, indicator, record, lut_temp_values, sdg_code, timeseries,
+                                                 subsets_summary, view_name)
+
 
                 except:
                     print('NOK ' + file_name + ' sdg_code: ' + str(sdg_code))
@@ -636,7 +718,9 @@ def process_single_dbf_file(file_details, allowed_fields_in, lut_file_names, pro
             # print (processed_record_template)
             processed_records[sdg_code][admin_level].extend(process_value_fields(split_record, processed_record_template))
 
-        merge_subsets_summary (subsets_summary, sdg_code, admin_level, indicator ,subset_temp_values)
+        # some files do not have an indicator at all: skip them
+        if len(indicator) > 0:
+            merge_subsets_summary(subsets_summary, sdg_code, admin_level, indicator, subset_temp_values)
 
 def calculate_view_name_md5(admin_level, file_name, lut_file_names, sdg_code, split_record, splitter, view_name):
     try:
@@ -690,7 +774,7 @@ def populate_timeseries_summary(admin_level, file_name, indicator, record, sdg_c
     timeseries_summary[sdg_code][admin_level][indicator][timeseries]['id'] = md5_id
     timeseries_summary[sdg_code][admin_level][indicator][timeseries]['unit'] = unit
 
-def populate_subsets_summary(admin_level, file_name, indicator, record, sdg_code, timeseries, subsets_summary,
+def populate_subsets_summary(admin_level, file_name, indicator, record, lut_temp_values, sdg_code, timeseries, subsets_summary,
                                 view_name):
     # print('PSDF: '+file_name+' '+sdg_code+' '+admin_level+' '+indicator_clean+' '+timeseries+' '+view_name)
     if sdg_code not in subsets_summary:
@@ -711,6 +795,9 @@ def populate_subsets_summary(admin_level, file_name, indicator, record, sdg_code
     if file_name not in subsets_summary[sdg_code][admin_level][indicator]['file_name']:
         subsets_summary[sdg_code][admin_level][indicator]['file_name'].append(file_name)
 
+    #subsets_summary[sdg_code][admin_level][indicator]['description'] = ''
+    if 'description' in lut_temp_values:
+        subsets_summary[sdg_code][admin_level][indicator]['description'] = lut_temp_values['description']
 
     if 'years' not in subsets_summary[sdg_code][admin_level][indicator]:
         subsets_summary[sdg_code][admin_level][indicator]['years'] = []
@@ -891,6 +978,8 @@ def process_dbf_files(root_dir_in, allowed_fields_in):
     global_tags_in_use = identify_tags_in_use(timeseries_summary, 'global_tags_in_use.json')
     insert_into_geohub_tag(global_tags_in_use, '06_insert_into_tags.sql')
     insert_into_geohub_dataset_tag(timeseries_summary, '07_insert_into_dataset_tags.sql')
+
+    parse_template_subset_function(subsets_summary, template_name)
 
     with open('output_sql.json', 'w') as f:
         json.dump(processed_records, f, indent=4)

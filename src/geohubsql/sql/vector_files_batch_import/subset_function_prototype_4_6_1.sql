@@ -31,8 +31,6 @@ RETURNS bytea AS $$
 		sanitized_json jsonb;
 		sanitized_subset_json jsonb;
 
-
-
         geom_col   varchar;
         featcount  integer;
         my_query   varchar;
@@ -76,7 +74,7 @@ RETURNS bytea AS $$
         -- extract the relevant parameters
         series     := requested_json->'subsets'->'series'->>'value';
         sex_code   := requested_json->'subsets'->'sex_code'->>'value';
-        age_code  := requested_json->'subsets'->'age_code'->>'value';
+        age_code   := requested_json->'subsets'->'age_code'->>'value';
         location   := requested_json->'subsets'->'location'->>'value';
         qualifier  := requested_json->'subsets'->'qualifier'->>'value';
 
