@@ -241,6 +241,12 @@ def parse_template_subset_function(subsets_summary, template_name_in):
 
                     #print(str(parsing_strings))
 
+                subsets_json_double_quoted = parsing_strings['subsets_json']
+                parsing_strings['subsets_json_double_quoted'] = str(subsets_json_double_quoted).replace("'", '"')
+
+                json_request_double_quote = parsing_strings['json_request']
+                parsing_strings['json_json_request_double_quoterequest'] = str(json_request_double_quote).replace("'", '"')
+
                 parsed_output = template.render(parsing_strings=parsing_strings)
 
                 template.stream(parsing_strings=parsing_strings).dump('./batch_functions/f_' + schema_name + '_' + indicator_clean + '.sql')

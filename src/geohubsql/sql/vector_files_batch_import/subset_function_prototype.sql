@@ -4,7 +4,7 @@ CREATE OR REPLACE FUNCTION {{ parsing_strings.schema_name }}.f_{{ parsing_string
     y integer default 0,
     params varchar default '{
     "subsets":
-    {{ parsing_strings.subsets_json }}
+    {{ parsing_strings.subsets_json_double_quoted }}
     }'
     )
 --    "subsets":
@@ -60,7 +60,7 @@ RETURNS bytea AS $$
         func_defaults jsonb :=
             '{
             "subsets":
-            {{ parsing_strings.subsets_json }}
+            {{ parsing_strings.subsets_json_double_quoted }}
             }';
 
 -- PL/PgSQL function to create a dynamic function layer (delivered as Vector Tiles) with filters
@@ -98,34 +98,15 @@ RETURNS bytea AS $$
         SELECT format('CREATE TEMPORARY TABLE sdg_tmp_table AS (
             SELECT
 			a."iso3cd" AS iso3cd
-
-			{% for year in parsing_strings.years -%}
-                , a.value_{{ year }}
-            {% endfor %}
-
-            {% if parsing_strings.value_latest > 0 %}
-                , a.value_latest
-            {% endif %}
-
-			FROM {{ parsing_strings.schema_name }}. {{ parsing_strings.admin_level }} a
+			{% for year in parsing_strings.years -%} , a.value_{{ year }} {% endfor %}
+            {% if parsing_strings.value_latest > 0 %} , a.value_latest {% endif %}
+			FROM {{ parsing_strings.schema_name }}.{{ parsing_strings.admin_level }} a
 			WHERE
-    			indicator = '{{ parsing_strings.indicator }}'
-
-			{% for subset_name in parsing_strings.subsets_json -%}
-                AND a.{{ subset_name }} = %s
-            {% endfor %}
-
-            {% if parsing_strings.value_latest > 0 %}
-                AND a.value_latest IS NOT NULL
-            {% endif %}
-
-
+    			indicator = ''{{ parsing_strings.indicator }}''
+			{% for subset_name in parsing_strings.subsets_json -%} AND a.{{ subset_name }} = ''%s'' {% endfor %}
+            {% if parsing_strings.value_latest > 0 %} AND a.value_latest IS NOT NULL {% endif %}
         );'
-
-        {% for subset_name in parsing_strings.subsets_json -%}
-            , {{ subset_name }}
-        {% endfor %}
-
+        {% for subset_name in parsing_strings.subsets_json -%} , {{ subset_name }} {% endfor %}
         ) INTO my_query;
 
 --        SELECT format('CREATE TEMPORARY TABLE sdg_tmp_table AS (
@@ -172,15 +153,8 @@ RETURNS bytea AS $$
             SELECT ST_AsMVTGeom(a.geom, bounds.geom, extent => %s, buffer => %s) AS geom,
 			ROW_NUMBER () OVER (ORDER BY a.iso3cd) AS fid,
 			a.iso3cd
-
-            {% for year in parsing_strings.years -%}
-                , CAST(h.value_{{ year }} as FLOAT),
-            {% endfor %}
-
-            {% if parsing_strings.value_latest > 0 %}
-                , CAST(h.value_latest as FLOAT),
-            {% endif %}
-
+            {% for year in parsing_strings.years -%} , CAST(h.value_{{ year }} as FLOAT) {% endfor %}
+            {% if parsing_strings.value_latest > 0 %} , CAST(h.value_latest as FLOAT)  {% endif %}
 			--definition_multiplier as ext_multiplier_val
             FROM admin."%s" a
 			JOIN bounds ON ST_Intersects(a.geom, bounds.geom)
@@ -233,5 +207,5 @@ COMMENT ON FUNCTION {{ parsing_strings.schema_name }}.f_{{ parsing_strings.indic
 {% endif %}';
 
 --SELECT * FROM "{{ parsing_strings.schema_name }}"."f_{{ parsing_strings.indicator_clean }}"(0,0,0,'{"subsets":
---    {{ parsing_strings.json_request }}
+--    {{ parsing_strings.subsets_json_double_quoted }}
 --    }') AS OUTP;

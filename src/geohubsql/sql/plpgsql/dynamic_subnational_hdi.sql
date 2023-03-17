@@ -251,8 +251,12 @@ RETURNS bytea AS $$
 			--h."Mean years schooling" AS MYS,
 			--h."Expected years schooling" AS EYS,
 			--h."Gross National Income per capita" AS GDI,
+            admin.utils_enforce_limits(h."Life expectancy"                  + le_incr,  le_min,   le_max)::decimal AS life_expectancy,
+            admin.utils_enforce_limits(h."Expected years schooling"         + eys_incr, eys_min,  eys_max)::decimal AS expected_years_schooling,
+            admin.utils_enforce_limits(h."Mean years schooling"             + mys_incr, mys_min,  mys_max)::decimal AS mean_years_schooling,
+            admin.utils_enforce_limits(h."Gross National Income per capita" + gni_incr, gni_min,  gni_max)::decimal AS gross_national_income_per_capita,
 			admin.calc_hdi(
-			                admin.utils_enforce_limits(h."Life expectancy"                  + le_incr,  le_min,   le_max)::decimal,
+			                admin.utils_enforce_limits(h."Life expectancy"                  + le_incr,  le_min,    le_max)::decimal,
 			                admin.utils_enforce_limits(h."Expected years schooling"         + eys_incr, eys_min,  eys_max)::decimal,
 			                admin.utils_enforce_limits(h."Mean years schooling"             + mys_incr, mys_min,  mys_max)::decimal,
 			                admin.utils_enforce_limits(h."Gross National Income per capita" + gni_incr, gni_min,  gni_max)::decimal
@@ -281,13 +285,16 @@ RETURNS bytea AS $$
 			ROW_NUMBER () OVER (ORDER BY a.gdlcode) AS fid,
 			a.gdlcode,
 			CAST(h.hdi as FLOAT),
-			--h.hdi,
-            -- comment out after devel phase
-			CAST(%s as INTEGER) as z,
-			CAST(%s as INTEGER) as x,
-			CAST(%s as INTEGER) as y,
-			-- comment out after devel phase
-			CAST(%s as INTEGER) as mvt_extent_px,
+			CAST(h.life_expectancy as FLOAT),
+			CAST(h.expected_years_schooling as FLOAT),
+			CAST(h.mean_years_schooling as FLOAT),
+			CAST(h.gross_national_income_per_capita as FLOAT),
+--            -- comment out after devel phase
+--			CAST(%s as INTEGER) as z,
+--			CAST(%s as INTEGER) as x,
+--			CAST(%s as INTEGER) as y,
+--			-- comment out after devel phase
+--			CAST(%s as INTEGER) as mvt_extent_px,
 			''%s'' as table_name
 			--definition_multiplier as ext_multiplier_val
             FROM admin."%s" a
