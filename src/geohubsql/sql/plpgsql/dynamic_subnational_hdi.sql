@@ -288,24 +288,13 @@ RETURNS bytea AS $$
 			CAST(h.life_expectancy as FLOAT),
 			CAST(h.expected_years_schooling as FLOAT),
 			CAST(h.mean_years_schooling as FLOAT),
-			CAST(h.gross_national_income_per_capita as FLOAT),
---            -- comment out after devel phase
---			CAST(%s as INTEGER) as z,
---			CAST(%s as INTEGER) as x,
---			CAST(%s as INTEGER) as y,
---			-- comment out after devel phase
---			CAST(%s as INTEGER) as mvt_extent_px,
-			''%s'' as table_name
-			--definition_multiplier as ext_multiplier_val
+			CAST(h.gross_national_income_per_capita as FLOAT)
             FROM admin."%s" a
 			JOIN bounds ON ST_Intersects(a.geom, bounds.geom)
             JOIN hdi_extarg_tmp_table_simpl h ON a.gdlcode = h.gdlcode
             ORDER BY a.gdlcode
-            --LIMIT feat_limit
             );',
             mvt_extent, mvt_buffer,
-            z, x, y,
-            mvt_extent, simplified_table_name,
             simplified_table_name
             );
 
@@ -327,7 +316,7 @@ COMMENT ON FUNCTION admin.dynamic_subnational_hdi IS 'This is dynamic subnationa
 
 
 --
---SELECT * FROM admin.dynamic_subnational_hdi(0,0,0,'{
+-- SELECT * FROM admin.dynamic_subnational_hdi(0,0,0,'{
 --  "le_incr":
 --    {"value":11},
 --  "eys_incr":
@@ -336,7 +325,7 @@ COMMENT ON FUNCTION admin.dynamic_subnational_hdi IS 'This is dynamic subnationa
 --     {"value":33},
 --  "gni_incr":
 --     {"value":44}
---}') AS OUTP;
+-- }') AS OUTP;
 
 -- example URL:
 -- wget http://172.18.0.6:7800/admin.dynamic_subnational_hdi/0/0/0.pbf?params='%7B%0A%20%20%22le_incr%22%3A%0A%20%20%20%20%7B%22value%22%3A11%7D%2C%0A%20%20%22eys_incr%22%3A%0A%20%20%20%20%20%7B%22value%22%3A22%7D%2C%0A%20%20%20%20%22mys_incr%22%3A%0A%20%20%20%20%20%7B%22value%22%3A33%7D%2C%0A%20%20%22gni_incr%22%3A%0A%20%20%20%20%20%7B%22value%22%3A44%7D%0A%7D' -O ext.pbf
