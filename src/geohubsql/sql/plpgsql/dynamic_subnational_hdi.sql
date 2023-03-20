@@ -195,7 +195,7 @@ RETURNS bytea AS $$
         -- use 'default' as a layer name to make it possible to visualize it via pg_tileServ's internal map viewer
         --layer_name := 'default';
 
-		DROP TABLE IF EXISTS hdi_extarg_tmp_table_simpl;
+
 
         --let's set St_AsMVT's extent as a function of the zoom level
         --in order to reduce network usage and increase the UX.
@@ -242,6 +242,7 @@ RETURNS bytea AS $$
 --			                admin.utils_enforce_limits(h."Mean years schooling"+mys_incr,              func_defaults->'mys_incr'->'abs_limits'->'min'::float, func_defaults->'mys_incr'->'abs_limits'->'max'::float)::decimal,
 --			                admin.utils_enforce_limits(h."Gross National Income per capita"+gni_incr,  func_defaults->'gni_incr'->'abs_limits'->'min'::float, func_defaults->'gni_incr'->'abs_limits'->'max'::float)::decimal
 
+        DROP TABLE IF EXISTS hdi_extarg_tmp_table_simpl;
 
         CREATE TEMPORARY TABLE hdi_extarg_tmp_table_simpl AS (
             SELECT
@@ -250,8 +251,12 @@ RETURNS bytea AS $$
 			--h."Mean years schooling" AS MYS,
 			--h."Expected years schooling" AS EYS,
 			--h."Gross National Income per capita" AS GDI,
+            admin.utils_enforce_limits(h."Life expectancy"                  + le_incr,  le_min,   le_max)::decimal AS life_expectancy,
+            admin.utils_enforce_limits(h."Expected years schooling"         + eys_incr, eys_min,  eys_max)::decimal AS expected_years_schooling,
+            admin.utils_enforce_limits(h."Mean years schooling"             + mys_incr, mys_min,  mys_max)::decimal AS mean_years_schooling,
+            admin.utils_enforce_limits(h."Gross National Income per capita" + gni_incr, gni_min,  gni_max)::decimal AS gross_national_income_per_capita,
 			admin.calc_hdi(
-			                admin.utils_enforce_limits(h."Life expectancy"                  + le_incr,  le_min,   le_max)::decimal,
+			                admin.utils_enforce_limits(h."Life expectancy"                  + le_incr,  le_min,    le_max)::decimal,
 			                admin.utils_enforce_limits(h."Expected years schooling"         + eys_incr, eys_min,  eys_max)::decimal,
 			                admin.utils_enforce_limits(h."Mean years schooling"             + mys_incr, mys_min,  mys_max)::decimal,
 			                admin.utils_enforce_limits(h."Gross National Income per capita" + gni_incr, gni_min,  gni_max)::decimal
@@ -272,7 +277,7 @@ RETURNS bytea AS $$
 
         EXECUTE format('SELECT * FROM admin.util_lookup_simplified_table_name(''admin'',''admin1'',%s)',z) INTO simplified_table_name;
 
---        RAISE WARNING 'Uding implified table %', simplified_table_name;
+--        RAISE WARNING 'Using simplified table %', simplified_table_name;
 
         EXECUTE format('CREATE TEMPORARY TABLE mvtgeom AS (
 
@@ -280,24 +285,16 @@ RETURNS bytea AS $$
 			ROW_NUMBER () OVER (ORDER BY a.gdlcode) AS fid,
 			a.gdlcode,
 			CAST(h.hdi as FLOAT),
-			--h.hdi,
-            -- comment out after devel phase
-			CAST(%s as INTEGER) as z,
-			CAST(%s as INTEGER) as x,
-			CAST(%s as INTEGER) as y,
-			-- comment out after devel phase
-			CAST(%s as INTEGER) as mvt_extent_px,
-			''%s'' as table_name
-			--definition_multiplier as ext_multiplier_val
+			CAST(h.life_expectancy as FLOAT),
+			CAST(h.expected_years_schooling as FLOAT),
+			CAST(h.mean_years_schooling as FLOAT),
+			CAST(h.gross_national_income_per_capita as FLOAT)
             FROM admin."%s" a
 			JOIN bounds ON ST_Intersects(a.geom, bounds.geom)
             JOIN hdi_extarg_tmp_table_simpl h ON a.gdlcode = h.gdlcode
             ORDER BY a.gdlcode
-            --LIMIT feat_limit
             );',
             mvt_extent, mvt_buffer,
-            z, x, y,
-            mvt_extent, simplified_table_name,
             simplified_table_name
             );
 
@@ -319,7 +316,7 @@ COMMENT ON FUNCTION admin.dynamic_subnational_hdi IS 'This is dynamic subnationa
 
 
 --
---SELECT * FROM admin.dynamic_subnational_hdi(0,0,0,'{
+-- SELECT * FROM admin.dynamic_subnational_hdi(0,0,0,'{
 --  "le_incr":
 --    {"value":11},
 --  "eys_incr":
@@ -328,7 +325,7 @@ COMMENT ON FUNCTION admin.dynamic_subnational_hdi IS 'This is dynamic subnationa
 --     {"value":33},
 --  "gni_incr":
 --     {"value":44}
---}') AS OUTP;
+-- }') AS OUTP;
 
 -- example URL:
 -- wget http://172.18.0.6:7800/admin.dynamic_subnational_hdi/0/0/0.pbf?params='%7B%0A%20%20%22le_incr%22%3A%0A%20%20%20%20%7B%22value%22%3A11%7D%2C%0A%20%20%22eys_incr%22%3A%0A%20%20%20%20%20%7B%22value%22%3A22%7D%2C%0A%20%20%20%20%22mys_incr%22%3A%0A%20%20%20%20%20%7B%22value%22%3A33%7D%2C%0A%20%20%22gni_incr%22%3A%0A%20%20%20%20%20%7B%22value%22%3A44%7D%0A%7D' -O ext.pbf
