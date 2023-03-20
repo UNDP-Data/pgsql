@@ -7,23 +7,6 @@ CREATE OR REPLACE FUNCTION {{ parsing_strings.schema_name }}.f_{{ parsing_string
     {{ parsing_strings.subsets_json_double_quoted }}
     }'
     )
---    "subsets":
---    {
---    "sex_code":{"value":"F","options":["F","M","_T"]},
---    "age_code":{"value":"18-24 years","options":["0-12 years","12-18 years","18-24 years","older than 24 years","total"]},
---    "location":{"value":"urban","options":["urban","rural","total"]},
---    "qualifier":{"value":"F","options":["Literacy","Numeracy"]}
---    }
---    }'
-
---to be replaced:
---{{ parsing_strings.schema_name }}
---REPLACE_INDICATOR
---{{ parsing_strings.indicator_clean }}
---subsets
---REPLACE_DEFAULT_SUBSETS_JSON
---REPLACE_SQL_QUERY_1
---REPLACE_SQL_QUERY_2
 
 RETURNS bytea AS $$
 
@@ -47,12 +30,6 @@ RETURNS bytea AS $$
         {% for subset_name in parsing_strings.subsets_json -%}
             {{ subset_name }}   varchar := '';
         {% endfor %}
-
---        series     varchar := '';
---        sex_code   varchar := '';
---        age_code   varchar := '';
---        location   varchar := '';
---        qualifier  varchar := '';
 
         mvt_extent integer := 1024;
         mvt_buffer integer := 32;
@@ -79,15 +56,6 @@ RETURNS bytea AS $$
             {{ subset_name }}   := requested_json->'subsets'->'{{ subset_name }}'->>'value';
         {% endfor %}
 
---        series     := requested_json->'subsets'->'series'->>'value';
---        sex_code   := requested_json->'subsets'->'sex_code'->>'value';
---        age_code   := requested_json->'subsets'->'age_code'->>'value';
---        location   := requested_json->'subsets'->'location'->>'value';
---        qualifier  := requested_json->'subsets'->'qualifier'->>'value';
-
---        SELECT jsonb_pretty(requested_json) INTO my_query;
---        RAISE WARNING 'JSON: %',my_query;
-
         --let's set St_AsMVT's extent as a function of the zoom level
         --in order to reduce network usage and increase the UX.
         EXECUTE format('SELECT * FROM admin.util_lookup_mvt_extent(%s)',z) INTO mvt_extent;
@@ -109,28 +77,9 @@ RETURNS bytea AS $$
         {% for subset_name in parsing_strings.subsets_json -%} , {{ subset_name }} {% endfor %}
         ) INTO my_query;
 
---        SELECT format('CREATE TEMPORARY TABLE sdg_tmp_table AS (
---            SELECT
---			a."iso3cd" AS iso3cd,
---			a.value_2020 AS value_2020,
---			a.value_latest AS value_latest
---			FROM {{ parsing_strings.schema_name }}.admin0 a
---			WHERE
---			indicator = ''%1$s''
---            AND
---            a.sex_code = ''%2$s''
---			AND
---            a.qualifier  = ''%3$s''
---			AND
---			a.value_latest IS NOT NULL
---        );',
---        '4.6.1', sex_code, qualifier
---        ) INTO my_query;
-
         EXECUTE my_query;
 
 --        RAISE WARNING 'my_query: %', my_query;
-
 --        SELECT COUNT(*) FROM sdg_tmp_table INTO featcount;
 --        RAISE WARNING 'featcount %', featcount;
 
@@ -166,30 +115,7 @@ RETURNS bytea AS $$
             simplified_table_name
             );
 
---        EXECUTE format('CREATE TEMPORARY TABLE mvtgeom AS (
---
---            SELECT ST_AsMVTGeom(a.geom, bounds.geom, extent => %s, buffer => %s) AS geom,
---			ROW_NUMBER () OVER (ORDER BY a.iso3cd) AS fid,
---			a.iso3cd,
---			CAST(h.value_2020 as FLOAT),
---			CAST(h.value_latest as FLOAT)
---
---			--definition_multiplier as ext_multiplier_val
---            FROM admin."%s" a
---			JOIN bounds ON ST_Intersects(a.geom, bounds.geom)
---            JOIN sdg_tmp_table h ON a.iso3cd = h.iso3cd
---            ORDER BY a.iso3cd
---            --LIMIT feat_limit
---            );',
---            mvt_extent, mvt_buffer,
---            simplified_table_name
---            );
-
-
-        --COMMENT ON COLUMN mvtgeom.hdi is 'Human Development Index';
-
         --RAISE WARNING 'SIMPLIFIED into %', simplified_table_name;
-
         -- use 'default' as a layer name to make it possible to visualize it via pg_tileServ's internal map viewer
 --        layer_name := 'default';
 
