@@ -223,7 +223,7 @@ RETURNS bytea AS $$
 --                mvt_extent := 4096;
 --        END CASE;
 
-        --EXECUTE format('SELECT * FROM admin.util_lookup_simplified_table_name(''admin'',''admin1_3857'',%s)',z) INTO simplified_table_name;
+        --EXECUTE format('SELECT * FROM admin.util_lookup_simplified_table_name(''admin'',''admin1'',%s)',z) INTO simplified_table_name;
 
         -- comment out after devel phase
         --mvt_extent := definition_multiplier*mvt_extent;
@@ -270,7 +270,7 @@ RETURNS bytea AS $$
 
 		DROP TABLE IF EXISTS mvtgeom;
 
-        EXECUTE format('SELECT * FROM admin.util_lookup_simplified_table_name(''admin'',''admin1_3857'',%s)',z) INTO simplified_table_name;
+        EXECUTE format('SELECT * FROM admin.util_lookup_simplified_table_name(''admin'',''admin1'',%s)',z) INTO simplified_table_name;
 
 --        RAISE WARNING 'Uding implified table %', simplified_table_name;
 

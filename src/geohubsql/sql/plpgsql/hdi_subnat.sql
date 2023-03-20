@@ -115,7 +115,7 @@ CREATE OR REPLACE FUNCTION admin.hdi_subnat(
 			-- comment out after devel phase
 			mvt_extent as mvt_extent_px,
 			definition_multiplier as ext_multiplier_val
-            FROM admin.admin1_3857 a
+            FROM admin.admin1 a
 			JOIN bounds ON ST_Intersects(a.geom, bounds.geom)
             JOIN hdi_tmp_table h ON a.gdlcode = h.gdlcode
             ORDER BY a.gdlcode

@@ -176,5 +176,5 @@ RETURN exit_code;
 END
 $$  LANGUAGE plpgsql SECURITY DEFINER;
 
---CREATE TABLE admin.admin1_3857_bu AS SELECT * from admin.admin1_3857;
---SELECT * FROM admin.optimize_geom('admin','admin1_3857');
+--CREATE TABLE admin.admin1_bu AS SELECT * from admin.admin1;
+--SELECT * FROM admin.optimize_geom('admin','admin1');

@@ -107,7 +107,7 @@ RETURNS boolean AS $utils_simplify_vlayer$
     END
 $utils_simplify_vlayer$ LANGUAGE plpgsql VOLATILE STRICT PARALLEL SAFE;
 
---SELECT * FROM  admin.utils_simplify_vlayer('admin', 'admin1_3857',10000,'z4') ;
+--SELECT * FROM  admin.utils_simplify_vlayer('admin', 'admin1',10000,'z4') ;
 
 
 
@@ -140,7 +140,7 @@ RETURNS boolean AS $grant_standard_permissions_on_table$
 $grant_standard_permissions_on_table$ LANGUAGE plpgsql VOLATILE STRICT PARALLEL SAFE;
 
 --CREATE USER tileserver WITH PASSWORD 'tileserver';
---SELECT * FROM  admin.grant_standard_permissions_on_table('admin', 'admin1_3857') ;
+--SELECT * FROM  admin.grant_standard_permissions_on_table('admin', 'admin1') ;
 
 
 -----------------------------------------------------------------------------
@@ -174,7 +174,7 @@ CREATE OR REPLACE FUNCTION admin.util_check_table_exists(
     END
 $util_check_table_exists$ LANGUAGE plpgsql VOLATILE STRICT PARALLEL SAFE;
 
---SELECT * FROM  admin.util_check_table_exists('admin', 'admin1_3857') ;
+--SELECT * FROM  admin.util_check_table_exists('admin', 'admin1') ;
 
 -----------------------------------------------------------------------------
 -----------------------------------------------------------------------------
@@ -434,4 +434,4 @@ RETURNS boolean AS $create_vector_pyramids$
 $create_vector_pyramids$ LANGUAGE plpgsql VOLATILE STRICT PARALLEL SAFE;
 
 --CREATE USER tileserver WITH PASSWORD 'tileserver';
---SELECT * FROM  admin.create_vector_pyramid('admin', 'admin1_3857') ;
+--SELECT * FROM  admin.create_vector_pyramid('admin', 'admin1') ;
