@@ -22,7 +22,10 @@ cat "$hrea_dir"'extents.txt'|sed 's/GID_0_//g'|grep Z|awk \
   -v adm0_dir="$adm0_dir" \
   '{print "exactextract " \
 "-r @pop:@"fb_pop_dir""$1"_pop_3857.tif@ " \
-"-r @"this_series"_2020:@"thr_dir"/2012/"this_series"_2012_"$1"_m80.tif@ " \
+"-r @"this_series"_2018:@"thr_dir"/2017/"this_series"_2017_"$1"_m80.tif@ " \
+"-r @"this_series"_2018:@"thr_dir"/2018/"this_series"_2018_"$1"_m80.tif@ " \
+"-r @"this_series"_2019:@"thr_dir"/2019/"this_series"_2019_"$1"_m80.tif@ " \
+"-r @"this_series"_2020:@"thr_dir"/2020/"this_series"_2020_"$1"_m80.tif@ " \
 "-p @"adm0_dir"GID_0_"$1".gpkg@ -f @GID_2b@ -o @"hrea_output_dir""this_series"_"$1".csv@ --progress -s @sum(pop)@ -s @mean(pop)@ -s @min(pop)@ -s @max(pop)@ " \
 "-s @popw_2012=weighted_mean("this_series"_2020,pop)@" }' |tr '@' '"'|parallel -I{} echo {}
 

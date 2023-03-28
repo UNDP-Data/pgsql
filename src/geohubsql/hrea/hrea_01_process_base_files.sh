@@ -18,7 +18,7 @@ thr_dir=$hrea_dir"hrea_data_thr80p/"
 #SUBST_YEAR SUBST_SERIES
 
 #available_years=(2012 2013 2014 2015 2016 2017 2018 2019 2020)
-available_years=(2020)
+available_years=(2019 2018 2017 2016)
 #available_series=(hrea ml)
 available_series=(hrea)
 
@@ -69,7 +69,7 @@ for this_year in "${available_years[@]}"; do
        " -tr 41.735973305281412 41.735973305281412 -te_srs EPSG:3857 -te "\
        $2,$5,$4,$3" " \
        hrea_dir""this_series"_data/"this_series"_"this_year"_orig.tif " \
-       hrea_dir""this_series"_data/by_year/"this_year"/"this_series"_"this_year"_"$1".tif"}'|parallel -I{}  {}
+       hrea_dir""this_series"_data/by_year/"this_year"/"this_series"_"this_year"_"$1".tif"}'|parallel -I{} {}
 
     done
 
@@ -87,7 +87,7 @@ for this_year in "${available_years[@]}"; do
         hrea_dir""this_series"_data/by_year/"this_year"/"this_series"_"this_year"_"$1".tif" \
         " --outfile="hrea_dir""this_series"_data_thr80p/"this_year"/"this_series"_"this_year"_"$1"_m80.tif" \
         " --calc=@A>=0.8@" \
-        }'|tr '@' '"'|parallel -I{} echo {}
+        }'|tr '@' '"'|parallel -I{}  {}
 
 
 
