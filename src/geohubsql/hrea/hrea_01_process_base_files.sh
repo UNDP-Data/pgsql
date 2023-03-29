@@ -17,8 +17,8 @@ thr_dir=$hrea_dir"hrea_data_thr80p/"
 
 #SUBST_YEAR SUBST_SERIES
 
-available_years=(2012 2013 2014 2015 2016 2017 2018 2019 2020)
-#available_years=(2012 2013 2014 2015 2016)
+#available_years=(2012 2013 2014 2015 2016 2017 2018 2019 2020)
+available_years=(2012)
 #available_series=(hrea ml)
 available_series=(hrea)
 
@@ -53,19 +53,23 @@ for this_year in "${available_years[@]}"; do
 
        ls -la "$hrea_dir"extents.txt
 
-#       time cat "$hrea_dir"extents.txt|sed 's/GID_0_//g'|awk -v this_series="$this_series" \
-#       -v this_year="$this_year" -v hrea_dir="$hrea_dir" \
-#       '{print "gdal_translate -ovr NONE -eco -projwin "$2,$3,$4,$5 " -of GTiff -co COMPRESS=ZSTD -co BIGTIFF=IF_NEEDED "\
-#       hrea_dir""this_series"_data/"this_series"_"this_year"_orig.tif " \
-#       hrea_dir""this_series"_data/by_year/"this_year"/"this_series"_"this_year"_"$1".tif"}'|parallel -I{} echo {}
+        #       time cat "$hrea_dir"extents.txt|sed 's/GID_0_//g'|awk -v this_series="$this_series" \
+        #       -v this_year="$this_year" -v hrea_dir="$hrea_dir" \
+        #       '{print "gdal_translate -ovr NONE -eco -projwin "$2,$3,$4,$5 " -of GTiff -co COMPRESS=ZSTD -co BIGTIFF=IF_NEEDED "\
+        #       hrea_dir""this_series"_data/"this_series"_"this_year"_orig.tif " \
+        #       hrea_dir""this_series"_data/by_year/"this_year"/"this_series"_"this_year"_"$1".tif"}'|parallel -I{} echo {}
 
-# -multi -wo NUM_THREADS=ALL_CPUS does not have much of an effect
+        # -multi -wo NUM_THREADS=ALL_CPUS does not have much of an effect
 
+#grep "AFG\|ARE\|ASM\|AZE\|BDI\|BEN\|BFA\|BGD\|BLM\|BRA\|BRN\|CHL\|CHN\|CIV\|CMR\|COG\|DJI\|DOM\|EGY\|ERI\|GAB"
+#grep "AGO\|ARG\|BOL\|CAF\|COD\|COL\|DZA\|ECU\|ETH\|FSM\|BTN\|BWA"|
+#grep "BDI\|BEN\|BGD\|BFA\|BRN\|CMR\|CIV\|COG"
+#grep "DOM\|DJI\|EGY\|ERI\|GAB"
        time cat "$hrea_dir"extents.txt|sed 's/GID_0_//g'|awk \
        -v this_series="$this_series" \
        -v this_year="$this_year" \
        -v hrea_dir="$hrea_dir" \
-       '{print "time gdalwarp  -tap -ovr NONE -r bilinear -t_srs EPSG:3857 -of GTiff  -co BIGTIFF=IF_NEEDED -co COMPRESS=DEFLATE "\
+       '{print "time gdalwarp -overwrite -tap -ovr NONE -r bilinear -t_srs EPSG:3857 -of GTiff  -co BIGTIFF=IF_NEEDED -co COMPRESS=DEFLATE "\
        " -tr 41.735973305281412 41.735973305281412 -te_srs EPSG:3857 -te "\
        $2,$5,$4,$3" " \
        hrea_dir""this_series"_data/"this_series"_"this_year"_orig.tif " \
@@ -79,22 +83,15 @@ for this_year in "${available_years[@]}"; do
       echo "$hrea_dir""$this_series"'_data_thr80p/'"$this_year"
       mkdir -p "$hrea_dir""$this_series"'_data_thr80p/'"$this_year"
 
-#time gdal_calc.py  --co COMPRESS=ZSTD --type=Byte --co NBITS=1 --NoDataValue=0 -A /home/rafd/Downloads/admin-levels_/HREA/hrea_data/by_year/2012/hrea_2012_MOZ_bash.tif  --outfile=/home/rafd/Downloads/admin-levels_/HREA/hrea_data_thr80p/2012/hrea_2012_MOZ_m80.tif --calc="A>=0.8"
+      #time gdal_calc.py  --co COMPRESS=ZSTD --type=Byte --co NBITS=1 --NoDataValue=0 -A /home/rafd/Downloads/admin-levels_/HREA/hrea_data/by_year/2012/hrea_2012_MOZ_bash.tif  --outfile=/home/rafd/Downloads/admin-levels_/HREA/hrea_data_thr80p/2012/hrea_2012_MOZ_m80.tif --calc="A>=0.8"
 
-        cat "$hrea_dir"'extents.txt'|sed 's/GID_0_//g'|awk -v this_series="$this_series" \
-        -v this_year="$this_year" -v hrea_dir="$hrea_dir" \
-        '{print "gdal_calc.py --quiet --co COMPRESS=ZSTD --type=Byte --co NBITS=1 --NoDataValue=0 -A " \
-        hrea_dir""this_series"_data/by_year/"this_year"/"this_series"_"this_year"_"$1".tif" \
-        " --outfile="hrea_dir""this_series"_data_thr80p/"this_year"/"this_series"_"this_year"_"$1"_m80.tif" \
-        " --calc=@A>=0.8@" \
-        }'|tr '@' '"'|parallel -I{} {}
-
-
-
-
-#       echo gdal_calc.py  --co="COMPRESS=ZSTD" --type=Byte --co NBITS=1 -A \
-#        "$hrea_dir""$this_series"_"$this_year"_orig.tif \
-#        --outfile="$thr_dir"/"$this_year"/"$this_series"_"$this_year"_mask80p.tif --calc="A>=0.8"
+      cat "$hrea_dir"'extents.txt'|sed 's/GID_0_//g'|awk -v this_series="$this_series" \
+      -v this_year="$this_year" -v hrea_dir="$hrea_dir" \
+      '{print "gdal_calc.py --overwrite --quiet --co COMPRESS=ZSTD --type=Byte --co NBITS=1 --NoDataValue=0 -A " \
+      hrea_dir""this_series"_data/by_year/"this_year"/"this_series"_"this_year"_"$1".tif" \
+      " --outfile="hrea_dir""this_series"_data_thr80p/"this_year"/"this_series"_"this_year"_"$1"_m80.tif" \
+      " --calc=@A>=0.8@" \
+      }'|tr '@' '"'|parallel -I{}  {}
 
       #exactextract does not understand NoData
       ls -1 "$thr_dir/$this_year"'/'$this_series''*tif|parallel -I{} gdal_edit.py -unsetnodata {}
@@ -102,3 +99,4 @@ for this_year in "${available_years[@]}"; do
     done
 
 done
+
