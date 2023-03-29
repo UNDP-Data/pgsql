@@ -38,3 +38,9 @@ The scripts are the following, and need to be run in the proposed order:
 >bash hrea_03_combine_csvs.sh
 >pipenv run python3 hrea_04_summarise_csvs.py
 ```
+
+Notes:
+
+- some Countries have wrongly formatted columns, these will not appear in the final outputs. Correct them in the original dataset.
+  - for example, the original gpkg of Ghana had a different format for the feature labels (`GHA1.1` instead of `GHA.1.1`)
+

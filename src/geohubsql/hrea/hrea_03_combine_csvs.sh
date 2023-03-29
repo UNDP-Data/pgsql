@@ -14,11 +14,12 @@ echo "reading $hrea_csv_dir"
 echo "creating $all_countries_csv"
 
 echo -n 'iso3cd,adm1,adm2,adm2_sub,' > "$all_countries_csv"
-head -q -n1 "$hrea_csv_dir"hrea_???.csv|head -n1 |grep  'GID_2b'|sed 's/GID_2b,//g' >> "$all_countries_csv"
+head -q -n1 "$hrea_csv_dir"hrea_???.csv|head -n1 |grep  'GID_2b'|sed 's/GID_2b,//g' | sed 's/GHA/GHA./g' |sed 's/GHA../GHA../g' >> "$all_countries_csv"
 head -n1 "$all_countries_csv"
 echo
 
-cat "$hrea_csv_dir"hrea_???.csv|grep -v 'GID_2b'| sed 's/-nan/nan/g'| sed 's/nan/0/g'| sed 's/,,/,0,/g'| sed 's/,,/,0,/g'| sed 's/,,/,0,/g'| sed 's/,$/,0/g' | awk '{split($1,adm2,":");split(adm2[1],country,".");split($1,adm2,":");print country[1]","country[1]"."country[2]","adm2[1]","$0}' >> "$all_countries_csv"
+
+cat "$hrea_csv_dir"hrea_???.csv|grep -v 'GID_2b'| sed 's/-nan/nan/g'| sed 's/nan/0/g'| sed 's/,,/,0,/g'| sed 's/,,/,0,/g'| sed 's/,,/,0,/g'| sed 's/,$/,0/g' | awk '{split($1,adm2,":");split(adm2[1],country,".");split($1,adm2,":");print country[1]","country[1]"."country[2]","adm2[1]","$0}' | sed 's/GHA/GHA./g' |sed 's/GHA../GHA../g' >> "$all_countries_csv"
 head "$all_countries_csv"
 
 #cat "$all_countries_csv" | sed 's/-nan/nan/g' | sed 's/nan/0/g' |head -2

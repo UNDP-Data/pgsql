@@ -31,9 +31,9 @@ def summarise_by_level(adm_level,adm_number):
         writer = csv.writer(outfile)
 
         #header
-        writer.writerow(['adm1'] + ['sum_pop','mean_pop','min_pop','max_pop'] + ['sum_' + str(i) for i in range(1, len(cols)-3)] + ['perc_' + str(i) for i in range(1, len(cols)-3)] )
+        writer.writerow(['adm1'] + ['sum_pop','mean_pop','min_pop','max_pop'] + ['sum_' + str(2011+i) for i in range(1, len(cols)-3)] + ['perc_' + str(2011+i) for i in range(1, len(cols)-3)] )
 
-        for adm1, sums in adm1_sums.items():
+        for adm1, sums in sorted(adm1_sums.items()):
             if adm1 not in adm1_avgs:
                 adm1_avgs[adm1] = [0] * (len(adm1_sums[adm1])-4)
 
