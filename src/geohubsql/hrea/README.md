@@ -5,7 +5,7 @@ This suite of scripts creates csv tables which summarises the percentage of popu
 
 The input files are:
 
-- gpkgs of the administrative boundaries of each Country (for performance reasons: as single parts, geometrically subdivided so that each feature has a maximum of 1000 vertexes)
+- gpkgs of the administrative boundaries of each Country (for performance reasons: as single parts, geometrically subdivided so that each feature has a maximum of 1000 vertexes. An example can be found in the `example_data` folder)
 - global facebook population raster, where the value of each pixel represents the estimated number of people living in the pixel's area 
 - global HREA rasters, showing the probability of electrification of each pixel with a range [0..1]
 
@@ -27,3 +27,14 @@ The scripts are the following, and need to be run in the proposed order:
   - this simply concatenates all Countries' csvs into one file `/HREA/hrea_outputs/all_countries_sp.csv`
 - `hrea_04_summarise_csvs.py`
   - processes `/HREA/hrea_outputs/all_countries_sp.csv` summarising the columns for each administrative level, and calculating the respective percentage of population with access to electricity, per year.
+
+
+
+```
+# example workflow:
+>bash hrea_00_prepare_fb_pop.sh
+>bash hrea_01_process_base_files.sh
+>bash hrea_02_extract.sh
+>bash hrea_03_combine_csvs.sh
+>pipenv run python3 hrea_04_summarise_csvs.py
+```
