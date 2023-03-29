@@ -23,7 +23,7 @@ def summarise_by_level(adm_level,adm_number):
             if adm1 not in adm1_sums:
                 adm1_sums[adm1] = [0] * len(cols)
 
-            adm1_sums[adm1] = [sum(x) for x in zip(adm1_sums[adm1], cols)]
+            adm1_sums[adm1] = [round(sum(x),1) for x in zip(adm1_sums[adm1], cols)]
 
 
     with open('output_adm' + str(adm_number) + '.csv', 'w', newline='') as outfile:
@@ -42,7 +42,7 @@ def summarise_by_level(adm_level,adm_number):
             # print(adm1_sums[adm1])
             for ncol in range(4, len(adm1_sums[adm1])):
                 if(adm1_sums[adm1][0] > 0):
-                    adm1_avgs[adm1][outcol] = adm1_sums[adm1][ncol] / adm1_sums[adm1][0]
+                    adm1_avgs[adm1][outcol] = round(adm1_sums[adm1][ncol] / adm1_sums[adm1][0],4)
                     # print(str(adm1_sums[adm1][ncol])+'/'+str(adm1_sums[adm1][0]))
                 else:
                     adm1_avgs[adm1][outcol] = 0
