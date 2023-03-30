@@ -17,8 +17,8 @@ thr_dir=$hrea_dir"hrea_data_thr80p/"
 
 #SUBST_YEAR SUBST_SERIES
 
-#available_years=(2012 2013 2014 2015 2016 2017 2018 2019 2020)
-available_years=(2012)
+available_years=(2012 2013 2014 2015 2016 2017 2018 2019 2020)
+#available_years=(2012)
 #available_series=(hrea ml)
 available_series=(hrea)
 

@@ -2,7 +2,7 @@
 
 base_dir="/home/rafd/Downloads/admin-levels_/"
 hrea_dir="$base_dir""HREA/"
-adm0_dir="$base_dir""admin2_by_region3_subdivided/"
+adm0_dir="$base_dir""gadm_adm2_by_country/"
 hrea_data_dir=$hrea_dir"hrea_data/"
 hrea_csv_dir=$hrea_data_dir"hrea_csv/"
 hrea_outputs_dir=$hrea_dir"hrea_outputs/"
@@ -19,8 +19,27 @@ head -n1 "$all_countries_csv"
 echo
 
 
-cat "$hrea_csv_dir"hrea_???.csv|grep -v 'GID_2b'| sed 's/-nan/nan/g'| sed 's/nan/0/g'| sed 's/,,/,0,/g'| sed 's/,,/,0,/g'| sed 's/,,/,0,/g'| sed 's/,$/,0/g' | awk '{split($1,adm2,":");split(adm2[1],country,".");split($1,adm2,":");print country[1]","country[1]"."country[2]","adm2[1]","$0}' | sed 's/GHA/GHA./g' |sed 's/GHA../GHA../g' >> "$all_countries_csv"
+cat "$hrea_csv_dir"hrea_???.csv|grep -v 'GID_2b'| sed 's/-nan/nan/g'| sed 's/nan/0/g'| sed 's/,,/,0,/g'| sed 's/,,/,0,/g'| sed 's/,,/,0,/g'| sed 's/,$/,0/g' | awk '{split($1,adm2,":");split(adm2[1],country,".");split($1,adm2,":");print country[1]","country[1]"."country[2]","adm2[1]","$0}'  >> "$all_countries_csv"
 head "$all_countries_csv"
+
+
+
+#fix GHA: GHA1 -> GHA.1 // skip: fixed the original gpkg
+sed -i '/GHA/s/GHA\([0-9]\)/GHA\.\1/g'  "$all_countries_csv"
+sed -i '/GHA/s/GHA\.\./GHA\./g' "$all_countries_csv"
+
+#fix GHA: admin2  GHA.10.13_2 -> GHA.10.13_1
+#sed -i  '/GHA/s/GHA.\([0-9]\+\).\([0-9]\+\)_2,/GHA.\1.\2_1,/g' "$all_countries_csv"
+
+#fix ZWE: admin2  ZWE.10.13_2 -> ZWE.10.13_1
+#sed -i  '/ZWE/s/ZWE.\([0-9]\+\).\([0-9]\+\)_2,/ZWE.\1.\2_1,/g' "$all_countries_csv"
+
+#fix ZMB: admin2  ZMB.10.13_2 -> ZMB.10.13_1
+#sed -i  '/ZMB/s/ZMB.\([0-9]\+\).\([0-9]\+\)_2,/ZMB.\1.\2_1,/g' "$all_countries_csv"
+
+#fix TGO: admin2  TGO.10.13_2 -> TGO.10.13_1
+#sed -i  '/TGO/s/TGO.\([0-9]\+\).\([0-9]\+\)_2,/TGO.\1.\2_1,/g' "$all_countries_csv"
+
 
 #cat "$all_countries_csv" | sed 's/-nan/nan/g' | sed 's/nan/0/g' |head -2
 

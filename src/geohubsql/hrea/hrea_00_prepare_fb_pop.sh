@@ -1,7 +1,7 @@
 #!/bin/bash
 
 
-adm0_dir="/home/rafd/Downloads/admin-levels_/admin2_by_region3_subdivided/"
+adm0_dir="/home/rafd/Downloads/admin-levels_/gadm_adm2_by_country/"
 hrea_dir="/home/rafd/Downloads/admin-levels_/HREA/"
 hrea_data_dir=$hrea_dir"hrea_data/"
 fb_pop_dir=$hrea_dir"facebook_pop_30m/"
@@ -13,8 +13,8 @@ y_res='41.735973305281412'
 
 #buffered
 ls -1 "$adm0_dir"GID*.gpkg|parallel -I{} ogrinfo -so {} {/.}|grep "Exte\|Layer name"|sed ':a;N;$!ba;s/\nExten/ Exten/g'|sed 's/Layer name://g'|sed 's/Extent: (//g'|sed 's/) - (/ /g'|tr ',()' '   '|awk 'BEGIN{buf=10000;}{printf "%s %.0f %.0f %.0f %.0f\n", $1, $2-buf, $5+buf, $4+buf, $3+buf}'|sort> adm0_extents.txt
-ls -1 "$fb_pop_dir"???_pop.tif|xargs -I{} basename {}|sed 's/_pop.tif//g'|sed 's/^/GID_0_/g' | sort > fb_pop_countries.csv
-join fb_pop_countries.csv adm0_extents.txt > extents.txt
+ls -1 "$fb_pop_dir"???_pop_3857.tif|xargs -I{} basename {}|sed 's/_pop_3857.tif//g'|sed 's/^/GID_0_/g' | sort > fb_pop_countries.csv
+join fb_pop_countries.csv adm0_extents.txt > "$hrea_dir"'extents.txt'
 
 #reproject fb_pop layers into 3857 with the same pixel size as the hrea files
 

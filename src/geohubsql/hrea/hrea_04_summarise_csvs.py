@@ -26,12 +26,12 @@ def summarise_by_level(adm_level,adm_number):
             adm1_sums[adm1] = [round(sum(x),1) for x in zip(adm1_sums[adm1], cols)]
 
 
-    with open('output_adm' + str(adm_number) + '.csv', 'w', newline='') as outfile:
+    with open('example_data/output_adm' + str(adm_number) + '.csv', 'w', newline='') as outfile:
 
         writer = csv.writer(outfile)
 
         #header
-        writer.writerow(['adm1'] + ['sum_pop','mean_pop','min_pop','max_pop'] + ['sum_' + str(2011+i) for i in range(1, len(cols)-3)] + ['perc_' + str(2011+i) for i in range(1, len(cols)-3)] )
+        writer.writerow([adm_level] + ['pop','mean_pop','min_pop','max_pop'] + ['sum_' + str(2011+i) for i in range(1, len(cols)-3)] + ['hrea_' + str(2011+i) for i in range(1, len(cols)-3)] )
 
         for adm1, sums in sorted(adm1_sums.items()):
             if adm1 not in adm1_avgs:

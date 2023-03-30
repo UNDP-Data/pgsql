@@ -2,7 +2,7 @@
 
 base_dir="/home/rafd/Downloads/admin-levels_/"
 hrea_dir="$base_dir""HREA/"
-adm0_dir="$base_dir""admin2_by_region3_subdivided/"
+adm0_dir="$base_dir""gadm_adm2_by_country/"
 hrea_data_dir=$hrea_dir"hrea_data/"
 hrea_csv_dir=$hrea_data_dir"hrea_csv/"
 fb_pop_dir=$hrea_dir"facebook_pop_30m/"
@@ -12,7 +12,7 @@ this_series='hrea'
 
 mkdir -p "$hrea_csv_dir"
 
-cat "$hrea_dir"'extents.txt'|sed 's/GID_0_//g'|awk \
+cat "$hrea_dir"'extents.txt'| sed 's/GID_0_//g'|awk \
   -v this_series="$this_series" \
   -v hrea_csv_dir="$hrea_csv_dir" \
   -v thr_dir="$thr_dir" \
@@ -39,7 +39,7 @@ cat "$hrea_dir"'extents.txt'|sed 's/GID_0_//g'|awk \
 "-s @popw_2018=weighted_sum(pop,"this_series"_2018)@ " \
 "-s @popw_2019=weighted_sum(pop,"this_series"_2019)@ " \
 "-s @popw_2020=weighted_sum(pop,"this_series"_2020)@ " \
-}' |tr '@' '"'|parallel --jobs 80% -I{} {}
+}' |tr '@' '"'|parallel --jobs 80% -I{} echo {}
 
 
 
