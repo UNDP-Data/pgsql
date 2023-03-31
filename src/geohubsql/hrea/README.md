@@ -41,6 +41,16 @@ The scripts are the following, and need to be run in the proposed order:
 
 Notes:
 
-- some Countries have wrongly formatted columns, these will not appear in the final outputs. Correct them in the original dataset.
+- Some Countries have wrongly formatted columns, these will not appear in the final outputs. Correct them in the original dataset.
   - for example, the original gpkg of Ghana had a different format for the feature labels (`GHA1.1` instead of `GHA.1.1`)
 
+
+
+- The conversion sequence from `.gpkg` to `.pbf` can be outlined as follows:
+  - join adm0 layer with `example_data/output_adm0.csv` using `adm0` as join field
+  - add the `pop` and `hrea_2012`-`hrea_2020` fields
+  - make sure the layer name is the same as the published one (`adm0_polygons`, `adm1_polygons`, etc.)
+  - export into GeoJSON (newline delimited), either from (Q)GIS or via ogr2ogr 
+  - run tippecanoe as suggested in `hrea_05_create_pbfs.sh`
+  - check the files are properly working, for example using a Vector Tile layer with an URL like: `file:///home/youruser/UNDP_NY/admin-levels_/HREA/hrea_outputs/pbfs/adm0_polygons/{z}/{x}/{y}.pbf`
+  - upload the created directories into the blob container/cloud
