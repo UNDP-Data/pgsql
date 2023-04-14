@@ -7,7 +7,7 @@ hrea_dir="$base_dir""HREA/"
 hrea_cogs_dir="$data_dir"'HREA_COGs/'
 adm2_dir="$data_dir""gadm_adm2_by_country_4326/"
 
-hrea_csv_dir="$data_dir""hrea_csv/"
+hrea_csv_dir="$data_dir"'hrea_outputs/hrea_csv/'
 thr_dir="$data_dir""hrea_data_thr80p/"
 
 #COD,DR_Congo
@@ -31,7 +31,7 @@ countries_str=$(ls -1d "$hrea_cogs_dir"/HREA_*_v1|grep "$this_year"|xargs -I{} b
 
 mkdir -p "$hrea_csv_dir"
 
-cat "$country_lut" | tr ',' ' ' | awk \
+cat "$country_lut" | tr ',' ' ' | grep -i EGY| awk \
   -v this_series="$this_series" \
   -v hrea_csv_dir="$hrea_csv_dir" \
   -v thr_dir="$thr_dir" \
@@ -58,7 +58,7 @@ cat "$country_lut" | tr ',' ' ' | awk \
 "-r @no_hrea_2018:"thr_dir""$2"/"$2"_2018_no_hrea.tif@ " \
 "-r @no_hrea_2019:"thr_dir""$2"/"$2"_2019_no_hrea.tif@ " \
 "-r @no_hrea_2020:"thr_dir""$2"/"$2"_2020_no_hrea.tif@ " \
-"-s @sum(pop)@ " \
+"-s @pop_sum=sum(pop)@ " \
 "-s @hrea_2012=weighted_sum(pop,hrea_2012)@ " \
 "-s @hrea_2013=weighted_sum(pop,hrea_2013)@ " \
 "-s @hrea_2014=weighted_sum(pop,hrea_2014)@ " \
@@ -77,7 +77,7 @@ cat "$country_lut" | tr ',' ' ' | awk \
 "-s @no_hrea_2018=weighted_sum(pop,no_hrea_2018)@ " \
 "-s @no_hrea_2019=weighted_sum(pop,no_hrea_2019)@ " \
 "-s @no_hrea_2020=weighted_sum(pop,no_hrea_2020)@ " \
-}' |tr '@' '"'|parallel --jobs 50% -I{}  {}
+}' |tr '@' '"'|parallel --jobs 1 -I{}  {}
 
 
 

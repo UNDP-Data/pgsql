@@ -3,12 +3,13 @@ from urllib.parse import urlparse
 from re import search
 import time
 from pathlib import Path
-
 import os
+
 sas_url_sig = os.environ['sas_url_sig']
-cwd = os.getcwd() + '/'
-#home_dir = os.path.expanduser('~') + '/'
-data_dir = os.path.expanduser('~') + '/data/'
+# cwd = os.getcwd() + '/'
+# home_dir = os.path.expanduser('~') + '/'
+data_dir = os.path.expanduser('~') + '/data/hrea/'
+os.chdir(data_dir)
 
 import os
 
@@ -48,24 +49,24 @@ def download_by(blobs_list, container_client, tot_size, match_1, match_2, match_
 
     for blob in blobs_list:
         blob_name = blob['name']
-        #        print('### blob:' + str(blob['name']) )
+        # print('### blob name:' + str(blob['name']))
         if search(match_1, blob_name) and search(match_2, blob_name) and search(match_3, blob_name):
 
-            print('### blob OK: ' + str(blob['name']) + ' ' + str(blob['size']))
+            print("\n" + '### blob OK: ' + str(blob['name']) + ' ' + str(blob['size']) + ' bytes or ' + str(round(blob['size'] / 1024 / 1024)) + ' Mb')
             tot_size = tot_size + blob['size']
             start_time = time.time()
 
             if not calc_size_only:
 
                 abs_path = os.path.dirname(data_dir + blob_name)
-                # print('abs_path: ' + abs_path)
+                print('abs_path: ' + abs_path)
 
                 try:
-                    print('Creating ' + abs_path)
+                    # print('Creating ' + abs_path)
                     os.makedirs(abs_path)
                 except OSError as error:
-                    # print('Error while creating '+abs_path)
-                    print(error)
+                    print('Error while creating ' + abs_path)
+                    #print(error)
 
                 path = Path(blob.name)
                 if not path.is_file():
