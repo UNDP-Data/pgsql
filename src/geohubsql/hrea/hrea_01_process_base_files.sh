@@ -27,7 +27,8 @@ function create_commands() {
 
   echo "" > "$tmp_cmd_list"
 
-  countries_str=$(ls -1 "$hrea_cogs_dir"/HREA_*_2020_v1/*tif| parallel -I{} gdalinfo {}|grep "Files\|Size is"|tr "/," "\n "|grep "_v1\|Size is"|tr "\n" " "|sed 's/HREA_/\nHREA_/g'|sed 's/Size is //g'|sed '/^[[:space:]]*$/d'|awk '{print $1,int($2*$3*32/8/1024/1024*1.05)}'|sed 's/HREA_//g'|sed 's/_2020_v1//g')
+  countries_str=$(ls -1 "$hrea_cogs_dir"/HREA_*_2020_v1/*tif| parallel -I{} gdalinfo {}|grep "Files\|Size is"|tr "/," "\n "|grep "_v1\|Size is"|tr "\n" " "|sed 's/HREA_/\nHREA_/g'|sed 's/Size is //g'|sed '/^[[:space:]]*$/d'|\
+  awk '{img_size=int($2*$3*32/8/1024/1024*1.05); cache=img_size; if (cache<4096){cache=4096};print $1,cache,img_size}'|sed 's/HREA_//g'|sed 's/_2020_v1//g')
 
   for this_year in "${available_years[@]}"; do
 
@@ -162,7 +163,7 @@ echo "$countries_str"
   # hrea
   echo "$countries_str"| awk \
   -v this_year="$this_year" -v hrea_cogs_dir="$hrea_cogs_dir" -v thr_dir="$thr_dir" \
-  '{this_country=$1; unc_file_size=$2; allocated_cache=int(unc_file_size/4); out_dir=thr_dir""this_country"/"; \
+  '{this_country=$1; unc_file_size=$2; allocated_cache=int(unc_file_size/3); out_dir=thr_dir""this_country"/"; \
     out_file=out_dir""this_country"_"this_year"_hrea.tif"; \
     in_file=hrea_cogs_dir"HREA_"this_country"_"this_year"_v1/"this_country"_set_lightscore_sy_"this_year".tif"; \
     print "mkdir -p "out_dir"; if [ ! -e "out_file" ]; then " \
@@ -175,7 +176,7 @@ echo "$countries_str"
   # no_hrea
   echo "$countries_str"| awk \
   -v this_year="$this_year" -v hrea_cogs_dir="$hrea_cogs_dir" -v thr_dir="$thr_dir" \
-  '{this_country=$1; unc_file_size=$2; allocated_cache=int(unc_file_size/4); out_dir=thr_dir""this_country"/"; \
+  '{this_country=$1; unc_file_size=$2; allocated_cache=int(unc_file_size/3); out_dir=thr_dir""this_country"/"; \
     out_file=out_dir""this_country"_"this_year"_no_hrea.tif"; \
     in_file=hrea_cogs_dir"HREA_"this_country"_"this_year"_v1/"this_country"_set_lightscore_sy_"this_year".tif"; \
     print "mkdir -p "out_dir"; if [ ! -e "out_file" ]; then " \
@@ -193,4 +194,6 @@ create_commands
 echo "executing parallel on " $(wc -l "$tmp_cmd_list" ) " commands"
 
 # sort in order to process country-wise
-cat "$tmp_cmd_list" | sort |grep -v "India\|Indonesia\|Argentina\|Mexico\|Algeria\|DR_Congo"| parallel  --jobs 5 -I{}  {}
+#cat "$tmp_cmd_list" | sort |grep -v "India\|Indonesia\|Argentina\|Mexico\|Algeria\|DR_Congo"| parallel  --jobs 5 -I{}  {}
+
+cat "$tmp_cmd_list" | sort | parallel  --jobs 2 -I{}  {}

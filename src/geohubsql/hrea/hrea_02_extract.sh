@@ -18,6 +18,8 @@ this_series='hrea'
 
 mkdir -p "$hrea_csv_dir"
 
+echo "Outputs will be created in: $hrea_csv_dir"
+
 #cd admin-levels_/gadm_adm2_by_country
 #ls -1|sed 's/.gpkg//g'|awk '{print "ogrinfo "$1".gpkg -sql @ALTER TABLE "$1" DROP COLUMN nofv@"}'|tr '@' '"'
 #ls -1|sed 's/.gpkg//g'|awk '{print "ogrinfo "$1".gpkg -sql @ALTER TABLE "$1" DROP COLUMN GID_1b@"}'|tr '@' '"'
@@ -31,7 +33,7 @@ countries_str=$(ls -1d "$hrea_cogs_dir"/HREA_*_v1|grep "$this_year"|xargs -I{} b
 
 mkdir -p "$hrea_csv_dir"
 
-cat "$country_lut" | tr ',' ' ' | grep -i EGY| awk \
+cat "$country_lut" | tr ',' ' ' | grep -i Ind| awk \
   -v this_series="$this_series" \
   -v hrea_csv_dir="$hrea_csv_dir" \
   -v thr_dir="$thr_dir" \
