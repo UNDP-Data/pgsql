@@ -55,9 +55,9 @@ def summarise_by_level(adm_level, adm_number):
 
         # header
         writer.writerow([adm_level] + ['pop'] +
-                        ['hrea_' + str(i) for i in range(min_year, max_year+1)] +
-                        ['no_hrea_' + str(i) for i in range(min_year, max_year+1)] +
-                        ['perc_hrea_' + str(i) for i in range(min_year, max_year + 1)])
+                        ['val_hrea_' + str(i) for i in range(min_year, max_year+1)] +
+                        ['val_no_hrea_' + str(i) for i in range(min_year, max_year+1)] +
+                        ['hrea_' + str(i) for i in range(min_year, max_year + 1)])
 
         # data
         for adm_id, sums in sorted(adm_id_sums.items()):

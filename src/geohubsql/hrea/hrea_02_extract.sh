@@ -33,14 +33,19 @@ countries_str=$(ls -1d "$hrea_cogs_dir"/HREA_*_v1|grep "$this_year"|xargs -I{} b
 
 mkdir -p "$hrea_csv_dir"
 
-cat "$country_lut" | tr ',' ' ' | grep -i Ind| awk \
+
+cat "$country_lut" | tr ',' ' ' | awk \
   -v this_series="$this_series" \
   -v hrea_csv_dir="$hrea_csv_dir" \
   -v thr_dir="$thr_dir" \
   -v hrea_cogs_dir="$hrea_cogs_dir" \
   -v adm2_dir="$adm2_dir" \
-  '{print "echo "$1" aka "$2"; exactextract " \
-"-p @"adm2_dir"GID_0_"$1".gpkg@ -f @GID_2b@ -o @"hrea_csv_dir""this_series"_"$1".csv@ " \
+  '{print \
+"printf @%(%m-%d %H:%M:%S)T@; echo @ @"$1" aka "$2";" \
+"if [ ! -e " hrea_csv_dir""this_series"_"$1".csv ]; then " \
+" exactextract " \
+"-p @"adm2_dir"GID_0_"$1".gpkg@ -f @GID_2b@ " \
+"-o @"hrea_csv_dir""this_series"_"$1".csv@ " \
 "-r @pop:"hrea_cogs_dir""$2"_pop.tif@ " \
 "-r @hrea_2012:"thr_dir""$2"/"$2"_2012_hrea.tif@ " \
 "-r @hrea_2013:"thr_dir""$2"/"$2"_2013_hrea.tif@ " \
@@ -79,7 +84,8 @@ cat "$country_lut" | tr ',' ' ' | grep -i Ind| awk \
 "-s @no_hrea_2018=weighted_sum(pop,no_hrea_2018)@ " \
 "-s @no_hrea_2019=weighted_sum(pop,no_hrea_2019)@ " \
 "-s @no_hrea_2020=weighted_sum(pop,no_hrea_2020)@ " \
-}' |tr '@' '"'|parallel --jobs 1 -I{}  {}
+"; fi" \
+}' |tr '@' '"'|parallel --jobs 1 -I{} {}
 
 
 
