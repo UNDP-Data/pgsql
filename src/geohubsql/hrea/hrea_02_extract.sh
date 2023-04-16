@@ -47,43 +47,43 @@ cat "$country_lut" | tr ',' ' ' | awk \
 "-p @"adm2_dir"GID_0_"$1".gpkg@ -f @GID_2b@ " \
 "-o @"hrea_csv_dir""this_series"_"$1".csv@ " \
 "-r @pop:"hrea_cogs_dir""$2"_pop.tif@ " \
-"-r @hrea_2012:"thr_dir""$2"/"$2"_2012_hrea.tif@ " \
-"-r @hrea_2013:"thr_dir""$2"/"$2"_2013_hrea.tif@ " \
-"-r @hrea_2014:"thr_dir""$2"/"$2"_2014_hrea.tif@ " \
-"-r @hrea_2015:"thr_dir""$2"/"$2"_2015_hrea.tif@ " \
-"-r @hrea_2016:"thr_dir""$2"/"$2"_2016_hrea.tif@ " \
-"-r @hrea_2017:"thr_dir""$2"/"$2"_2017_hrea.tif@ " \
-"-r @hrea_2018:"thr_dir""$2"/"$2"_2018_hrea.tif@ " \
-"-r @hrea_2019:"thr_dir""$2"/"$2"_2019_hrea.tif@ " \
-"-r @hrea_2020:"thr_dir""$2"/"$2"_2020_hrea.tif@ " \
-"-r @no_hrea_2012:"thr_dir""$2"/"$2"_2012_no_hrea.tif@ " \
-"-r @no_hrea_2013:"thr_dir""$2"/"$2"_2013_no_hrea.tif@ " \
-"-r @no_hrea_2014:"thr_dir""$2"/"$2"_2014_no_hrea.tif@ " \
-"-r @no_hrea_2015:"thr_dir""$2"/"$2"_2015_no_hrea.tif@ " \
-"-r @no_hrea_2016:"thr_dir""$2"/"$2"_2016_no_hrea.tif@ " \
-"-r @no_hrea_2017:"thr_dir""$2"/"$2"_2017_no_hrea.tif@ " \
-"-r @no_hrea_2018:"thr_dir""$2"/"$2"_2018_no_hrea.tif@ " \
-"-r @no_hrea_2019:"thr_dir""$2"/"$2"_2019_no_hrea.tif@ " \
-"-r @no_hrea_2020:"thr_dir""$2"/"$2"_2020_no_hrea.tif@ " \
+"-r @hrea_2012_rst:"thr_dir""$2"/"$2"_2012_hrea.tif@ " \
+"-r @hrea_2013_rst:"thr_dir""$2"/"$2"_2013_hrea.tif@ " \
+"-r @hrea_2014_rst:"thr_dir""$2"/"$2"_2014_hrea.tif@ " \
+"-r @hrea_2015_rst:"thr_dir""$2"/"$2"_2015_hrea.tif@ " \
+"-r @hrea_2016_rst:"thr_dir""$2"/"$2"_2016_hrea.tif@ " \
+"-r @hrea_2017_rst:"thr_dir""$2"/"$2"_2017_hrea.tif@ " \
+"-r @hrea_2018_rst:"thr_dir""$2"/"$2"_2018_hrea.tif@ " \
+"-r @hrea_2019_rst:"thr_dir""$2"/"$2"_2019_hrea.tif@ " \
+"-r @hrea_2020_rst:"thr_dir""$2"/"$2"_2020_hrea.tif@ " \
+"-r @no_hrea_2012_rst:"thr_dir""$2"/"$2"_2012_no_hrea.tif@ " \
+"-r @no_hrea_2013_rst:"thr_dir""$2"/"$2"_2013_no_hrea.tif@ " \
+"-r @no_hrea_2014_rst:"thr_dir""$2"/"$2"_2014_no_hrea.tif@ " \
+"-r @no_hrea_2015_rst:"thr_dir""$2"/"$2"_2015_no_hrea.tif@ " \
+"-r @no_hrea_2016_rst:"thr_dir""$2"/"$2"_2016_no_hrea.tif@ " \
+"-r @no_hrea_2017_rst:"thr_dir""$2"/"$2"_2017_no_hrea.tif@ " \
+"-r @no_hrea_2018_rst:"thr_dir""$2"/"$2"_2018_no_hrea.tif@ " \
+"-r @no_hrea_2019_rst:"thr_dir""$2"/"$2"_2019_no_hrea.tif@ " \
+"-r @no_hrea_2020_rst:"thr_dir""$2"/"$2"_2020_no_hrea.tif@ " \
 "-s @pop_sum=sum(pop)@ " \
-"-s @hrea_2012=weighted_sum(pop,hrea_2012)@ " \
-"-s @hrea_2013=weighted_sum(pop,hrea_2013)@ " \
-"-s @hrea_2014=weighted_sum(pop,hrea_2014)@ " \
-"-s @hrea_2015=weighted_sum(pop,hrea_2015)@ " \
-"-s @hrea_2016=weighted_sum(pop,hrea_2016)@ " \
-"-s @hrea_2017=weighted_sum(pop,hrea_2017)@ " \
-"-s @hrea_2018=weighted_sum(pop,hrea_2018)@ " \
-"-s @hrea_2019=weighted_sum(pop,hrea_2019)@ " \
-"-s @hrea_2020=weighted_sum(pop,hrea_2020)@ " \
-"-s @no_hrea_2012=weighted_sum(pop,no_hrea_2012)@ " \
-"-s @no_hrea_2013=weighted_sum(pop,no_hrea_2013)@ " \
-"-s @no_hrea_2014=weighted_sum(pop,no_hrea_2014)@ " \
-"-s @no_hrea_2015=weighted_sum(pop,no_hrea_2015)@ " \
-"-s @no_hrea_2016=weighted_sum(pop,no_hrea_2016)@ " \
-"-s @no_hrea_2017=weighted_sum(pop,no_hrea_2017)@ " \
-"-s @no_hrea_2018=weighted_sum(pop,no_hrea_2018)@ " \
-"-s @no_hrea_2019=weighted_sum(pop,no_hrea_2019)@ " \
-"-s @no_hrea_2020=weighted_sum(pop,no_hrea_2020)@ " \
+"-s @hrea_2012_wsum=weighted_sum(hrea_2012_rst,pop)@ " \
+"-s @hrea_2013_wsum=weighted_sum(hrea_2013_rst,pop)@ " \
+"-s @hrea_2014_wsum=weighted_sum(hrea_2014_rst,pop)@ " \
+"-s @hrea_2015_wsum=weighted_sum(hrea_2015_rst,pop)@ " \
+"-s @hrea_2016_wsum=weighted_sum(hrea_2016_rst,pop)@ " \
+"-s @hrea_2017_wsum=weighted_sum(hrea_2017_rst,pop)@ " \
+"-s @hrea_2018_wsum=weighted_sum(hrea_2018_rst,pop)@ " \
+"-s @hrea_2019_wsum=weighted_sum(hrea_2019_rst,pop)@ " \
+"-s @hrea_2020_wsum=weighted_sum(hrea_2020_rst,pop)@ " \
+"-s @no_hrea_2012_wsum=weighted_sum(no_hrea_2012_rst,pop)@ " \
+"-s @no_hrea_2013_wsum=weighted_sum(no_hrea_2013_rst,pop)@ " \
+"-s @no_hrea_2014_wsum=weighted_sum(no_hrea_2014_rst,pop)@ " \
+"-s @no_hrea_2015_wsum=weighted_sum(no_hrea_2015_rst,pop)@ " \
+"-s @no_hrea_2016_wsum=weighted_sum(no_hrea_2016_rst,pop)@ " \
+"-s @no_hrea_2017_wsum=weighted_sum(no_hrea_2017_rst,pop)@ " \
+"-s @no_hrea_2018_wsum=weighted_sum(no_hrea_2018_rst,pop)@ " \
+"-s @no_hrea_2019_wsum=weighted_sum(no_hrea_2019_rst,pop)@ " \
+"-s @no_hrea_2020_wsum=weighted_sum(no_hrea_2020_rst,pop)@ " \
 "; fi" \
 }' |tr '@' '"'|parallel --jobs 1 -I{} {}
 
@@ -108,7 +108,7 @@ date
 #-r "hrea_2012:"$homedir"/Downloads/admin-levels_/HREA/hrea_data_thr80p//2012/hrea_2012_MOZ_m80_hrea.tif" \
 #-p ""$homedir"/Downloads/admin-levels_/admin2_by_region3_subdivided/GID_0_MOZ.gpkg" \
 #-f "GID_2b" -o "hrea_MOZ.csv" --progress \
-#-s "sum(pop)" -s "mean(pop)" -s "min(pop)" -s "max(pop)" -s "hrea_2012=weighted_sum(hrea_2012,pop)"
+#-s "sum(pop)" -s "mean(pop)" -s "min(pop)" -s "max(pop)" -s "hrea_2012_wsum=weighted_sum(hrea_2012,pop)"
 
 
 #exactextract \
@@ -118,4 +118,4 @@ date
 #-s "sum(pop)" -s "mean(pop)" -s "min(pop)" -s "max(pop)" \
 #-s "sum(hrea_2017)" -s "mean(hrea_2017)" -s "min(hrea_2017)" -s "max(hrea_2017)" \
 #-s "hrea_2017m=mean(hrea_2017)" \
-#-s "hrea_2017=weighted_sum(pop,hrea_2017)"
+#-s "hrea_2017_wsum=weighted_sum(hrea_2017)"
