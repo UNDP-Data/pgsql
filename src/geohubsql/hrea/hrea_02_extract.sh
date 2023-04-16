@@ -33,6 +33,17 @@ countries_str=$(ls -1d "$hrea_cogs_dir"/HREA_*_v1|grep "$this_year"|xargs -I{} b
 
 mkdir -p "$hrea_csv_dir"
 
+# exactextract seems not to like particularly binary masks (i.e. raster with 1-byte values), like the hrea and no_hrea series,
+# for weighting purposes.
+# for example:
+#    hrea_2020_wsum=weighted_sum(pop,hrea_2020_rst)
+# failes most of the times, producing "nan"
+# while:
+#    hrea_2020_wsum=weighted_sum(hrea_2020_rst,pop)
+# works.
+#
+# also, it might have troubles with polygons containing rings (holes)
+
 
 cat "$country_lut" | tr ',' ' ' | awk \
   -v this_series="$this_series" \
