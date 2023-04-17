@@ -19,7 +19,7 @@ tmp_cmd_list='/dev/shm/hrea_tmp_cmd_list'
 #SUBST_YEAR SUBST_SERIES
 
 available_years=(2012 2013 2014 2015 2016 2017 2018 2019 2020)
-#available_years=(2014)
+available_years=(2019)
 
 mkdir -p "$thr_dir"
 
@@ -29,6 +29,8 @@ function create_commands() {
 
   countries_str=$(ls -1 "$hrea_cogs_dir"/HREA_*_2020_v1/*tif| parallel -I{} gdalinfo {}|grep "Files\|Size is"|tr "/," "\n "|grep "_v1\|Size is"|tr "\n" " "|sed 's/HREA_/\nHREA_/g'|sed 's/Size is //g'|sed '/^[[:space:]]*$/d'|\
   awk '{img_size=int($2*$3*32/8/1024/1024*1.05); cache=img_size; if (cache<4096){cache=4096};print $1,cache,img_size}'|sed 's/HREA_//g'|sed 's/_2020_v1//g')
+
+  #echo "$countries_str"
 
   for this_year in "${available_years[@]}"; do
 
@@ -41,7 +43,7 @@ function create_commands() {
 
 
 
-  #echo "$countries_str"|grep '^A'
+
 
 
 #    GDAL_CACHEMAX=4096 is important, since RAM seems to be a major bottleneck.
@@ -169,7 +171,7 @@ echo "$countries_str"
     print "mkdir -p "out_dir"; if [ ! -e "out_file" ]; then " \
     " echo "out_file";"  \
     " export GDAL_CACHEMAX="allocated_cache";" \
-    " gdal_calc.py --quiet  --co COMPRESS=ZSTD --type=Byte --co NBITS=1 --NoDataValue=0 -A " \
+    " gdal_calc.py --quiet  --co COMPRESS=ZSDT --type=Byte --co NBITS=1 --NoDataValue=0 -A " \
     in_file" --outfile=" \
     out_file" --calc=@A>=0.8@; fi"}'|tr '@' '"' >> $tmp_cmd_list
 
@@ -182,7 +184,7 @@ echo "$countries_str"
     print "mkdir -p "out_dir"; if [ ! -e "out_file" ]; then " \
     " echo "out_file";"  \
     " export GDAL_CACHEMAX="allocated_cache";" \
-    " gdal_calc.py --quiet  --co COMPRESS=ZSTD --type=Byte --co NBITS=1 --NoDataValue=0 -A " \
+    " gdal_calc.py --quiet  --co COMPRESS=ZSDT --type=Byte --co NBITS=1 --NoDataValue=0 -A " \
     in_file" --outfile=" \
     out_file" --calc=@A<0.8@; fi"}'|tr '@' '"' >> $tmp_cmd_list
 
@@ -196,4 +198,4 @@ echo "executing parallel on " $(wc -l "$tmp_cmd_list" ) " commands"
 # sort in order to process country-wise
 #cat "$tmp_cmd_list" | sort |grep -v "India\|Indonesia\|Argentina\|Mexico\|Algeria\|DR_Congo"| parallel  --jobs 5 -I{}  {}
 
-cat "$tmp_cmd_list" | sort | parallel  --jobs 2 -I{}  {}
+cat "$tmp_cmd_list" | sort | parallel  --jobs 2 -I{} {}
