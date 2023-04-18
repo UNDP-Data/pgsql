@@ -37,9 +37,9 @@ def download_from_container():
     # download_by(blobs_list, container_client, tot_size, 'HREA_COGs/HREA_', 'Algeria_set_lightscore_sy_', '.tif$')
 
     # download hrea files
-    tot_size = download_by(blobs_list, container_client, tot_size, 'HREA_COGs/HREA_', '_set_lightscore_sy_', '.tif$', False)
+    tot_size = download_by(blobs_list, container_client, tot_size, 'HREA_COGs/HREA_Rwan', 'Rwanda_set_lightscore_sy_', '.tif$', False)
     # download population files
-    tot_size = download_by(blobs_list, container_client, tot_size, 'HREA_COGs/', '[A-Fa-f\-]+', '_pop.tif$', False)
+    #tot_size = download_by(blobs_list, container_client, tot_size, 'HREA_COGs/', '[A-Fa-f\-]+', '_pop.tif$', False)
 
     print(str(tot_size) + ' bytes or ' + str(round(tot_size / 1024 / 1024)) + ' Mb')
 
