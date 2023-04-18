@@ -44,8 +44,9 @@ mkdir -p "$hrea_csv_dir"
 #
 # also, it might have troubles with polygons containing rings (holes)
 
+#RWA needs a special processing (see the end of this file)
 
-cat "$country_lut" |  tr ',' ' ' | grep -v "COG\|GAB\|GNQ\|STP\|MNG\|MUS\|TJK\|FSM\|BRN" | awk \
+cat "$country_lut" |  tr ',' ' ' | grep -v "COG\|GAB\|GNQ\|STP\|MNG\|MUS\|TJK\|FSM\|BRN\|RWA" | awk \
   -v this_series="$this_series" \
   -v hrea_csv_dir="$hrea_csv_dir" \
   -v thr_dir="$thr_dir" \
@@ -96,7 +97,7 @@ cat "$country_lut" |  tr ',' ' ' | grep -v "COG\|GAB\|GNQ\|STP\|MNG\|MUS\|TJK\|F
 "-s @no_hrea_2019_wsum=weighted_sum(no_hrea_2019_rst,pop)@ " \
 "-s @no_hrea_2020_wsum=weighted_sum(no_hrea_2020_rst,pop)@ " \
 "; fi" \
-}' |tr '@' '"'|parallel --jobs 1 -I{}  {}
+}' |tr '@' '"'|parallel --jobs 3 -I{}  {}
 
 # the following Countries do not have hrea 2019.
 # using "stdev(pop,pop)" to force a 0:
@@ -212,7 +213,7 @@ cat "$country_lut" |  tr ',' ' ' | grep "MNG\|TJK\|BRN" | awk \
 "-s @no_hrea_2019_wsum=weighted_sum(no_hrea_2019_rst,pop)@ " \
 "-s @no_hrea_2020_wsum=weighted_sum(no_hrea_2020_rst,pop)@ " \
 "; fi" \
-}' |tr '@' '"'|parallel --jobs 1 -I{} {}
+}' |tr '@' '"'|parallel --jobs 1 -I{}  {}
 
 
 # the following Countries do not have hrea 2012, 2013 and 2019.#
@@ -316,33 +317,22 @@ cat "$country_lut" |  tr ',' ' ' | grep "MUS" | awk \
 "; fi" \
 }' |tr '@' '"'|parallel --jobs 1 -I{} {}
 
-#cat SUBST_SERIES_GID_0_*.csv|grep -v 'GID2b,e_count,e_sum,e_mean,e_min,e_max,e_stdev'|awk '{split($1,adm2,":");split(adm2[1],country,".");split($1,adm2,":");print country[1]","country[1]"."country[2]","adm2[1]","$0}'|tr ',' ' ' > all_countries_sp.ssv
-#cat all_countries_sp.ssv |awk 'BEGIN{country="";cnt=0;sum=0}{if($1!=country){if(cnt>0){printf "%s %.2f %.2f %.5f\n", country,sum,cnt,sum/cnt}else{printf "%s %.2f %.2f %.5f\n",country,0,0,0};country=$1;cnt=$5;sum=$6}else{cnt=cnt+$5;sum=sum+$6}}'>SUBST_SERIES_adm0_stats_2020.csv
-#cat all_countries_sp.ssv |awk 'BEGIN{adm1="";cnt=0;sum=0}{if($2!=adm1){if(cnt>0){printf "%s %.2f %.2f %.5f\n",adm1,sum,cnt,sum/cnt}else{printf "%s %.2f %.2f %.5f\n",adm1,0,0,0};adm1=$2;cnt=$5;sum=$6}else{cnt=cnt+$5;sum=sum+$6}}'>SUBST_SERIES_adm1_stats_2020.csv
-#cat all_countries_sp.ssv |awk 'BEGIN{adm2="";cnt=0;sum=0}{\
-#if($3!=adm2)\
-#{if(cnt>0)\
-#    {printf "%s %.2f %.2f %.5f\n",adm2,sum,cnt,sum/cnt}\
-#    else {printf "%s %.2f %.2f %.5f\n",adm2,0,0,0}\
-#;adm2=$3;cnt=$5;sum=$6}\
-#else\
-#{cnt=cnt+$5;sum=sum+$6}\
-#}'>SUBST_SERIES_adm2_stats_2020.csv
 
 date
 
-#exactextract -r "pop:"$homedir"/Downloads/admin-levels_/HREA/facebook_pop_30m/MOZ_pop1_hrea.tif" \
-#-r "hrea_2012:"$homedir"/Downloads/admin-levels_/HREA/hrea_data_thr80p//2012/hrea_2012_MOZ_m80_hrea.tif" \
-#-p ""$homedir"/Downloads/admin-levels_/admin2_by_region3_subdivided/GID_0_MOZ.gpkg" \
-#-f "GID_2b" -o "hrea_MOZ.csv" --progress \
-#-s "sum(pop)" -s "mean(pop)" -s "min(pop)" -s "max(pop)" -s "hrea_2012_wsum=weighted_sum(hrea_2012,pop)"
 
+# Rwanda could not be processed like all other Countries, and needed to be pre-processed with gdal_calc.
 
-#exactextract \
-#-r "pop:"$homedir"/Downloads/admin-levels_/HREA/facebook_pop_30m/MOZ_pop_3857_hrea.tif" \
-#-r "hrea_2017:"$homedir"/Downloads/admin-levels_/HREA/hrea_data_thr80p//2017/hrea_2017_MOZ_m80_dfl_hrea.tif" \
-#-p ""$homedir"/Downloads/admin-levels_/admin2_by_region3_subdivided/GID_0_MOZ.gpkg" -f "GID_2b" -o ""$homedir"/Downloads/admin-levels_/HREA/hrea_data/hrea_csv/hrea_MOZ_manual_inv.csv" \
-#-s "sum(pop)" -s "mean(pop)" -s "min(pop)" -s "max(pop)" \
-#-s "sum(hrea_2017)" -s "mean(hrea_2017)" -s "min(hrea_2017)" -s "max(hrea_2017)" \
-#-s "hrea_2017m=mean(hrea_2017)" \
-#-s "hrea_2017_wsum=weighted_sum(hrea_2017)"
+#available_years=(2012 2013 2014 2015 2016 2017 2018 2019 2020)
+#for this_year in "${available_years[@]}"; do
+#
+#    echo "$this_year"
+#    this_country='Rwanda'
+#    #mv "$thr_dir"Rwanda_"$this_year"_hrea.tif "$thr_dir"Rwanda_"$this_year"_hrea.tif
+#    echo gdal_calc.py -A "$thr_dir""$this_country"'/'"$this_country""_""$this_year""_hrea.tif -B " "$hrea_cogs_dir""$this_country"'_pop.tif --calc="A*B"'"  --outfile ""$thr_dir""$this_country"'/'"$this_country""_""$this_year""_hrea_wpop.tif"|parallel -I{} {}
+#    #gdal_calc.py -A $thr_dir$this_country'/'$this_country"_"$this_year"_hrea.tif -B "$hrea_cogs_dir$this_country'_pop.tif --calc="A*B"  --outfile '$thr_dir$this_country'/'$this_country"_"$this_year"_hrea_wpop.tif"
+#    echo gdal_calc.py -A "$thr_dir""$this_country"'/'"$this_country""_""$this_year""_no_hrea.tif -B " "$hrea_cogs_dir""$this_country"'_pop.tif --calc="A*B"'"  --outfile ""$thr_dir""$this_country"'/'"$this_country""_""$this_year""_no_hrea_wpop.tif"|parallel -I{} {}
+#
+#done
+#
+#exactextract -p "/home/rafd/data/hrea/gadm_adm2_by_country_4326/GID_0_RWA.gpkg" -f "GID_2b" -o "/home/rafd/data/hrea/hrea_outputs/hrea_csv/hrea_RWA.csv"  -r "pop:/home/rafd/data/hrea/HREA_COGs/Rwanda_pop.tif"  -r "hrea_2012_wpop:/home/rafd/data/hrea/hrea_data_thr80p/Rwanda/Rwanda_2012_hrea_wpop.tif"  -r "hrea_2013_wpop:/home/rafd/data/hrea/hrea_data_thr80p/Rwanda/Rwanda_2013_hrea_wpop.tif"  -r "hrea_2014_wpop:/home/rafd/data/hrea/hrea_data_thr80p/Rwanda/Rwanda_2014_hrea_wpop.tif"  -r "hrea_2015_wpop:/home/rafd/data/hrea/hrea_data_thr80p/Rwanda/Rwanda_2015_hrea_wpop.tif"  -r "hrea_2016_wpop:/home/rafd/data/hrea/hrea_data_thr80p/Rwanda/Rwanda_2016_hrea_wpop.tif"  -r "hrea_2017_wpop:/home/rafd/data/hrea/hrea_data_thr80p/Rwanda/Rwanda_2017_hrea_wpop.tif"  -r "hrea_2018_wpop:/home/rafd/data/hrea/hrea_data_thr80p/Rwanda/Rwanda_2018_hrea_wpop.tif"  -r "hrea_2019_wpop:/home/rafd/data/hrea/hrea_data_thr80p/Rwanda/Rwanda_2019_hrea_wpop.tif"  -r "hrea_2020_wpop:/home/rafd/data/hrea/hrea_data_thr80p/Rwanda/Rwanda_2020_hrea_wpop.tif"  -r "no_hrea_2012_wpop:/home/rafd/data/hrea/hrea_data_thr80p/Rwanda/Rwanda_2012_no_hrea_wpop.tif"  -r "no_hrea_2013_wpop:/home/rafd/data/hrea/hrea_data_thr80p/Rwanda/Rwanda_2013_no_hrea_wpop.tif"  -r "no_hrea_2014_wpop:/home/rafd/data/hrea/hrea_data_thr80p/Rwanda/Rwanda_2014_no_hrea_wpop.tif"  -r "no_hrea_2015_wpop:/home/rafd/data/hrea/hrea_data_thr80p/Rwanda/Rwanda_2015_no_hrea_wpop.tif"  -r "no_hrea_2016_wpop:/home/rafd/data/hrea/hrea_data_thr80p/Rwanda/Rwanda_2016_no_hrea_wpop.tif"  -r "no_hrea_2017_wpop:/home/rafd/data/hrea/hrea_data_thr80p/Rwanda/Rwanda_2017_no_hrea_wpop.tif"  -r "no_hrea_2018_wpop:/home/rafd/data/hrea/hrea_data_thr80p/Rwanda/Rwanda_2018_no_hrea_wpop.tif"  -r "no_hrea_2019_wpop:/home/rafd/data/hrea/hrea_data_thr80p/Rwanda/Rwanda_2019_no_hrea_wpop.tif"  -r "no_hrea_2020_wpop:/home/rafd/data/hrea/hrea_data_thr80p/Rwanda/Rwanda_2020_no_hrea_wpop.tif"  -s "pop_sum=sum(pop)"   -s "hrea_2012_wsum=sum(hrea_2012_wpop)"  -s "hrea_2013_wsum=sum(hrea_2013_wpop)"  -s "hrea_2014_wsum=sum(hrea_2014_wpop)"  -s "hrea_2015_wsum=sum(hrea_2015_wpop)"  -s "hrea_2016_wsum=sum(hrea_2016_wpop)"  -s "hrea_2017_wsum=sum(hrea_2017_wpop)"  -s "hrea_2018_wsum=sum(hrea_2018_wpop)"  -s "hrea_2019_wsum=sum(hrea_2019_wpop)"  -s "hrea_2020_wsum=sum(hrea_2020_wpop)"  -s "no_hrea_2012_wsum=sum(no_hrea_2012_wpop)"  -s "no_hrea_2013_wsum=sum(no_hrea_2013_wpop)"  -s "no_hrea_2014_wsum=sum(no_hrea_2014_wpop)"  -s "no_hrea_2015_wsum=sum(no_hrea_2015_wpop)"  -s "no_hrea_2016_wsum=sum(no_hrea_2016_wpop)"  -s "no_hrea_2017_wsum=sum(no_hrea_2017_wpop)"  -s "no_hrea_2018_wsum=sum(no_hrea_2018_wpop)"  -s "no_hrea_2019_wsum=sum(no_hrea_2019_wpop)"  -s "no_hrea_2020_wsum=sum(no_hrea_2020_wpop)"
