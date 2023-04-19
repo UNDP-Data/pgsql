@@ -6,8 +6,6 @@ from pathlib import Path
 import os
 
 sas_url_sig = os.environ['sas_url_sig']
-# cwd = os.getcwd() + '/'
-# home_dir = os.path.expanduser('~') + '/'
 data_dir = os.path.expanduser('~') + '/data/hrea/'
 os.chdir(data_dir)
 
@@ -30,16 +28,20 @@ def download_from_container():
 
     tot_size = 0
 
-    # Egypt_set_lightscore_sy_2020_hrea.tif
     blobs_list = container_client.list_blobs(name_starts_with='HREA_COGs')
 
-    # download_by(blobs_list, container_client, tot_size, 'HREA_COGs/HREA_', 'Egypt_set_lightscore_sy_', '.tif$')
-    # download_by(blobs_list, container_client, tot_size, 'HREA_COGs/HREA_', 'Algeria_set_lightscore_sy_', '.tif$')
+    # download hrea lightscore files with filename like:
+    # Egypt_set_lightscore_sy_2020_hrea.tif
+    #
+    # example filter for Rwanda only:
+    # tot_size = download_by(blobs_list, container_client, tot_size, 'HREA_COGs/HREA_Rwan', 'Rwanda_set_lightscore_sy_', '.tif$', False)
+    #
 
-    # download hrea files
     tot_size = download_by(blobs_list, container_client, tot_size, 'HREA_COGs/HREA_Rwan', 'Rwanda_set_lightscore_sy_', '.tif$', False)
-    # download population files
-    #tot_size = download_by(blobs_list, container_client, tot_size, 'HREA_COGs/', '[A-Fa-f\-]+', '_pop.tif$', False)
+
+    #
+    # example use to download population files
+    # tot_size = download_by(blobs_list, container_client, tot_size, 'HREA_COGs/', '[A-Fa-f\-]+', '_pop.tif$', False)
 
     print(str(tot_size) + ' bytes or ' + str(round(tot_size / 1024 / 1024)) + ' Mb')
 
@@ -88,9 +90,6 @@ def download_by(blobs_list, container_client, tot_size, match_1, match_2, match_
                     print('file ', blob.name, ' exists already')
 
     return tot_size
-
-
-
 
 
 download_from_container()
