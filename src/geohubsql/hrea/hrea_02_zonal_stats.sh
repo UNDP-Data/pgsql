@@ -159,11 +159,8 @@ cat "$country_lut" | grep "COG\|GAB\|GNQ\|STP"| tr ',' ' ' | awk \
 # the following Countries do not have hrea 2012 and 2013.
 # using "stdev(pop,pop)" to force a 0:
 #MNG,Mongolia
-#MUS,Mauritius
 #TJK,Tajikistan
-#FSM,Micronesia
 #BRN,Brunei
-#MNG\|MUS\|TJK\|FSM\|BRN
 
 
 cat "$country_lut" |  tr ',' ' ' | grep "MNG\|TJK\|BRN" | awk \
@@ -218,12 +215,7 @@ cat "$country_lut" |  tr ',' ' ' | grep "MNG\|TJK\|BRN" | awk \
 
 # the following Countries do not have hrea 2012, 2013 and 2019.#
 # using "stdev(pop,pop)" to force a 0:
-#MNG,Mongolia
-#MUS,Mauritius
-#TJK,Tajikistan
 #FSM,Micronesia
-#BRN,Brunei
-#MNG\|MUS\|TJK\|FSM\|BRN
 
 cat "$country_lut" |  tr ',' ' ' | grep "FSM" | awk \
   -v this_series="$this_series" \
@@ -274,7 +266,9 @@ cat "$country_lut" |  tr ',' ' ' | grep "FSM" | awk \
 
 
 
-
+# the following Countries only have hrea 2018, 2019, 2020
+# using "stdev(pop,pop)" to force a 0:
+#MUS,Mauritius
 
 cat "$country_lut" |  tr ',' ' ' | grep "MUS" | awk \
   -v this_series="$this_series" \
