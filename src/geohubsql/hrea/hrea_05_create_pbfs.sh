@@ -15,8 +15,8 @@ hrea_outputs="$data_dir"'hrea_outputs/'
 # hrea_gadm_admin1.gpkg
 # hrea_gadm_admin2.gpkg
 #
-# with the corresponding layers adm[012]_polygons
-# and the relevant attributes (hrea_{2012..2020})
+# with the layers corresponding named adm[012]_polygons
+# and the relevant attributes (hrea_{2012..2020}, adm0_id, adm0_name, adm1_id, adm1_name, adm2_id, adm2_name)
 
 mkdir -p "$hrea_outputs"GeoJSON/
 mkdir -p "$hrea_outputs"pbfs/
@@ -34,7 +34,7 @@ ogr2ogr -f GeoJSONSeq "$hrea_outputs"GeoJSON/adm2_polygons.geojsonl "$hrea_outpu
 
 tippecanoe  --layer=adm0_polygons  --maximum-zoom=10 --simplify-only-low-zooms  --detect-shared-borders  --read-parallel  --no-tile-size-limit  --no-tile-compression  --force  --output-to-directory="$hrea_outputs"pbfs/adm0_polygons/  "$hrea_outputs"GeoJSON/adm0_polygons.geojsonl --include=adm0_id  --include=adm0_name  --include=pop  --include=hrea_2020  --include=hrea_2019  --include=hrea_2018  --include=hrea_2017  --include=hrea_2016  --include=hrea_2015  --include=hrea_2014  --include=hrea_2013  --include=hrea_2012
 
-tippecanoe  --layer=adm1_polygons  --maximum-zoom=10 --simplify-only-low-zooms  --detect-shared-borders  --read-parallel  --no-tile-size-limit  --no-tile-compression  --force  --output-to-directory="$hrea_outputs"pbfs/adm1_polygons/  "$hrea_outputs"GeoJSON/adm1_polygons.geojsonl --include=adm1_id  --include=adm1_name  --include=adm1_id  --include=adm1_name  --include=pop  --include=hrea_2020  --include=hrea_2019  --include=hrea_2018  --include=hrea_2017  --include=hrea_2016  --include=hrea_2015  --include=hrea_2014  --include=hrea_2013  --include=hrea_2012
+tippecanoe  --layer=adm1_polygons  --maximum-zoom=10 --simplify-only-low-zooms  --detect-shared-borders  --read-parallel  --no-tile-size-limit  --no-tile-compression  --force  --output-to-directory="$hrea_outputs"pbfs/adm1_polygons/  "$hrea_outputs"GeoJSON/adm1_polygons.geojsonl --include=adm0_id  --include=adm0_name  --include=adm1_id  --include=adm1_name  --include=pop  --include=hrea_2020  --include=hrea_2019  --include=hrea_2018  --include=hrea_2017  --include=hrea_2016  --include=hrea_2015  --include=hrea_2014  --include=hrea_2013  --include=hrea_2012
 
 tippecanoe  --layer=adm2_polygons  --maximum-zoom=10 --simplify-only-low-zooms  --detect-shared-borders  --read-parallel  --no-tile-size-limit  --no-tile-compression  --force  --output-to-directory="$hrea_outputs"pbfs/adm2_polygons/  "$hrea_outputs"GeoJSON/adm2_polygons.geojsonl --include=adm0_id  --include=adm0_name  --include=adm1_id  --include=adm1_name  --include=adm2_id  --include=adm2_name  --include=pop  --include=hrea_2020  --include=hrea_2019  --include=hrea_2018  --include=hrea_2017  --include=hrea_2016  --include=hrea_2015  --include=hrea_2014  --include=hrea_2013  --include=hrea_2012
 
