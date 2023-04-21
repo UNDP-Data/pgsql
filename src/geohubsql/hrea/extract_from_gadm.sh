@@ -91,6 +91,7 @@ done
 }
 
 levels_to_extract=(1 2 3 4)
+levels_to_extract=(3)
 
 for level in "${levels_to_extract[@]}"; do
 
