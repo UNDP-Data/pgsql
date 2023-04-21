@@ -12,6 +12,13 @@ adm2_dir="$data_dir""gadm_adm2_by_country_4326/"
 
 hrea_csv_dir="$data_dir"'hrea_outputs/hrea_csv/'
 thr_dir="$data_dir""hrea_data_thr80p/"
+country_lut="$data_dir"'adm0_names_lut.csv'
+
+this_pid="$$"
+
+available_pop=/tmp/pop_tif_"${this_pid}".txt
+all_countries=/tmp/all_countries_lut.txt
+available_pop_with_fullname=/tmp/available_pop_with_fullname.txt
 
 levels_to_extract=(3 4 5)
 
@@ -23,6 +30,23 @@ levels_to_extract=(3 4 5)
 #ogr2ogr -f 'GPKG' gadm_410-levels_adm3.gpkg gadm_410-levels.gpkg ADM_3
 #ogr2ogr -f 'GPKG' gadm_410-levels_adm4.gpkg gadm_410-levels.gpkg ADM_4
 
+function available_countries() {
+
+  level="$1"
+  countries_str=$()
+
+  ls -1 "$hrea_cogs_dir"*_pop.tif |sed 's/_pop.tif//g' | xargs -n 1 basename|sort -k 1b,1 > "$available_pop"
+  #head -5 "$available_pop"
+
+  cat "$country_lut" | tr ',-' ' _' |awk '{print $2,$1}' |sort -k 1b,1 > "$all_countries"
+  #head -5 "$all_countries"
+
+  join -o 1.1 2.2 "$available_pop" "$all_countries" > "$available_pop_with_fullname"
+  list=$(join -o 2.2 "$available_pop" "$all_countries" | tr "\n" ','|sed 's/,$//g'|sed 's/,/","/g')
+  list='"'${list}'"'
+  echo "$list"
+
+}
 
 
 #ogrinfo -dialect sqlite -sql 'SELECT DISTINCT (GID_3) as IDs FROM ADM_3 LIMIT 50' gadm_410-levels.gpkg
@@ -41,7 +65,7 @@ levels_to_extract=(3 4 5)
 #
 #AGO,Angola
 #ALB,Albania
-
+function extract_levels() {
 for this_level in "${levels_to_extract[@]}"; do
 
 #number of Countries to be extracted:
@@ -64,4 +88,16 @@ outdir,this_level,iso3,iso3,iso3,boundaries_dir}'|parallel --jobs 2 -I{} {}
 #ogr2ogr -f GPKG out.gpkg -dialect sqlite -sql 'SELECT * FROM ADM_3 WHERE GID_0="RWA"' "$boundaries_dir"gadm_410-levels.gpkg
 
 done
+}
 
+levels_to_extract=(1 2 3 4)
+
+for level in "${levels_to_extract[@]}"; do
+
+  echo "Extracting admin level ${level}: "
+  list=$(available_countries "${level}")
+  echo -e ${list}"\n"
+
+  ogr2ogr -f GPKG ${boundaries_dir}adm${level}_minimal.gpkg -nln adm${level}_polygons -dialect sqlite -sql 'SELECT * FROM ADM_'${level}' WHERE GID_0 IN ('${list}')' "$boundaries_dir"gadm_410-levels.gpkg
+
+done
