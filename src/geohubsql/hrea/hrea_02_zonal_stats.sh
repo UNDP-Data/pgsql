@@ -146,9 +146,9 @@ sed -i '\#'${country}'#s#-r "no_hrea_'${year}'_rst:'${thr_dir}${country_name}'/'
 #change this:
 #hrea_2019_wsum=weighted_sum(hrea_2019_rst,pop)
 #into this:
-#hrea_2019_wsum=stdev(pop,pop)
-sed -i '/'${country}'/s/hrea_'${year}'_wsum\=weighted_sum(hrea_'${year}'_rst,pop)/hrea_'${year}'_wsum\=stdev(pop,pop)/g' "$tmp_file"
-sed -i '/'${country}'/s/no_hrea_'${year}'_wsum\=weighted_sum(no_hrea_'${year}'_rst,pop)/no_hrea_'${year}'_wsum\=stdev(pop,pop)/g' "$tmp_file"
+#hrea_2019_wsum=min(pop)
+sed -i '/'${country}'/s/hrea_'${year}'_wsum\=weighted_sum(hrea_'${year}'_rst,pop)/hrea_'${year}'_wsum\=min(pop)/g' "$tmp_file"
+sed -i '/'${country}'/s/no_hrea_'${year}'_wsum\=weighted_sum(no_hrea_'${year}'_rst,pop)/no_hrea_'${year}'_wsum\=min(pop)/g' "$tmp_file"
 
 
 }
@@ -156,7 +156,7 @@ sed -i '/'${country}'/s/no_hrea_'${year}'_wsum\=weighted_sum(no_hrea_'${year}'_r
 function filter_all_exceptions() {
 
 # the following Countries do not have hrea 2019.
-# using "stdev(pop,pop)" to force a 0:
+# using "min(pop)" to force a 0:
 # Congo Republic / COG
 # Gabon / GAB
 # Equatorial Guinea / GNQ
@@ -169,7 +169,7 @@ filter_exception 'GNQ' '2019'
 filter_exception 'STP' '2019'
 
 # the following Countries do not have hrea 2012 and 2013.
-# using "stdev(pop,pop)" to force a 0:
+# using "min(pop)" to force a 0:
 #MNG,Mongolia
 #TJK,Tajikistan
 #BRN,Brunei
@@ -184,7 +184,7 @@ filter_exception 'BRN' '2012'
 filter_exception 'BRN' '2013'
 
 # the following Countries do not have hrea 2012, 2013 and 2019.#
-# using "stdev(pop,pop)" to force a 0:
+# using "min(pop)" to force a 0:
 #FSM,Micronesia
 
 filter_exception 'FSM' '2012'
@@ -192,7 +192,7 @@ filter_exception 'FSM' '2013'
 filter_exception 'FSM' '2019'
 
 # the following Countries only have hrea 2018, 2019, 2020
-# using "stdev(pop,pop)" to force a 0:
+# using "min(pop)" to force a 0:
 #MUS,Mauritius
 
 filter_exception 'MUS' '2018'
@@ -225,7 +225,7 @@ filter_all_exceptions
 
 debug_country 'MUS'
 
-cat "$tmp_file"|parallel --jobs 3 -I{} {}
+cat "$tmp_file"|parallel --jobs 3 -I{} echo {}
 
 #rm -f "$tmp_file"
 

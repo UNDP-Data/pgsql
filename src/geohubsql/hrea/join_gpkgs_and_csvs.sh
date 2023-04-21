@@ -48,16 +48,17 @@ for level in "${levels_to_extract[@]}"; do
   sqlite3 ${dbname} --cmd  '.mode csv' '.import '${all_countries_csv}' hrea'
 
   sqlite3 ${boundaries_dir}adm${level}_minimal.gpkg 'DROP TABLE IF EXISTS hrea'
-  sqlite3 ${boundaries_dir}adm${level}_minimal.gpkg 'DROP TABLE IF EXISTS hrea2'
-  
+
   sqlite3 "${dbname}" ".dump hrea" | sqlite3 "${boundaries_dir}adm${level}_minimal.gpkg"
-#echo  sqlite3 ${boundaries_dir}adm${level}_minimal.gpkg --cmd '.import '${dbname}' hrea'
+  #echo  sqlite3 ${boundaries_dir}adm${level}_minimal.gpkg --cmd '.import '${dbname}' hrea'
 
   echo ${boundaries_dir}adm${level}_minimal_joined.gpkg
 
   ogr2ogr -f GPKG ${boundaries_dir}adm${level}_minimal_joined.gpkg ${boundaries_dir}adm${level}_minimal.gpkg -nln adm${level}_polygons -dialect sqlite -sql "SELECT vectors.geom, vectors.GID_0, vectors.COUNTRY, vectors.GID_1, vectors.NAME_1, vectors.GID_2, vectors.NAME_1, vectors.GID_3, vectors.NAME_3, csv.* FROM adm${level}_polygons AS vectors JOIN hrea AS csv ON vectors.GID_${level} = csv.adm${level} "
 
 #  "SELECT vectors.geom, vectors.GID_0, vectors.COUNTRY, vectors.GID_1, vectors.NAME_1, vectors.GID_2, vectors.NAME_1, vectors.GID_3, vectors.NAME_3, csv.* FROM adm${level}_polygons AS vectors JOIN hrea AS csv ON vectors.GID_${level} = csv.adm${level} WHERE vectors.GID_0=\"ZWE\""
+
+  rm -f ${dbname}
 
 done
 
