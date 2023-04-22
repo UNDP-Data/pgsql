@@ -148,7 +148,7 @@ sed -i '\#'${country}'#s#-r "no_hrea_'${year}'_rst:'${thr_dir}${country_name}'/'
 #into this:
 #hrea_2019_wsum=min(pop)
 sed -i '/'${country}'/s/hrea_'${year}'_wsum\=weighted_sum(hrea_'${year}'_rst,pop)/hrea_'${year}'_wsum\=min(pop)/g' "$tmp_file"
-sed -i '/'${country}'/s/no_hrea_'${year}'_wsum\=weighted_sum(no_hrea_'${year}'_rst,pop)/no_hrea_'${year}'_wsum\=min(pop)/g' "$tmp_file"
+sed -i '/'${country}'/s/no_hrea_'${year}'_wsum\=weighted_sum(no_hrea_'${year}'_rst,pop)/no_hrea_'${year}'_wsum\=count(pop)/g' "$tmp_file"
 
 
 }
