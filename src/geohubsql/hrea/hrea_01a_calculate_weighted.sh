@@ -11,6 +11,8 @@ weighted_dir=$data_dir'hrea_weighted/'
 this_pid="$$"
 tmp_cmd_list='/dev/shm/hrea_tmp_cmd_list_'${this_pid}
 
+min_cache=40
+
 compression=ZSTD
 #compression=DEFLATE
 
@@ -37,17 +39,17 @@ function create_commands() {
 
   countries_str=$(ls -1 "$hrea_cogs_dir"*_pop.tif| parallel -I{} gdalinfo -json  {} | \
   jq -c -r '[ .description, .size[0], .size[1], .cornerCoordinates.upperLeft[0],.cornerCoordinates.upperLeft[1],.cornerCoordinates.lowerRight[0], .cornerCoordinates.lowerRight[1] ]| @tsv' | \
-  awk '{fn=$1;nf=split(fn,afn,"/"); \
+  awk -v min_cache="$min_cache" '{fn=$1;nf=split(fn,afn,"/"); \
   img_size=int($2*$3*32/8/1024/1024*1.05); \
-  cache=img_size; if (cache<4096){cache=4096}; \
+  cache=img_size; if (cache<min_cache){cache=min_cache}; \
   print afn[nf],cache,$4,$5,$6,$7}'| \
   sed 's/_pop.tif//g'|sort|column -t)
 
-  #echo "$countries_str"
+  echo "$countries_str"
 
   for this_year in "${available_years[@]}"; do
 
-    echo "$this_year"
+    echo "Now processing year $this_year"
   #  mkdir -p "$thr_dir/$this_year"
 
     # list available Countries based on existing folders
@@ -180,13 +182,18 @@ function create_commands() {
 
   #(A>0)*B instead of (A*B) to avoid overflows when A=2^32
 
+#echo "$countries_str"|  awk \
+#  -v this_year="$this_year" -v hrea_cogs_dir="$hrea_cogs_dir" -v thr_dir="$thr_dir" \
+#  -v weighted_dir="$weighted_dir"  -v hrea_cogs_dir="$hrea_cogs_dir" -v compression="$compression" \
+#  '{this_country=$1;  thr_dir=thr_dir""this_country"/"; thr_file=thr_dir""this_country"_"this_year"_hrea.tif"; print this_country"_"this_year, thr_file}'
+
   # hrea
   echo "$countries_str"|  awk \
   -v this_year="$this_year" -v hrea_cogs_dir="$hrea_cogs_dir" -v thr_dir="$thr_dir" \
   -v weighted_dir="$weighted_dir"  -v hrea_cogs_dir="$hrea_cogs_dir" -v compression="$compression" \
-  '{this_country=$1; unc_file_size=$2; allocated_cache=int(unc_file_size/3); \
-    thr_dir=thr_dir""this_country"/"; thr_file=thr_dir""this_country"_"this_year"_hrea.tif"; \
-    out_dir=weighted_dir""this_country"/"; weighted_file=weighted_dir""this_country"_"this_year"_hrea_w.tif";\
+  '{this_country=$1; unc_file_size=$2; allocated_cache=int(unc_file_size/3*2*2); \
+    out_thr_dir=thr_dir""this_country"/"; thr_file=out_thr_dir""this_country"_"this_year"_hrea.tif"; \
+    out_dir=weighted_dir""this_country"/"; weighted_file=out_dir""this_country"_"this_year"_hrea_w.tif";\
     pop_file=hrea_cogs_dir""$1"_pop.tif";\
     in_file=hrea_cogs_dir"HREA_"this_country"_"this_year"_v1/"this_country"_set_lightscore_sy_"this_year".tif"; \
     print "mkdir -p "out_dir"; if [ ! -e "weighted_file" ]; then " \
@@ -202,9 +209,9 @@ function create_commands() {
     echo "$countries_str"|  awk \
   -v this_year="$this_year" -v hrea_cogs_dir="$hrea_cogs_dir" -v thr_dir="$thr_dir" \
   -v weighted_dir="$weighted_dir"  -v hrea_cogs_dir="$hrea_cogs_dir" -v compression="$compression" \
-  '{this_country=$1; unc_file_size=$2; allocated_cache=int(unc_file_size/3); \
-    thr_dir=thr_dir""this_country"/"; thr_file=thr_dir""this_country"_"this_year"_no_hrea.tif"; \
-    out_dir=weighted_dir""this_country"/"; weighted_file=weighted_dir""this_country"_"this_year"_hrea_w.tif";\
+  '{this_country=$1; unc_file_size=$2; allocated_cache=int(unc_file_size/3*2*2); \
+    out_thr_dir=thr_dir""this_country"/"; thr_file=out_thr_dir""this_country"_"this_year"_no_hrea.tif"; \
+    out_dir=weighted_dir""this_country"/"; weighted_file=out_dir""this_country"_"this_year"_no_hrea_w.tif";\
     pop_file=hrea_cogs_dir""$1"_pop.tif";\
     in_file=hrea_cogs_dir"HREA_"this_country"_"this_year"_v1/"this_country"_set_lightscore_sy_"this_year".tif"; \
     print "mkdir -p "out_dir"; if [ ! -e "weighted_file" ]; then " \
@@ -228,7 +235,7 @@ echo "executing parallel on " $(wc -l "$tmp_cmd_list" ) " commands"
 # sort in order to process country-wise
 #cat "$tmp_cmd_list" | sort |grep -v "India\|Indonesia\|Argentina\|Mexico\|Algeria\|DR_Congo"| parallel  --jobs 5 -I{}  {}
 
-cat "$tmp_cmd_list" | sort | parallel  --jobs 2 -I{} echo {}
+cat "$tmp_cmd_list" | sort | parallel  --jobs 2 -I{}  echo {}
 
 # if the thr80 files of a particular Country needs to be aligned to the pop tif:
 #-te <xmin ymin xmax ymax>
