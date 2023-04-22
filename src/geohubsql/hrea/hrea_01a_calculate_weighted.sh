@@ -188,7 +188,24 @@ function create_commands() {
 #  '{this_country=$1;  thr_dir=thr_dir""this_country"/"; thr_file=thr_dir""this_country"_"this_year"_hrea.tif"; print this_country"_"this_year, thr_file}'
 
   # hrea
-  echo "$countries_str"|  awk \
+    sub_create_commands 0 2000 ${tmp_cmd_list}_9
+    sub_create_commands 2000 4000 ${tmp_cmd_list}_6
+    sub_create_commands 4000 8000 ${tmp_cmd_list}_3
+    sub_create_commands 8000 12000 ${tmp_cmd_list}_2
+    sub_create_commands 12000 999000 ${tmp_cmd_list}_1
+
+  done
+
+  #echo "$countries_str"
+}
+
+function sub_create_commands(){
+
+  size_min=$1
+  size_max=$2
+  outfile=$3
+
+    echo "$countries_str"| awk -v size_min="${size_min}" -v size_max="${size_max}" '{if($2>size_min && $2<=size_max){print $0}}'| awk \
   -v this_year="$this_year" -v hrea_cogs_dir="$hrea_cogs_dir" -v thr_dir="$thr_dir" \
   -v weighted_dir="$weighted_dir"  -v hrea_cogs_dir="$hrea_cogs_dir" -v compression="$compression" \
   '{this_country=$1; unc_file_size=$2; allocated_cache=int(unc_file_size/3*2*2); \
@@ -203,10 +220,10 @@ function create_commands() {
     " -A "thr_file \
     " -B "pop_file \
     " --outfile="weighted_file \
-    " --calc=@(A>0)*B@; fi"}'|tr '@' '"' >> $tmp_cmd_list
+    " --calc=@(A>0)*B@; fi"}'|tr '@' '"' >> $outfile
 
   # no_hrea
-    echo "$countries_str"|  awk \
+    echo "$countries_str"| awk -v size_min=${size_min} -v size_max=${size_max} '{if($2>size_min && $2<=size_max){print $0}}'|  awk \
   -v this_year="$this_year" -v hrea_cogs_dir="$hrea_cogs_dir" -v thr_dir="$thr_dir" \
   -v weighted_dir="$weighted_dir"  -v hrea_cogs_dir="$hrea_cogs_dir" -v compression="$compression" \
   '{this_country=$1; unc_file_size=$2; allocated_cache=int(unc_file_size/3*2*2); \
@@ -221,11 +238,9 @@ function create_commands() {
     " -A "thr_file \
     " -B "pop_file \
     " --outfile="weighted_file \
-    " --calc=@(A>0)*B@; fi"}'|tr '@' '"' >> $tmp_cmd_list
+    " --calc=@(A>0)*B@; fi"}'|tr '@' '"' >> $outfile
 
-  done
 
-  #echo "$countries_str"
 }
 
 create_commands
@@ -235,7 +250,13 @@ echo "executing parallel on " $(wc -l "$tmp_cmd_list" ) " commands"
 # sort in order to process country-wise
 #cat "$tmp_cmd_list" | sort |grep -v "India\|Indonesia\|Argentina\|Mexico\|Algeria\|DR_Congo"| parallel  --jobs 5 -I{}  {}
 
-cat "$tmp_cmd_list" | sort | parallel  --jobs 2 -I{}  echo {}
+
+
+cat ${tmp_cmd_list}_9 | sort | parallel --jobs 9 -I{}  {}
+cat ${tmp_cmd_list}_6 | sort | parallel --jobs 6 -I{}  {}
+cat ${tmp_cmd_list}_3 | sort | parallel --jobs 3 -I{}  {}
+cat ${tmp_cmd_list}_2 | sort | parallel --jobs 2 -I{}  {}
+cat ${tmp_cmd_list}_1 | sort | parallel --jobs 1 -I{}  {}
 
 # if the thr80 files of a particular Country needs to be aligned to the pop tif:
 #-te <xmin ymin xmax ymax>
