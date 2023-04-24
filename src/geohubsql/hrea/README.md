@@ -34,6 +34,7 @@ The scripts are the following, and need to be run in the proposed order:
   - to be backwards compatible with the HREA dashbord, the pbf are written as static files into a hierarchical folder structure, which replicates the ZXY http protocol commonly used to retrieve vector tiles.
   - after the final human check, the output pbf folders shall be uploaded to the Blob Container pointed to by the HREA dashboard interface (currently this means the `admin` container, not the `hrea` one)
 
+
 ```
 # example workflow:
 > time bash hrea_00_azure_lightscore_downloader.py
@@ -43,6 +44,30 @@ The scripts are the following, and need to be run in the proposed order:
 > time pipenv run python3 hrea_04_summarise_csvs.py
 > time bash hrea_05_create_pbfs.sh
 ```
+
+exacetextract bug workaround
+---
+
+Since exacetextract showed some unexpected behaviour while weighting (large?) maps, there are also two variants, which pre-compute the weighted hrea maps, and perform zonal stats on those instead of doing the weighted zonal stats in exactextract.
+Namely:
+- `hrea_01a_calculate_thresholds.sh`
+  - creates weighted hrea maps in ~/data/hrea/hrea_weighted/
+- `hrea_02a_zonal_stats.sh`
+  - computes zonal stats on the weighted hrea maps, hence only using `sum` instead of `weighted_sum` functions in exactextract.
+
+Once exactextract's bug is fixed, these variants will be considered obsolete.
+
+```
+# example workflow:
+> time bash hrea_00_azure_lightscore_downloader.py
+> time bash hrea_01a_calculate_thresholds.sh
+> time bash hrea_02a_zonal_stats.sh
+> time bash hrea_03_combine_csvs.sh
+> time pipenv run python3 hrea_04_summarise_csvs.py
+> time bash hrea_05_create_pbfs.sh
+```
+
+
 
 Notes:
 ---
