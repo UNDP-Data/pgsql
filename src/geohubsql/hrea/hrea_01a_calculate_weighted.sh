@@ -220,7 +220,9 @@ function sub_create_commands(){
     " -A "thr_file \
     " -B "pop_file \
     " --outfile="weighted_file \
-    " --calc=@(A>0)*B@; fi"}'|tr '@' '"' >> $outfile
+    " --calc=@(A>0)*B@; \
+    gdalinfo -hist "weighted_file"; \
+    fi"}'|tr '@' '"' >> $outfile
 
   # no_hrea
     echo "$countries_str"| awk -v size_min=${size_min} -v size_max=${size_max} '{if($2>size_min && $2<=size_max){print $0}}'|  awk \
@@ -238,7 +240,9 @@ function sub_create_commands(){
     " -A "thr_file \
     " -B "pop_file \
     " --outfile="weighted_file \
-    " --calc=@(A>0)*B@; fi"}'|tr '@' '"' >> $outfile
+    " --calc=@(A>0)*B@; \
+    gdalinfo -hist "weighted_file"; \
+    fi"}'|tr '@' '"' >> $outfile
 
 
 }
@@ -251,17 +255,17 @@ echo "executing parallel on " $(wc -l "$tmp_cmd_list" ) " commands"
 #cat "$tmp_cmd_list" | sort |grep -v "India\|Indonesia\|Argentina\|Mexico\|Algeria\|DR_Congo"| parallel  --jobs 5 -I{}  {}
 
 
-cat ${tmp_cmd_list}_1 | sort | parallel --jobs 1 -I{} {}
-cat ${tmp_cmd_list}_2 | sort | parallel --jobs 2 -I{}  {}
-cat ${tmp_cmd_list}_3 | sort | parallel --jobs 3 -I{}  {}
-cat ${tmp_cmd_list}_6 | sort | parallel --jobs 6 -I{}  {}
-cat ${tmp_cmd_list}_9 | sort | parallel --jobs 9 -I{}  {}
+cat ${tmp_cmd_list}_1 | sort | parallel --jobs 1 -I{} echo {}
+#cat ${tmp_cmd_list}_2 | sort | parallel --jobs 2 -I{}  {}
+#cat ${tmp_cmd_list}_3 | sort | parallel --jobs 3 -I{}  {}
+#cat ${tmp_cmd_list}_6 | sort | parallel --jobs 6 -I{}  {}
+#cat ${tmp_cmd_list}_9 | sort | parallel --jobs 9 -I{}  {}
 
-rm -f ${tmp_cmd_list}_1
-rm -f ${tmp_cmd_list}_2
-rm -f ${tmp_cmd_list}_3
-rm -f ${tmp_cmd_list}_6
-rm -f ${tmp_cmd_list}_9
+#rm -f ${tmp_cmd_list}_1
+#rm -f ${tmp_cmd_list}_2
+#rm -f ${tmp_cmd_list}_3
+#rm -f ${tmp_cmd_list}_6
+#rm -f ${tmp_cmd_list}_9
 
 # if the thr80 files of a particular Country needs to be aligned to the pop tif:
 #-te <xmin ymin xmax ymax>
