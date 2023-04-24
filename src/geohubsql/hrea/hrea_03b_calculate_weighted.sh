@@ -12,6 +12,7 @@ this_pid="$$"
 tmp_cmd_list='/dev/shm/hrea_tmp_cmd_list_'${this_pid}
 
 min_cache=1024
+max_cache=58000
 
 compression=ZSTD
 #compression=DEFLATE
@@ -205,45 +206,90 @@ function sub_create_commands(){
   size_max=$2
   outfile=$3
 
+#time gdal_calc.py --projwin 68.1862488 35.5013313 97.41514 6.7552179 --co COMPRESS=ZSTD --type=Float32 --NoDataValue=0  -A /home/rafd/data/hrea/HREA_COGs/HREA_India_2016_v1/India_set_lightscore_sy_2016.tif -B /home/rafd/data/hrea/HREA_COGs/India_pop.tif --outfile=/home/rafd/data/hrea/hrea_weighted/India/India_2016_hrea_w_lightscore.tif --calc="(A>0.8)*B"
+
+
     echo "$countries_str"| awk -v size_min="${size_min}" -v size_max="${size_max}" '{if($2>size_min && $2<=size_max){print $0}}'| awk \
-  -v this_year="$this_year" -v hrea_cogs_dir="$hrea_cogs_dir" -v thr_dir="$thr_dir" \
+  -v this_year="$this_year" -v hrea_cogs_dir="$hrea_cogs_dir" -v thr_dir="$thr_dir" -v max_cache="${max_cache}" \
   -v weighted_dir="$weighted_dir"  -v hrea_cogs_dir="$hrea_cogs_dir" -v compression="$compression" \
-  '{this_country=$1; unc_file_size=$2; allocated_cache=int(unc_file_size/3*2*2*1.1); \
-    out_thr_dir=thr_dir""this_country"/"; thr_file=out_thr_dir""this_country"_"this_year"_hrea.tif"; \
+  '{this_country=$1; unc_file_size=$2; allocated_cache=int(unc_file_size/3*2*2*1.1); if(allocated_cache>max_cache){allocated_cache=max_cache}; \
+    out_thr_dir=thr_dir""this_country"/"; \
+    thr_file=out_thr_dir""this_country"_"this_year"_hrea.tif"; \
     out_dir=weighted_dir""this_country"/"; weighted_file=out_dir""this_country"_"this_year"_hrea_w.tif";\
     pop_file=hrea_cogs_dir""$1"_pop.tif";\
-    in_file=hrea_cogs_dir"HREA_"this_country"_"this_year"_v1/"this_country"_set_lightscore_sy_"this_year".tif"; \
+    lightscore_file=hrea_cogs_dir"HREA_"this_country"_"this_year"_v1/"this_country"_set_lightscore_sy_"this_year".tif"; \
     print "mkdir -p "out_dir"; if [ ! -e "weighted_file" ]; then " \
     " echo "weighted_file";"  \
     " export GDAL_CACHEMAX="allocated_cache";" \
     " gdal_calc.py --quiet --projwin "$3,$4,$5,$6" --co COMPRESS="compression" --type=Float32 --NoDataValue=0 " \
-    " -A "thr_file \
+    " -A "lightscore_file \
     " -B "pop_file \
     " --outfile="weighted_file \
-    " --calc=@(A>0)*B@; \
+    " --calc=@(A>0.8)*B@; \
     gdalinfo -hist "weighted_file"; \
     fi"}'|tr '@' '"' >> $outfile
 
   # no_hrea
     echo "$countries_str"| awk -v size_min=${size_min} -v size_max=${size_max} '{if($2>size_min && $2<=size_max){print $0}}'|  awk \
-  -v this_year="$this_year" -v hrea_cogs_dir="$hrea_cogs_dir" -v thr_dir="$thr_dir" \
+  -v this_year="$this_year" -v hrea_cogs_dir="$hrea_cogs_dir" -v thr_dir="$thr_dir" -v max_cache="${max_cache}" \
   -v weighted_dir="$weighted_dir"  -v hrea_cogs_dir="$hrea_cogs_dir" -v compression="$compression" \
-  '{this_country=$1; unc_file_size=$2; allocated_cache=int(unc_file_size/3*2*2*1.1); \
-    out_thr_dir=thr_dir""this_country"/"; thr_file=out_thr_dir""this_country"_"this_year"_no_hrea.tif"; \
+  '{this_country=$1; unc_file_size=$2; allocated_cache=int(unc_file_size/3*2*2*1.1); if(allocated_cache>max_cache){allocated_cache=max_cache}; \
+    out_thr_dir=thr_dir""this_country"/"; \
+    thr_file=out_thr_dir""this_country"_"this_year"_no_hrea.tif"; \
     out_dir=weighted_dir""this_country"/"; weighted_file=out_dir""this_country"_"this_year"_no_hrea_w.tif";\
     pop_file=hrea_cogs_dir""$1"_pop.tif";\
-    in_file=hrea_cogs_dir"HREA_"this_country"_"this_year"_v1/"this_country"_set_lightscore_sy_"this_year".tif"; \
+    lightscore_file=hrea_cogs_dir"HREA_"this_country"_"this_year"_v1/"this_country"_set_lightscore_sy_"this_year".tif"; \
     print "mkdir -p "out_dir"; if [ ! -e "weighted_file" ]; then " \
     " echo "weighted_file";"  \
     " export GDAL_CACHEMAX="allocated_cache";" \
     " gdal_calc.py --quiet --projwin "$3,$4,$5,$6" --co COMPRESS="compression" --type=Float32 --NoDataValue=0 " \
-    " -A "thr_file \
+    " -A "lightscore_file \
     " -B "pop_file \
     " --outfile="weighted_file \
-    " --calc=@(A>0)*B@; \
+    " --calc=@(A<=0.8)*B@; \
     gdalinfo -hist "weighted_file"; \
     fi"}'|tr '@' '"' >> $outfile
 
+
+
+#    echo "$countries_str"| awk -v size_min="${size_min}" -v size_max="${size_max}" '{if($2>size_min && $2<=size_max){print $0}}'| awk \
+#  -v this_year="$this_year" -v hrea_cogs_dir="$hrea_cogs_dir" -v thr_dir="$thr_dir" \
+#  -v weighted_dir="$weighted_dir"  -v hrea_cogs_dir="$hrea_cogs_dir" -v compression="$compression" \
+#  '{this_country=$1; unc_file_size=$2; allocated_cache=int(unc_file_size/3*2*2*1.1); \
+#    out_thr_dir=thr_dir""this_country"/"; thr_file=out_thr_dir""this_country"_"this_year"_hrea.tif"; \
+#    out_dir=weighted_dir""this_country"/"; weighted_file=out_dir""this_country"_"this_year"_hrea_w.tif";\
+#    pop_file=hrea_cogs_dir""$1"_pop.tif";\
+#    lightscore_file=hrea_cogs_dir"HREA_"this_country"_"this_year"_v1/"this_country"_set_lightscore_sy_"this_year".tif"; \
+#    print "mkdir -p "out_dir"; if [ ! -e "weighted_file" ]; then " \
+#    " echo "weighted_file";"  \
+#    " export GDAL_CACHEMAX="allocated_cache";" \
+#    " gdal_calc.py --quiet --projwin "$3,$4,$5,$6" --co COMPRESS="compression" --type=Float32 --NoDataValue=0 " \
+#    " -A "thr_file \
+#    " -B "pop_file \
+#    " --outfile="weighted_file \
+#    " --calc=@(A>0)*B@; \
+#    gdalinfo -hist "weighted_file"; \
+#    fi"}'|tr '@' '"' >> $outfile
+#
+#  # no_hrea
+#    echo "$countries_str"| awk -v size_min=${size_min} -v size_max=${size_max} '{if($2>size_min && $2<=size_max){print $0}}'|  awk \
+#  -v this_year="$this_year" -v hrea_cogs_dir="$hrea_cogs_dir" -v thr_dir="$thr_dir" \
+#  -v weighted_dir="$weighted_dir"  -v hrea_cogs_dir="$hrea_cogs_dir" -v compression="$compression" \
+#  '{this_country=$1; unc_file_size=$2; allocated_cache=int(unc_file_size/3*2*2*1.1); \
+#    out_thr_dir=thr_dir""this_country"/"; thr_file=out_thr_dir""this_country"_"this_year"_no_hrea.tif"; \
+#    out_dir=weighted_dir""this_country"/"; weighted_file=out_dir""this_country"_"this_year"_no_hrea_w.tif";\
+#    pop_file=hrea_cogs_dir""$1"_pop.tif";\
+#    in_lightscore_filefile=hrea_cogs_dir"HREA_"this_country"_"this_year"_v1/"this_country"_set_lightscore_sy_"this_year".tif"; \
+#    print "mkdir -p "out_dir"; if [ ! -e "weighted_file" ]; then " \
+#    " echo "weighted_file";"  \
+#    " export GDAL_CACHEMAX="allocated_cache";" \
+#    " gdal_calc.py --quiet --projwin "$3,$4,$5,$6" --co COMPRESS="compression" --type=Float32 --NoDataValue=0 " \
+#    " -A "thr_file \
+#    " -B "pop_file \
+#    " --outfile="weighted_file \
+#    " --calc=@(A>0)*B@; \
+#    gdalinfo -hist "weighted_file"; \
+#    fi"}'|tr '@' '"' >> $outfile
 
 }
 
@@ -255,11 +301,11 @@ echo "executing parallel on " $(wc -l "$tmp_cmd_list" ) " commands"
 #cat "$tmp_cmd_list" | sort |grep -v "India\|Indonesia\|Argentina\|Mexico\|Algeria\|DR_Congo"| parallel  --jobs 5 -I{}  {}
 
 
-cat ${tmp_cmd_list}_1 | sort | parallel --jobs 1 -I{} echo {}
-#cat ${tmp_cmd_list}_2 | sort | parallel --jobs 2 -I{}  {}
-#cat ${tmp_cmd_list}_3 | sort | parallel --jobs 3 -I{}  {}
-#cat ${tmp_cmd_list}_6 | sort | parallel --jobs 6 -I{}  {}
-#cat ${tmp_cmd_list}_9 | sort | parallel --jobs 9 -I{}  {}
+cat ${tmp_cmd_list}_1 | sort | parallel --jobs 1 -I{} {}
+cat ${tmp_cmd_list}_2 | sort | parallel --jobs 2 -I{}  {}
+cat ${tmp_cmd_list}_3 | sort | parallel --jobs 3 -I{}  {}
+cat ${tmp_cmd_list}_6 | sort | parallel --jobs 6 -I{}  {}
+cat ${tmp_cmd_list}_9 | sort | parallel --jobs 9 -I{}  {}
 
 #rm -f ${tmp_cmd_list}_1
 #rm -f ${tmp_cmd_list}_2
@@ -275,4 +321,9 @@ cat ${tmp_cmd_list}_1 | sort | parallel --jobs 1 -I{} echo {}
 #
 #also align the pop file to itself, because the coordinates extracted from gdalwarp are rounded, and not precise enough for exact_extract:
 #gdalwarp -co COMPRESS=DEFLATE -overwrite -tap -s_srs EPSG:4326 -t_srs EPSG:4326 -te 28.861969 -2.8399016 30.8991914 -1.0476792 -tr 0.0002777777999727297086 -0.0002777778000619963018 /home/rafd/data/hrea/HREA_COGs/Rwanda_pop.tif /home/rafd/data/hrea/HREA_COGs/Rwanda_pop_aligned.tif
+
+
+#check for files with no valid data
+#ls -1 */*tif|parallel -I{} gdalinfo -hist {} 2>&1|grep 'VALID\|Files' &> gdalinfo.txt
+#cat gdalinfo.txt |grep -B1 'STATISTICS_VALID_PERCENT=0$'| tr  -s ' '|tr "\n" '@' |sed 's/@ STAT/ STAT/g'|tr '@' "\n"
 

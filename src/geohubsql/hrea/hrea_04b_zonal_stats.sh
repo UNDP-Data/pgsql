@@ -4,6 +4,7 @@ homedir=$(realpath ~)
 data_dir="$homedir"'/data/hrea/'
 pop_dir="$data_dir"'HREA_COGs/'
 adm_base_dir="$homedir"'/data/boundaries/adm'
+weighted_dir="$homedir"'/data/hrea/hrea_weighted/'
 #base_dir="$homedir""/Downloads/admin-levels_/"
 #hrea_dir="$base_dir""HREA/"
 #adm2_dir="$data_dir""gadm_adm2_by_country_4326/"
@@ -32,7 +33,6 @@ for this_level in "${levels_to_extract[@]}"; do
   echo '# '"Outputs from $gadm_per_country_level_dir will be created in $hrea_csv_dir"
   mkdir -p "$hrea_csv_dir"
 
-
   #cd admin-levels_/gadm_adm2_by_country
   #ls -1|sed 's/.gpkg//g'|awk '{print "ogrinfo "$1".gpkg -sql @ALTER TABLE "$1" DROP COLUMN nofv@"}'|tr '@' '"'
   #ls -1|sed 's/.gpkg//g'|awk '{print "ogrinfo "$1".gpkg -sql @ALTER TABLE "$1" DROP COLUMN GID_1b@"}'|tr '@' '"'
@@ -47,10 +47,10 @@ for this_level in "${levels_to_extract[@]}"; do
   # exactextract seems not to like particularly binary masks (i.e. raster with 1-byte values), like the hrea and no_hrea series,
   # for weighting purposes.
   # for example:
-  #    hrea_2020_wsum=weighted_sum(pop,hrea_2020_rst)
+  #    hrea_2020_wsum=sum(pop,hrea_2020_rst)
   # failes most of the times, producing "nan"
   # while:
-  #    hrea_2020_wsum=weighted_sum(hrea_2020_rst,pop)
+  #    hrea_2020_wsum=sum(hrea_2020_rst)
   # works.
   #
   # also, it might have troubles with polygons containing rings (holes)
@@ -59,8 +59,11 @@ for this_level in "${levels_to_extract[@]}"; do
 
 #~/data/boundaries/adm3/adm3_ZWE.gpkg
 
+
+
 cat "$country_lut" |  tr ',' ' ' | grep -v "COG\|GAB\|GNQ\|STP\|MNG\|MUS\|TJK\|FSM\|BRN\|RWA" | awk \
   -v this_series="$this_series" \
+  -v weighted_dir="${weighted_dir}" \
   -v gadm_per_country_level_dir="$gadm_per_country_level_dir" \
   -v this_level="$this_level" \
   -v hrea_csv_dir="$hrea_csv_dir" \
@@ -74,43 +77,43 @@ cat "$country_lut" |  tr ',' ' ' | grep -v "COG\|GAB\|GNQ\|STP\|MNG\|MUS\|TJK\|F
 "-p @"gadm_per_country_level_dir"adm"this_level"_"$1".gpkg@ -f @GID_"this_level"@ " \
 "-o @"hrea_csv_dir""this_series"_"$1".csv@ " \
 "-r @pop:"pop_dir""$2"_pop.tif@ " \
-"-r @hrea_2012_rst:"thr_dir""$2"/"$2"_2012_hrea.tif@ " \
-"-r @hrea_2013_rst:"thr_dir""$2"/"$2"_2013_hrea.tif@ " \
-"-r @hrea_2014_rst:"thr_dir""$2"/"$2"_2014_hrea.tif@ " \
-"-r @hrea_2015_rst:"thr_dir""$2"/"$2"_2015_hrea.tif@ " \
-"-r @hrea_2016_rst:"thr_dir""$2"/"$2"_2016_hrea.tif@ " \
-"-r @hrea_2017_rst:"thr_dir""$2"/"$2"_2017_hrea.tif@ " \
-"-r @hrea_2018_rst:"thr_dir""$2"/"$2"_2018_hrea.tif@ " \
-"-r @hrea_2019_rst:"thr_dir""$2"/"$2"_2019_hrea.tif@ " \
-"-r @hrea_2020_rst:"thr_dir""$2"/"$2"_2020_hrea.tif@ " \
-"-r @no_hrea_2012_rst:"thr_dir""$2"/"$2"_2012_no_hrea.tif@ " \
-"-r @no_hrea_2013_rst:"thr_dir""$2"/"$2"_2013_no_hrea.tif@ " \
-"-r @no_hrea_2014_rst:"thr_dir""$2"/"$2"_2014_no_hrea.tif@ " \
-"-r @no_hrea_2015_rst:"thr_dir""$2"/"$2"_2015_no_hrea.tif@ " \
-"-r @no_hrea_2016_rst:"thr_dir""$2"/"$2"_2016_no_hrea.tif@ " \
-"-r @no_hrea_2017_rst:"thr_dir""$2"/"$2"_2017_no_hrea.tif@ " \
-"-r @no_hrea_2018_rst:"thr_dir""$2"/"$2"_2018_no_hrea.tif@ " \
-"-r @no_hrea_2019_rst:"thr_dir""$2"/"$2"_2019_no_hrea.tif@ " \
-"-r @no_hrea_2020_rst:"thr_dir""$2"/"$2"_2020_no_hrea.tif@ " \
+"-r @hrea_2012_rst:"weighted_dir""$2"/"$2"_2012_hrea_w.tif@ " \
+"-r @hrea_2013_rst:"weighted_dir""$2"/"$2"_2013_hrea_w.tif@ " \
+"-r @hrea_2014_rst:"weighted_dir""$2"/"$2"_2014_hrea_w.tif@ " \
+"-r @hrea_2015_rst:"weighted_dir""$2"/"$2"_2015_hrea_w.tif@ " \
+"-r @hrea_2016_rst:"weighted_dir""$2"/"$2"_2016_hrea_w.tif@ " \
+"-r @hrea_2017_rst:"weighted_dir""$2"/"$2"_2017_hrea_w.tif@ " \
+"-r @hrea_2018_rst:"weighted_dir""$2"/"$2"_2018_hrea_w.tif@ " \
+"-r @hrea_2019_rst:"weighted_dir""$2"/"$2"_2019_hrea_w.tif@ " \
+"-r @hrea_2020_rst:"weighted_dir""$2"/"$2"_2020_hrea_w.tif@ " \
+"-r @no_hrea_2012_rst:"weighted_dir""$2"/"$2"_2012_no_hrea_w.tif@ " \
+"-r @no_hrea_2013_rst:"weighted_dir""$2"/"$2"_2013_no_hrea_w.tif@ " \
+"-r @no_hrea_2014_rst:"weighted_dir""$2"/"$2"_2014_no_hrea_w.tif@ " \
+"-r @no_hrea_2015_rst:"weighted_dir""$2"/"$2"_2015_no_hrea_w.tif@ " \
+"-r @no_hrea_2016_rst:"weighted_dir""$2"/"$2"_2016_no_hrea_w.tif@ " \
+"-r @no_hrea_2017_rst:"weighted_dir""$2"/"$2"_2017_no_hrea_w.tif@ " \
+"-r @no_hrea_2018_rst:"weighted_dir""$2"/"$2"_2018_no_hrea_w.tif@ " \
+"-r @no_hrea_2019_rst:"weighted_dir""$2"/"$2"_2019_no_hrea_w.tif@ " \
+"-r @no_hrea_2020_rst:"weighted_dir""$2"/"$2"_2020_no_hrea_w.tif@ " \
 "-s @pop_sum=sum(pop)@ " \
-"-s @hrea_2012_wsum=weighted_sum(hrea_2012_rst,pop)@ " \
-"-s @hrea_2013_wsum=weighted_sum(hrea_2013_rst,pop)@ " \
-"-s @hrea_2014_wsum=weighted_sum(hrea_2014_rst,pop)@ " \
-"-s @hrea_2015_wsum=weighted_sum(hrea_2015_rst,pop)@ " \
-"-s @hrea_2016_wsum=weighted_sum(hrea_2016_rst,pop)@ " \
-"-s @hrea_2017_wsum=weighted_sum(hrea_2017_rst,pop)@ " \
-"-s @hrea_2018_wsum=weighted_sum(hrea_2018_rst,pop)@ " \
-"-s @hrea_2019_wsum=weighted_sum(hrea_2019_rst,pop)@ " \
-"-s @hrea_2020_wsum=weighted_sum(hrea_2020_rst,pop)@ " \
-"-s @no_hrea_2012_wsum=weighted_sum(no_hrea_2012_rst,pop)@ " \
-"-s @no_hrea_2013_wsum=weighted_sum(no_hrea_2013_rst,pop)@ " \
-"-s @no_hrea_2014_wsum=weighted_sum(no_hrea_2014_rst,pop)@ " \
-"-s @no_hrea_2015_wsum=weighted_sum(no_hrea_2015_rst,pop)@ " \
-"-s @no_hrea_2016_wsum=weighted_sum(no_hrea_2016_rst,pop)@ " \
-"-s @no_hrea_2017_wsum=weighted_sum(no_hrea_2017_rst,pop)@ " \
-"-s @no_hrea_2018_wsum=weighted_sum(no_hrea_2018_rst,pop)@ " \
-"-s @no_hrea_2019_wsum=weighted_sum(no_hrea_2019_rst,pop)@ " \
-"-s @no_hrea_2020_wsum=weighted_sum(no_hrea_2020_rst,pop)@ " \
+"-s @hrea_2012_wsum=sum(hrea_2012_rst)@ " \
+"-s @hrea_2013_wsum=sum(hrea_2013_rst)@ " \
+"-s @hrea_2014_wsum=sum(hrea_2014_rst)@ " \
+"-s @hrea_2015_wsum=sum(hrea_2015_rst)@ " \
+"-s @hrea_2016_wsum=sum(hrea_2016_rst)@ " \
+"-s @hrea_2017_wsum=sum(hrea_2017_rst)@ " \
+"-s @hrea_2018_wsum=sum(hrea_2018_rst)@ " \
+"-s @hrea_2019_wsum=sum(hrea_2019_rst)@ " \
+"-s @hrea_2020_wsum=sum(hrea_2020_rst)@ " \
+"-s @no_hrea_2012_wsum=sum(no_hrea_2012_rst)@ " \
+"-s @no_hrea_2013_wsum=sum(no_hrea_2013_rst)@ " \
+"-s @no_hrea_2014_wsum=sum(no_hrea_2014_rst)@ " \
+"-s @no_hrea_2015_wsum=sum(no_hrea_2015_rst)@ " \
+"-s @no_hrea_2016_wsum=sum(no_hrea_2016_rst)@ " \
+"-s @no_hrea_2017_wsum=sum(no_hrea_2017_rst)@ " \
+"-s @no_hrea_2018_wsum=sum(no_hrea_2018_rst)@ " \
+"-s @no_hrea_2019_wsum=sum(no_hrea_2019_rst)@ " \
+"-s @no_hrea_2020_wsum=sum(no_hrea_2020_rst)@ " \
 "; fi" \
 }' |tr '@' '"'
 
@@ -140,15 +143,15 @@ country_name=$(grep "$country" "$country_lut"|head -1|cut -d',' -f2)
 #echo "filtering $country $country_name $year"
 
 #remove relevant "-r" lines:
-sed -i '\#'${country}'#s#-r "hrea_'${year}'_rst:'${thr_dir}${country_name}'/'${country_name}'_'${year}'_hrea.tif"##g' "$tmp_file"
-sed -i '\#'${country}'#s#-r "no_hrea_'${year}'_rst:'${thr_dir}${country_name}'/'${country_name}'_'${year}'_no_hrea.tif"##g' "$tmp_file"
+sed -i '\#'${country}'#s#-r "hrea_'${year}'_rst:'${thr_dir}${country_name}'/'${country_name}'_'${year}'_hrea_w.tif"##g' "$tmp_file"
+sed -i '\#'${country}'#s#-r "no_hrea_'${year}'_rst:'${thr_dir}${country_name}'/'${country_name}'_'${year}'_no_hrea_w.tif"##g' "$tmp_file"
 
 #change this:
-#hrea_2019_wsum=weighted_sum(hrea_2019_rst,pop)
+#hrea_2019_wsum=sum(hrea_2019_rst)
 #into this:
 #hrea_2019_wsum=min(pop)
-sed -i '/'${country}'/s/hrea_'${year}'_wsum\=weighted_sum(hrea_'${year}'_rst,pop)/hrea_'${year}'_wsum\=min(pop)/g' "$tmp_file"
-sed -i '/'${country}'/s/no_hrea_'${year}'_wsum\=weighted_sum(no_hrea_'${year}'_rst,pop)/no_hrea_'${year}'_wsum\=count(pop)/g' "$tmp_file"
+sed -i '/'${country}'/s/hrea_'${year}'_wsum\=sum(hrea_'${year}'_rst)/hrea_'${year}'_wsum\=min(pop)/g' "$tmp_file"
+sed -i '/'${country}'/s/no_hrea_'${year}'_wsum\=sum(no_hrea_'${year}'_rst)/no_hrea_'${year}'_wsum\=min(pop)/g' "$tmp_file"
 
 
 }
@@ -208,10 +211,10 @@ filter_exception 'MUS' '2020'
 #
 #    echo "$this_year"
 #    this_country='Rwanda'
-#    #mv "$thr_dir"Rwanda_"$this_year"_hrea.tif "$thr_dir"Rwanda_"$this_year"_hrea.tif
-#    echo gdal_calc.py -A "$thr_dir""$this_country"'/'"$this_country""_""$this_year""_hrea.tif -B " "$gadm_per_country_level_dir""$this_country"'_pop.tif --calc="A*B"'"  --outfile ""$thr_dir""$this_country"'/'"$this_country""_""$this_year""_hrea_wpop.tif"|parallel -I{} {}
-#    #gdal_calc.py -A $thr_dir$this_country'/'$this_country"_"$this_year"_hrea.tif -B "$gadm_per_country_level_dir$this_country'_pop.tif --calc="A*B"  --outfile '$thr_dir$this_country'/'$this_country"_"$this_year"_hrea_wpop.tif"
-#    echo gdal_calc.py -A "$thr_dir""$this_country"'/'"$this_country""_""$this_year""_no_hrea.tif -B " "$gadm_per_country_level_dir""$this_country"'_pop.tif --calc="A*B"'"  --outfile ""$thr_dir""$this_country"'/'"$this_country""_""$this_year""_no_hrea_wpop.tif"|parallel -I{} {}
+#    #mv "$thr_dir"Rwanda_"$this_year"_hrea_w.tif "$thr_dir"Rwanda_"$this_year"_hrea_w.tif
+#    echo gdal_calc.py -A "$thr_dir""$this_country"'/'"$this_country""_""$this_year""_hrea_w.tif -B " "$gadm_per_country_level_dir""$this_country"'_pop.tif --calc="A*B"'"  --outfile ""$thr_dir""$this_country"'/'"$this_country""_""$this_year""_hrea_wpop.tif"|parallel -I{} {}
+#    #gdal_calc.py -A $thr_dir$this_country'/'$this_country"_"$this_year"_hrea_w.tif -B "$gadm_per_country_level_dir$this_country'_pop.tif --calc="A*B"  --outfile '$thr_dir$this_country'/'$this_country"_"$this_year"_hrea_wpop.tif"
+#    echo gdal_calc.py -A "$thr_dir""$this_country"'/'"$this_country""_""$this_year""_no_hrea_w.tif -B " "$gadm_per_country_level_dir""$this_country"'_pop.tif --calc="A*B"'"  --outfile ""$thr_dir""$this_country"'/'"$this_country""_""$this_year""_no_hrea_wpop.tif"|parallel -I{} {}
 #
 #done
 #
@@ -225,7 +228,7 @@ filter_all_exceptions
 
 debug_country 'MUS'
 
-cat "$tmp_file"|parallel --jobs 3 -I{} echo {}
+cat "$tmp_file"|parallel --jobs 2 -I{} {} > "$data_dir"'hrea_outputs/hrea_csv/hrea02a_zonal_stats_'$(date +%y%m%d_%H%M%S)'.log'
 
 #rm -f "$tmp_file"
 
