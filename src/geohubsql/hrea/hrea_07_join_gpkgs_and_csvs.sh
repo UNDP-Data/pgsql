@@ -54,7 +54,15 @@ for level in "${levels_to_extract[@]}"; do
 
   echo ${boundaries_dir}adm${level}_minimal_joined.gpkg
 
-  ogr2ogr -f GPKG ${boundaries_dir}adm${level}_minimal_joined.gpkg ${boundaries_dir}adm${level}_minimal.gpkg -nln adm${level}_polygons -dialect sqlite -sql "SELECT vectors.geom, vectors.GID_0, vectors.COUNTRY, vectors.GID_1, vectors.NAME_1, vectors.GID_2, vectors.NAME_1, vectors.GID_3, vectors.NAME_3, csv.* FROM adm${level}_polygons AS vectors JOIN hrea AS csv ON vectors.GID_${level} = csv.adm${level} "
+  ogr2ogr -f GPKG ${boundaries_dir}adm${level}_minimal_joined.gpkg ${boundaries_dir}adm${level}_minimal.gpkg -nln adm${level}_polygons -dialect sqlite -sql \
+  "SELECT vectors.geom, \
+  vectors.GID_0 as adm0_id, vectors.COUNTRY as adm0_name, \
+  vectors.GID_1 as adm1_id, vectors.NAME_1 as adm1_name, \
+  vectors.GID_2 as adm2_id, vectors.NAME_2 as adm2_name, \
+  vectors.GID_3 as adm3_id, vectors.NAME_3 as adm3_name, \
+  csv.* FROM adm${level}_polygons AS vectors \
+  JOIN hrea AS csv \
+  ON vectors.GID_${level} = csv.adm${level} "
 
 #  "SELECT vectors.geom, vectors.GID_0, vectors.COUNTRY, vectors.GID_1, vectors.NAME_1, vectors.GID_2, vectors.NAME_1, vectors.GID_3, vectors.NAME_3, csv.* FROM adm${level}_polygons AS vectors JOIN hrea AS csv ON vectors.GID_${level} = csv.adm${level} WHERE vectors.GID_0=\"ZWE\""
 
