@@ -101,6 +101,7 @@ for level in "${levels_to_extract[@]}"; do
 #  echo country_array_0 ${country_array[0]}
 #  echo country_array_1 ${country_array[1]}
 
+  #extract the 'minimal' gpkg, containing all and only adm${level} Countries
   ogr2ogr -f GPKG ${boundaries_dir}adm${level}_minimal.gpkg -nln adm${level}_polygons -dialect sqlite -sql 'SELECT * FROM ADM_'${level}' WHERE GID_0 IN ('${list}')' "$boundaries_dir"gadm_410-levels.gpkg
 
   available_in_gadm=$(ogrinfo -dialect sqlite -sql 'SELECT distinct (GID_0) as noff FROM ADM_4' "${boundaries_dir}"gadm_410-levels.gpkg|grep 'noff (String) ='|tr -s ' '|sed 's/ noff (String) = //g'| tr "\n" ' ')
