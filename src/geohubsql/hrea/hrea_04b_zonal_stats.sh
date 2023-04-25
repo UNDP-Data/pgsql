@@ -21,7 +21,7 @@ country_lut="$data_dir"'adm0_names_lut.csv'
 this_series='hrea'
 
 #levels_to_extract=(3 4 5)
-levels_to_extract=(3)
+levels_to_extract=(3 4)
 
 function prepare_exact_extract_commands(){
 

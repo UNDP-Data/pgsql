@@ -20,7 +20,7 @@ available_pop=/tmp/pop_tif_"${this_pid}".txt
 all_countries=/tmp/all_countries_lut.txt
 available_pop_with_fullname=/tmp/available_pop_with_fullname.txt
 
-levels_to_extract=(3 4 5)
+levels_to_extract=(4)
 
 #wget https://geodata.ucdavis.edu/gadm/gadm4.1/gadm_410-levels.zip
 
@@ -90,15 +90,40 @@ outdir,this_level,iso3,iso3,iso3,boundaries_dir}'|parallel --jobs 2 -I{} {}
 done
 }
 
-levels_to_extract=(1 2 3 4)
-levels_to_extract=(3)
 
 for level in "${levels_to_extract[@]}"; do
 
   echo "Extracting admin level ${level}: "
   list=$(available_countries "${level}")
-  echo -e ${list}"\n"
+
+  echo -e 'List of available Countries: ' ${list}"\n"
+  country_array=($(echo ${list}|tr -d '"'|tr ',' ' '))
+#  echo country_array_0 ${country_array[0]}
+#  echo country_array_1 ${country_array[1]}
 
   ogr2ogr -f GPKG ${boundaries_dir}adm${level}_minimal.gpkg -nln adm${level}_polygons -dialect sqlite -sql 'SELECT * FROM ADM_'${level}' WHERE GID_0 IN ('${list}')' "$boundaries_dir"gadm_410-levels.gpkg
 
+  available_in_gadm=$(ogrinfo -dialect sqlite -sql 'SELECT distinct (GID_0) as noff FROM ADM_4' "${boundaries_dir}"gadm_410-levels.gpkg|grep 'noff (String) ='|tr -s ' '|sed 's/ noff (String) = //g'| tr "\n" ' ')
+  echo "Countries available_in_gadm: ${available_in_gadm}"
+
+  array_available_in_gadm=($(echo ${available_in_gadm}))
+
+  for this_country in "${country_array[@]}"; do
+
+    if [[ " ${array_available_in_gadm[*]} " =~ "${this_country}" ]]; then
+#       echo ogrinfo -dialect sqlite -sql 'SELECT count(*) as noff FROM ADM_4 WHERE GID_0="'${this_country}'";' /home/rafd/data/boundaries/gadm_410-levels.gpkg
+       noff=$(ogrinfo -dialect sqlite -sql 'SELECT count(*) as noff FROM ADM_4 WHERE GID_0="'${this_country}'";' /home/rafd/data/boundaries/gadm_410-levels.gpkg|grep noff|grep '='|tr -s ' '|sed 's/ noff (Integer) = //g')
+
+       echo ${this_country} ${noff}
+
+       if [ ${noff} -gt 0 ]; then
+         echo 'creating '${boundaries_dir}adm${level}/adm${level}_${this_country}'.gpkg'
+         ogr2ogr -f GPKG "${boundaries_dir}"adm"${level}"/adm"${level}"_"${this_country}".gpkg -nln adm"${level}"_polygons -dialect sqlite -sql 'SELECT * FROM ADM_'${level}' WHERE GID_0="'${this_country}'";' "$boundaries_dir"gadm_410-levels.gpkg
+      fi
+
+  fi
+
+  done
+
 done
+
