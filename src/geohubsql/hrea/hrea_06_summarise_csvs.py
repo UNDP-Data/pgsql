@@ -164,4 +164,5 @@ def summarise_by_level_from_adm34(adm_level, adm_number):
 # summarise_by_level_from_adm2('adm1',1)
 # summarise_by_level_from_adm2('adm2',2)
 summarise_by_level_from_adm34('adm3', 3)
+summarise_by_level_from_adm34('adm4', 4)
 # summarise_by_level('adm3',3)

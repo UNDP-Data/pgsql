@@ -80,8 +80,6 @@ ogr2ogr -t_srs 'EPSG:4326' -f GPKG -nln adm3_polygons -dialect SQLITE -sql 'SELE
 #append the adm2 excerpt to the recipient file:
 ogr2ogr -t_srs 'EPSG:4326' -f GPKG -update -append -nln adm3_polygons "${out3_file}" "${adm2_filler}"
 
-
-
 echo "Created: ${out3_file}"
 ogrinfo -geom=NO -dialect SQLITE -sql 'SELECT count(*) as noff FROM adm3_polygons' "${adm3_input}"  | grep noff | grep '='
 ogrinfo -geom=NO -dialect SQLITE -sql 'SELECT count(*) as noff FROM adm2_polygons' "${out2_file}"   | grep noff | grep '='
@@ -115,8 +113,6 @@ ogr2ogr -t_srs 'EPSG:4326' -f GPKG -nln adm4_polygons -dialect SQLITE -sql 'SELE
 
 #append the adm3 excerpt to the recipient file:
 ogr2ogr -t_srs 'EPSG:4326' -f GPKG -update -append -nln adm4_polygons "${out4_file}" "${adm3_filler}"
-
-
 
 echo "Created: ${out4_file}"
 ogrinfo -geom=NO -dialect SQLITE -sql 'SELECT count(*) as noff FROM adm4_polygons' "${adm4_input}"  | grep noff | grep '='
