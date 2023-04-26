@@ -23,7 +23,7 @@ this_pid="$$"
 
 #levels_to_extract=(0 1 2 3 4)
 
-levels_to_extract=(3)
+levels_to_extract=(3 4)
 
 for level in "${levels_to_extract[@]}"; do
 

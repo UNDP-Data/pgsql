@@ -225,7 +225,7 @@ function sub_create_commands(){
     " -A "lightscore_file \
     " -B "pop_file \
     " --outfile="weighted_file \
-    " --calc=@(A>0.8)*B@; \
+    " --calc=@(A>=0.8)*B@; \
     gdalinfo -hist "weighted_file"; \
     fi"}'|tr '@' '"' >> $outfile
 
@@ -246,7 +246,7 @@ function sub_create_commands(){
     " -A "lightscore_file \
     " -B "pop_file \
     " --outfile="weighted_file \
-    " --calc=@(A<=0.8)*B@; \
+    " --calc=@(A<0.8)*B@; \
     gdalinfo -hist "weighted_file"; \
     fi"}'|tr '@' '"' >> $outfile
 

@@ -21,7 +21,7 @@ country_lut="$data_dir"'adm0_names_lut.csv'
 this_series='hrea'
 
 #levels_to_extract=(3 4 5)
-levels_to_extract=(3)
+levels_to_extract=(4)
 
 function prepare_exact_extract_commands(){
 
@@ -61,7 +61,7 @@ for this_level in "${levels_to_extract[@]}"; do
 
 
 
-cat "$country_lut" |  tr ',' ' ' | grep -v "COG\|GAB\|GNQ\|STP\|MNG\|MUS\|TJK\|FSM\|BRN\|RWA" | awk \
+cat "$country_lut" |  tr ',' ' ' | grep -v "COG\|GAB\|GNQ\|STP\|MNG\|MUS\|TJK\|FSM\|BRN\|RWA"| awk \
   -v this_series="$this_series" \
   -v weighted_dir="${weighted_dir}" \
   -v gadm_per_country_level_dir="$gadm_per_country_level_dir" \
@@ -202,6 +202,15 @@ filter_exception 'MUS' '2018'
 filter_exception 'MUS' '2019'
 filter_exception 'MUS' '2020'
 
+idn_str=$(grep IDN "$tmp_file"|grep adm4)
+if [ ${#idn_str} -gt 0 ]; then
+  sed -i '/IDN/d' "$tmp_file"
+  #echo ${idn_str}
+  echo ${idn_str} | sed 's/IDN.gpkg/IDN1.gpkg/g' | sed 's/IDN.csv/IDN1.csv/g' >> "$tmp_file"
+  echo ${idn_str} | sed 's/IDN.gpkg/IDN2.gpkg/g' | sed 's/IDN.csv/IDN2.csv/g' >> "$tmp_file"
+  echo ${idn_str} | sed 's/IDN.gpkg/IDN3.gpkg/g' | sed 's/IDN.csv/IDN3.csv/g' >> "$tmp_file"
+  echo ${idn_str} | sed 's/IDN.gpkg/IDN4.gpkg/g' | sed 's/IDN.csv/IDN4.csv/g' >> "$tmp_file"
+fi
 }
 
 # Rwanda could not be processed like all other Countries, and needed to be pre-processed with gdal_calc.
@@ -224,11 +233,14 @@ echo "Writing to: $tmp_file"
 
 prepare_exact_extract_commands > "$tmp_file"
 
+
+echo "Filtering exceptions"
+
 filter_all_exceptions
 
 debug_country 'MUS'
 
-cat "$tmp_file"|parallel --jobs 2 -I{} {} > "$data_dir"'hrea_outputs/hrea_csv/hrea02a_zonal_stats_'$(date +%y%m%d_%H%M%S)'.log'
+cat "$tmp_file"|parallel --jobs 1 -I{} echo {} > "$data_dir"'hrea_outputs/hrea_csv/hrea02a_zonal_stats_'$(date +%y%m%d_%H%M%S)'.log'
 
 #rm -f "$tmp_file"
 
