@@ -37,12 +37,15 @@ The scripts are the following, and need to be run in the proposed order:
 
 ```
 # example workflow:
-> time bash hrea_00_azure_lightscore_downloader.py
-> time bash hrea_01_calculate_thresholds.sh
-> time bash hrea_02_zonal_stats.sh
-> time bash hrea_03_combine_csvs.sh
-> time pipenv run python3 hrea_04_summarise_csvs.py
-> time bash hrea_05_create_pbfs.sh
+> time pipenv run python hrea_01_azure_lightscore_downloader.py
+> time bash hrea_02_extract_from_gadm.sh
+> time bash hrea_03a_calculate_thresholds.sh
+> time bash hrea_04a_zonal_stats.sh
+> time bash hrea_05_combine_csvs.sh
+> time pipenv run python hrea_06_summarise_csvs.py
+> time bash hrea_07_join_gpkgs_and_csvs.sh
+> time bash hrea_08_merge_adm_levels.sh
+> time bash hrea_09_create_pbfs.sh
 ```
 
 exacetextract bug workaround
@@ -59,12 +62,15 @@ Once exactextract's bug is fixed, these variants will be considered obsolete.
 
 ```
 # example workflow:
-> time bash hrea_00_azure_lightscore_downloader.py
-> time bash hrea_01a_calculate_thresholds.sh
-> time bash hrea_02a_zonal_stats.sh
-> time bash hrea_03_combine_csvs.sh
-> time pipenv run python3 hrea_04_summarise_csvs.py
-> time bash hrea_05_create_pbfs.sh
+> time pipenv run python hrea_01_azure_lightscore_downloader.py
+> time bash hrea_02_extract_from_gadm.sh
+> time bash hrea_03b_calculate_weighted.sh
+> time bash hrea_04b_zonal_stats.sh
+> time bash hrea_05_combine_csvs.sh
+> time pipenv run python hrea_06_summarise_csvs.py
+> time bash hrea_07_join_gpkgs_and_csvs.sh
+> time bash hrea_08_merge_adm_levels.sh
+> time bash hrea_09_create_pbfs.sh
 ```
 
 

@@ -34,7 +34,7 @@ for level in "${levels_to_extract[@]}"; do
 
 
   head -q -n1 "$hrea_csv_dir"hrea_???.csv | grep  'GID_'${field_level} | head -n1 > "$all_countries_csv"
-  cat "$hrea_csv_dir"hrea_???.csv |grep -v 'GID_'${field_level} | sed 's/-nan/nan/g'| sed 's/nan/0/g'| sed 's/,,/,0,/g'| sed 's/,,/,0,/g'| sed 's/,,/,0,/g'| sed 's/,$/,0/g' >> "$all_countries_csv"
+  cat "$hrea_csv_dir"hrea_???.csv "$hrea_csv_dir"hrea_???[1234].csv |grep -v 'GID_'${field_level} | sed 's/-nan/nan/g'| sed 's/nan/0/g'| sed 's/,,/,0,/g'| sed 's/,,/,0,/g'| sed 's/,,/,0,/g'| sed 's/,$/,0/g' >> "$all_countries_csv"
 
 
   #fix GHA: GHA1 -> GHA.1 // skip: fixed the original gpkg
