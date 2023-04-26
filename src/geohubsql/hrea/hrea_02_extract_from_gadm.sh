@@ -119,15 +119,15 @@ for level in "${levels_to_extract[@]}"; do
 
        if [ ${noff} -gt 0 -a ${noff} -lt 52000  ]; then
          echo 'creating: '${boundaries_dir}adm${level}/adm${level}_${this_country}'.gpkg'
-         ogr2ogr -f GPKG "${boundaries_dir}"adm"${level}"/adm"${level}"_"${this_country}".gpkg -nln adm"${level}"_polygons -dialect sqlite -sql 'SELECT * FROM ADM_'${level}' WHERE GID_0="'${this_country}'";' "$boundaries_dir"gadm_410-levels.gpkg
+         ogr2ogr -f GPKG "${boundaries_dir}"adm"${level}"/adm"${level}"_"${this_country}".gpkg -nln adm"${level}"_polygons -dialect sqlite -sql 'SELECT * FROM ADM_'${level}' WHERE GID_0="'${this_country}'" order by ST_X(ST_Centroid(geom));' "$boundaries_dir"gadm_410-levels.gpkg
        fi
 
        if [ ${noff} -ge 52000 ]; then
          echo 'splitting: '${boundaries_dir}adm${level}/adm${level}_${this_country}'.gpkg'
-         ogr2ogr -f GPKG "${boundaries_dir}"adm"${level}"/adm"${level}"_"${this_country}"1.gpkg -nln adm"${level}"_polygons -dialect sqlite -sql 'SELECT * FROM ADM_'${level}' WHERE GID_0="'${this_country}'" order by ST_Centroid(geom) LIMIT 20000;' "$boundaries_dir"gadm_410-levels.gpkg
-         ogr2ogr -f GPKG "${boundaries_dir}"adm"${level}"/adm"${level}"_"${this_country}"2.gpkg -nln adm"${level}"_polygons -dialect sqlite -sql 'SELECT * FROM ADM_'${level}' WHERE GID_0="'${this_country}'" order by ST_Centroid(geom) LIMIT 20000 OFFSET 20000;' "$boundaries_dir"gadm_410-levels.gpkg
-         ogr2ogr -f GPKG "${boundaries_dir}"adm"${level}"/adm"${level}"_"${this_country}"3.gpkg -nln adm"${level}"_polygons -dialect sqlite -sql 'SELECT * FROM ADM_'${level}' WHERE GID_0="'${this_country}'" order by ST_Centroid(geom) LIMIT 20000 OFFSET 40000;' "$boundaries_dir"gadm_410-levels.gpkg
-         ogr2ogr -f GPKG "${boundaries_dir}"adm"${level}"/adm"${level}"_"${this_country}"3.gpkg -nln adm"${level}"_polygons -dialect sqlite -sql 'SELECT * FROM ADM_'${level}' WHERE GID_0="'${this_country}'" order by ST_Centroid(geom) LIMIT 999999999 OFFSET 60000;' "$boundaries_dir"gadm_410-levels.gpkg
+         ogr2ogr -f GPKG "${boundaries_dir}"adm"${level}"/adm"${level}"_"${this_country}"1.gpkg -nln adm"${level}"_polygons -dialect sqlite -sql 'SELECT * FROM ADM_'${level}' WHERE GID_0="'${this_country}'" order by ST_X(ST_Centroid(geom)) LIMIT 20000;' "$boundaries_dir"gadm_410-levels.gpkg
+         ogr2ogr -f GPKG "${boundaries_dir}"adm"${level}"/adm"${level}"_"${this_country}"2.gpkg -nln adm"${level}"_polygons -dialect sqlite -sql 'SELECT * FROM ADM_'${level}' WHERE GID_0="'${this_country}'" order by ST_X(ST_Centroid(geom)) LIMIT 20000 OFFSET 20000;' "$boundaries_dir"gadm_410-levels.gpkg
+         ogr2ogr -f GPKG "${boundaries_dir}"adm"${level}"/adm"${level}"_"${this_country}"3.gpkg -nln adm"${level}"_polygons -dialect sqlite -sql 'SELECT * FROM ADM_'${level}' WHERE GID_0="'${this_country}'" order by ST_X(ST_Centroid(geom)) LIMIT 20000 OFFSET 40000;' "$boundaries_dir"gadm_410-levels.gpkg
+         ogr2ogr -f GPKG "${boundaries_dir}"adm"${level}"/adm"${level}"_"${this_country}"4.gpkg -nln adm"${level}"_polygons -dialect sqlite -sql 'SELECT * FROM ADM_'${level}' WHERE GID_0="'${this_country}'" order by ST_X(ST_Centroid(geom)) LIMIT 999999999 OFFSET 60000;' "$boundaries_dir"gadm_410-levels.gpkg
 
        fi
 
