@@ -37,12 +37,15 @@ The scripts are the following, and need to be run in the proposed order:
 
 ```
 # example workflow:
-> time bash hrea_00_azure_lightscore_downloader.py
-> time bash hrea_01_calculate_thresholds.sh
-> time bash hrea_02_zonal_stats.sh
-> time bash hrea_03_combine_csvs.sh
-> time pipenv run python3 hrea_04_summarise_csvs.py
-> time bash hrea_05_create_pbfs.sh
+> time pipenv run python hrea_01_azure_lightscore_downloader.py
+> time bash hrea_02_extract_from_gadm.sh
+> time bash hrea_03a_calculate_thresholds.sh
+> time bash hrea_04a_zonal_stats.sh
+> time bash hrea_05_combine_csvs.sh
+> time pipenv run python hrea_06_summarise_csvs.py
+> time bash hrea_07_join_gpkgs_and_csvs.sh
+> time bash hrea_08_merge_adm_levels.sh
+> time bash hrea_09_create_pbfs.sh
 ```
 
 exacetextract bug workaround
@@ -59,12 +62,15 @@ Once exactextract's bug is fixed, these variants will be considered obsolete.
 
 ```
 # example workflow:
-> time bash hrea_00_azure_lightscore_downloader.py
-> time bash hrea_01a_calculate_thresholds.sh
-> time bash hrea_02a_zonal_stats.sh
-> time bash hrea_03_combine_csvs.sh
-> time pipenv run python3 hrea_04_summarise_csvs.py
-> time bash hrea_05_create_pbfs.sh
+> time pipenv run python hrea_01_azure_lightscore_downloader.py
+> time bash hrea_02_extract_from_gadm.sh
+> time bash hrea_03b_calculate_weighted.sh
+> time bash hrea_04b_zonal_stats.sh
+> time bash hrea_05_combine_csvs.sh
+> time pipenv run python hrea_06_summarise_csvs.py
+> time bash hrea_07_join_gpkgs_and_csvs.sh
+> time bash hrea_08_merge_adm_levels.sh
+> time bash hrea_09_create_pbfs.sh
 ```
 
 
@@ -84,3 +90,14 @@ Notes:
   - run tippecanoe as suggested in `hrea_05_create_pbfs.sh`
   - check the files are properly working, for example using a Vector Tile layer with an URL like: `file:///home/youruser/UNDP_NY/admin-levels_/HREA/hrea_outputs/pbfs/adm0_polygons/{z}/{x}/{y}.pbf`
   - upload the created directories into the blob container/cloud
+
+Performance notes:
+---
+
+Countries with very large extensions / very high number of features can be split up to decrease memory usage.
+In that case, the splitting shall create geographically compact gpkg files, so that exactextract can load in memory only the relevant part of the raster(s) (and it does so automatically, no need to split the rasters too)
+In `hrea_02_extract_from_gadm.sh` this is performed with:
+
+`'SELECT * FROM ADM_'${level}' WHERE GID_0="'${this_country}'" order by ST_X(ST_Centroid(geom)) LIMIT 20000;'`
+
+Processing the whole Indonesia @adm4 would require more than 64 GB of RAM, while splitting the features into 4 slices (by centroid.x) requires about 4Gb for each of the exactextract instances.

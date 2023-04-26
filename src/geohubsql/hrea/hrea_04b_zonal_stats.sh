@@ -240,9 +240,9 @@ filter_all_exceptions
 
 debug_country 'MUS'
 
-cat "$tmp_file"|parallel --jobs 1 -I{} echo {} > "$data_dir"'hrea_outputs/hrea_csv/hrea02a_zonal_stats_'$(date +%y%m%d_%H%M%S)'.log'
+cat "$tmp_file"|parallel --jobs 1 -I{} {} > "$data_dir"'hrea_outputs/hrea_csv/hrea02a_zonal_stats_'$(date +%y%m%d_%H%M%S)'.log'
 
-#rm -f "$tmp_file"
+rm -f "$tmp_file"
 
 date
 
