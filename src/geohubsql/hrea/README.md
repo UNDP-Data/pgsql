@@ -84,3 +84,14 @@ Notes:
   - run tippecanoe as suggested in `hrea_05_create_pbfs.sh`
   - check the files are properly working, for example using a Vector Tile layer with an URL like: `file:///home/youruser/UNDP_NY/admin-levels_/HREA/hrea_outputs/pbfs/adm0_polygons/{z}/{x}/{y}.pbf`
   - upload the created directories into the blob container/cloud
+
+Performance notes:
+---
+
+Countries with very large extensions / very high number of features can be split up to decrease memory usage.
+In that case, the splitting shall create geographically compact gpkg files, so that exactextract can load in memory only the relevant part of the raster(s) (and it does so automatically, no need to split the rasters too)
+In `hrea_02_extract_from_gadm.sh` this is performed with:
+
+`'SELECT * FROM ADM_'${level}' WHERE GID_0="'${this_country}'" order by ST_X(ST_Centroid(geom)) LIMIT 20000;'`
+
+Processing the whole Indonesia @adm4 would require more than 64 GB of RAM, while splitting the features into 4 slices (by centroid.x) requires about 4Gb for each of the exactextract instances.
