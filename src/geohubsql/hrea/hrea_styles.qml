@@ -2,16 +2,16 @@
 <qgis simplifyMaxScale="1" version="3.30.1-'s-Hertogenbosch" minScale="100000000" simplifyLocal="1" simplifyDrawingHints="1" hasScaleBasedVisibilityFlag="0" symbologyReferenceScale="-1" simplifyDrawingTol="1" simplifyAlgorithm="0" styleCategories="Symbology|Rendering" maxScale="0">
   <renderer-v2 forceraster="0" type="graduatedSymbol" attr="hrea_2020" enableorderby="0" referencescale="-1" symbollevels="0" graduatedMethod="GraduatedColor">
     <ranges>
-      <range upper="0.100000000000000" symbol="0" render="true" lower="0.000000000000000" label="0 - 0,1"/>
-      <range upper="0.200000000000000" symbol="1" render="true" lower="0.100000000000000" label="0,1 - 0,2"/>
-      <range upper="0.300000000000000" symbol="2" render="true" lower="0.200000000000000" label="0,2 - 0,3"/>
-      <range upper="0.400000000000000" symbol="3" render="true" lower="0.300000000000000" label="0,3 - 0,4"/>
-      <range upper="0.500000000000000" symbol="4" render="true" lower="0.400000000000000" label="0,4 - 0,5"/>
-      <range upper="0.600000000000000" symbol="5" render="true" lower="0.500000000000000" label="0,5 - 0,6"/>
-      <range upper="0.700000000000000" symbol="6" render="true" lower="0.600000000000000" label="0,6 - 0,7"/>
-      <range upper="0.800000000000000" symbol="7" render="true" lower="0.700000000000000" label="0,7 - 0,8"/>
-      <range upper="0.900000000000000" symbol="8" render="true" lower="0.800000000000000" label="0,8 - 0,9"/>
-      <range upper="1.000000000000000" symbol="9" render="true" lower="0.900000000000000" label="0,9 - 1"/>
+      <range upper="0.100000000000000" symbol="0" render="true" lower="0.000000000000000" label=">0%"/>
+      <range upper="0.200000000000000" symbol="1" render="true" lower="0.100000000000000" label=">10%"/>
+      <range upper="0.300000000000000" symbol="2" render="true" lower="0.200000000000000" label=">20%"/>
+      <range upper="0.400000000000000" symbol="3" render="true" lower="0.300000000000000" label=">30%"/>
+      <range upper="0.500000000000000" symbol="4" render="true" lower="0.400000000000000" label=">40%"/>
+      <range upper="0.600000000000000" symbol="5" render="true" lower="0.500000000000000" label=">50%"/>
+      <range upper="0.700000000000000" symbol="6" render="true" lower="0.600000000000000" label=">60%"/>
+      <range upper="0.800000000000000" symbol="7" render="true" lower="0.700000000000000" label=">70%"/>
+      <range upper="0.900000000000000" symbol="8" render="true" lower="0.800000000000000" label=">80%"/>
+      <range upper="1.000000000000000" symbol="9" render="true" lower="0.900000000000000" label=">90%"/>
     </ranges>
     <symbols>
       <symbol type="fill" frame_rate="10" name="0" is_animated="0" clip_to_extent="1" alpha="1" force_rhr="0">

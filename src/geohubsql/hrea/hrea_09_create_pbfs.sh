@@ -24,11 +24,11 @@ pbf_dir="$hrea_outputs"'pbfs/'
 mkdir -p "${geojson_dir}"
 mkdir -p "${pbf_dir}"
 
-mkdir -p "${pbf_dir}"admin0/
-mkdir -p "${pbf_dir}"admin1/
-mkdir -p "${pbf_dir}"admin2/
-mkdir -p "${pbf_dir}"admin3/
-mkdir -p "${pbf_dir}"admin4/
+#mkdir -p "${pbf_dir}"admin0/
+#mkdir -p "${pbf_dir}"admin1/
+#mkdir -p "${pbf_dir}"admin2/
+#mkdir -p "${pbf_dir}"admin3/
+#mkdir -p "${pbf_dir}"admin4/
 
 #create a line-separated GeoJSON
 #check the attributes in the gpks are correct
