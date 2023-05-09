@@ -1,0 +1,109 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Useful Tools</title>
+<link rel="shortcut icon" href="images/favicon.ico">
+ 	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/5.0.0/normalize.min.css">
+	<link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+	<link href="css/bootstrap-4.0.0.css" rel="stylesheet">
+	<link href="css/style.css" rel="stylesheet">
+	<link rel="stylesheet" type="text/css" href="css/demo.css" />
+    <link rel="stylesheet" type="text/css" href="css/style1.css" />
+	<link rel="stylesheet" type="text/css" href="css/animation.css" />
+	<link rel="stylesheet" type="text/css" href="css/picturegrid.css" />
+	<link href="css/style.css" rel="stylesheet">
+	<script type="text/javascript" src="js/modernizr.custom.86080.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+    <script src="js/blackMarble.js"></script>
+</head>
+
+<body>
+	<div class="solid" id="Tools">Useful Tools</div>
+	<div class="bg-two parallax">
+	    <!--img src="images/DMSP_Block_5D2.PNG" width="20%" height="20%" alt="DMSP 5 D-2 satellite" class="float-img-left" /-->
+	    <div class="content-text" style="font-size: 20px">
+			<p>Some useful tools and guidance using NASA's Black Marble Products</p>
+			
+		</div>
+		
+		<div class="bg-three parallax">
+			<div class="w3-container">
+						
+				<button onclick="accordion('HDF5toTIFF')" class="w3-btn w3-block w3-black w3-center-align w3-padding"><p><subtitle>HDF To GeoTiff</subtitle></p></button>
+				<P style="font-size: 80%">Python scripts to read, convert (GeoTiff), and display (QGIS) VNP46 files. If you do not have GDAL install, you can use the QGIS python console (Plugins -> Python Console) to run the script.</P>
+				
+				<div id="HDF5toTIFF" class="w3-container w3-hide"  align="left">	
+					<p></p>
+					<p>Download the source code to convert NASA's Black Marble HDF5 product to GeoTiff <i><a href="./tools/OpenHDF5.py" target="_blank" style="text-decoration: underline; color:white">HERE</a></i> and HDF4 product to GeoTiff <i><a href="./tools/OpenHDF4.py" target="_blank" style="text-decoration: underline; color:white">HERE</a></i></p>
+					
+					<p>Below are some details on using the tool
+					
+					<p>Location of the input folder containing HDF images</p>
+					<p class="code">os.chdir('C:\\InputFolder') </p>
+					<p></p>
+					
+					<p>Current script only reads the first file (if there are multiple files in the input folder).The <i>rasterFiles[ ]</i> index can be modified to select one specific file, or iterate through all files within the input folder
+					<p class="code">hdflayer = gdal.Open(rasterFiles[0], gdal.GA_ReadOnly) </p>
+					<p></p>
+					
+					<p>Reading specfic raster layer - <i>GetSubDatasets()[0][0]</i> for first layer, <i>GetSubDatasets()[1][0]</i> for second layer, and so on
+					<p class="code">hdflayer.GetSubDatasets()[0][0] </p>
+					<p></p>
+					
+					<p>Location of the folder for output images
+					<p class="code">outputFolder = "C:\\OutputFolder\\" </p>
+					<p></p>
+					
+					<p>Display output GeoTiff image in QGIS (Only if the script is executed within QGIS python Console)
+					<p class="code">iface.addRasterLayer(outputRaster, outputNameFinal) </p>
+
+					
+				</div>
+				
+				<!--
+				<p></p>
+				<button onclick="accordion('HDF4toTIFF')" class="w3-btn w3-block w3-black w3-center-align w3-padding"><p><subtitle>HDF4 To GeoTiff</subtitle></p></button>
+				
+				<div id="HDF4toTIFF" class="w3-container w3-hide"  align="left">
+					<p></p>
+					<p>Download the source code to convert NASA's Black Marble HDF4 product to GeoTiff <i><a href="./tools/OpenHDF4.py" target="_blank" style="text-decoration: underline; color:white">HERE</a></i></p>
+					<p class="code">Román, M. O.. 2018. "After the Hurricane." The Economist (April 14 Issue): </p>
+
+					
+				</div> -->
+
+			
+			</div>
+			<div class="w3-container">
+	
+				<button onclick="accordion('UnpackQFBits')" class="w3-btn w3-block w3-black w3-center-align w3-padding"><p><subtitle>Unpack QF Bits</subtitle></p></button>
+				<P style="font-size: 80%">Tool to unpack QF Mask Layer for a specific bit depth to GeoTiff.</P>
+				
+				<div id="UnpackQFBits" class="w3-container w3-hide"  align="left">	
+					<p></p>
+					<p>Access Python script to unpack QF Mask layer for a given bit range from the NASA's Black Marble VNP46A1/A2 Products into GeoTiff through <i><a href="https://github.com/BlackMarbleTools/Unpack_QF_Bits" target="_blank" style="text-decoration: underline; color:white">Black Marble GitHub Repository</a></i></p>
+
+				</div>
+		
+			</div>
+			
+			<div class="w3-container">
+	
+				<button onclick="accordion('TileGrid')" class="w3-btn w3-block w3-black w3-center-align w3-padding"><p><subtitle>Black Marble Tile Grid</subtitle></p></button>
+				<P style="font-size: 80%">Global Black Marble tile grid in vector layer.</P>
+				
+				<div id="TileGrid" class="w3-container w3-hide"  align="left">	
+					<p></p>
+					<p>Download global Black Marble Grid Reference vector layer in Shapefile format <i><a href="./tools/BlackMarbleTiles.zip" target="_blank" style="text-decoration: underline; color:white">Here</a></i></p>
+
+				</div>
+		
+			</div>
+		
+		</div>
+    </div>
+	
+</body>
+</html>
