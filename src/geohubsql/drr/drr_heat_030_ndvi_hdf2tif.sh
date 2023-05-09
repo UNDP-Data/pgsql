@@ -2,12 +2,26 @@
 
 homedir=$(realpath ~)
 data_dir="$homedir"'/data/drr/'
-adm_base_dir="$homedir"'/data/boundaries/'
-lst_dir_zips="$data_dir""eviirs_global_lst_zip/"
-lst_dir_zips_processed="$lst_dir_zips""processed/"
-lst_dir_tifs="$data_dir""eviirs_global_lst_tif/"
-drr_heat_csv_base_dir="$data_dir"'heat_outputs/heat_csv/'
+hdf_dir="$data_dir""ndvi/VNP13C2/hdf/"
+out_tif_dir="$data_dir""ndvi/VNP13C2/tif/"
+
+mkdir -p ${out_tif_dir}
+
+#VNP13C2.A2022152.001.2022193130955.h5
+#gdal_translate -f GTiff -a_srs EPSG:4326 -a_ullr -180 90 180 -90 HDF5:"VNP13C2.A2022335.001.2023013202239.h5"://HDFEOS/GRIDS/NPP_Grid_monthly_VI_CMG/Data_Fields/CMG_0.05_Deg_monthly_NDVI test.tif
+
+function extract_and_convert_from_hdf() {
+for filename in "${hdf_dir}"VNP*.h5; do
+  echo ${filename}
+  out_tif=${out_tif_dir}$(echo ${filename}|xargs -n1 basename |sed 's/h5$/tif/g')
+
+  gdal_translate -f GTiff -co COMPRESS=DEFLATE -a_srs EPSG:4326 -a_ullr -180 90 180 -90 HDF5:"${filename}"://HDFEOS/GRIDS/NPP_Grid_monthly_VI_CMG/Data_Fields/CMG_0.05_Deg_monthly_NDVI ${out_tif}
+  #pbzip2 ${filename}
+
+  echo 'Created '${out_tif}
+done
+}
+
+extract_and_convert_from_hdf
 
 
-
-gdal_translate -f GTiff -a_srs EPSG:4326 -a_ullr -180 90 180 -90 HDF5:"VNP13C2.A2022335.001.2023013202239.h5"://HDFEOS/GRIDS/NPP_Grid_monthly_VI_CMG/Data_Fields/CMG_0.05_Deg_monthly_NDVI test.tif
