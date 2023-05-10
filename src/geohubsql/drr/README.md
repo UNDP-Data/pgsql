@@ -5,8 +5,8 @@ Creates a (csv) table with all data required to compute the heat risk, at severa
 
 Input data:
 
-- LST raster maps, one per decadal
-- VHI raster maps, one per month
+- LST raster maps, one per decadal. Data source: https://earthexplorer.usgs.gov/ - search for `eVIIRS Global LST`, filenames like `EVGLSTS20230111202301201`
+- VHI raster maps, one per month. Data source: https://earthexplorer.usgs.gov/ - search for `VIIRS VNP13C2`, filenames like `VNP13C2.A2022001.001.2022046162120.h5`
 - population raster map
 - HDI vector map
 - ...
@@ -16,6 +16,8 @@ By-products:
 
 - adm_{0,1,2} vector maps of the temperature in the hottest decadal (for each decadal, the average temperature across the adm feature is computed)
 - adm_{0,1,2} vector maps of the number/DOY of the hottest decadal (for each decadal, the average temperature across the adm feature is computed)
+
+
 
 Notes:
 ---

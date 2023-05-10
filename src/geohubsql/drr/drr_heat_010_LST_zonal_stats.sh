@@ -3,15 +3,17 @@
 homedir=$(realpath ~)
 data_dir="$homedir"'/data/drr/'
 adm_base_dir="$homedir"'/data/boundaries/'
-lst_dir_zips="$data_dir""eviirs_global_lst_zip/"
+lst_dir_zips="$data_dir""heat/eviirs_global_lst_zip/"
 lst_dir_zips_processed="$lst_dir_zips""processed/"
-lst_dir_tifs="$data_dir""eviirs_global_lst_tif/"
-drr_heat_csv_base_dir="$data_dir"'heat_outputs/heat_csv/'
+lst_dir_tifs="$data_dir""heat/eviirs_global_lst_tif/"
+drr_heat_csv_base_dir="$data_dir"'heat/heat_outputs/heat_csv/'
 
 this_pid="$$"
 
 tmp_file='/dev/shm/heat_020_combined_'"$this_pid".csv
 tmp_file1='/dev/shm/heat_020_combined_'"$this_pid"_1.csv
+tmp_file2='/dev/shm/heat_020_combined_'"$this_pid"_2.csv
+
 mkdir -p ${lst_dir_tifs}
 mkdir -p ${drr_heat_csv_base_dir}
 mkdir -p ${lst_dir_zips_processed}
@@ -56,7 +58,7 @@ out_csv=${csv_out_dir}$(echo ${filename}|xargs -n1 basename|sed 's/_defl//g'|sed
     time exactextract -r "t:${filename}" -p "${adm_gpkg}" -o "${out_csv}" -s "${col_name}=mean(t)" --fid "GID_${adm_level}"
     sed -i 's/^GID_/AAAAA_GID_/g' "${out_csv}"
     echo sorting
-    sort -k 1b,1 "${out_csv}" > ${tmp_file}
+    sort -t',' -k 1b,1 "${out_csv}" > ${tmp_file}
     mv ${tmp_file} ${out_csv}
     echo "created: ${out_csv} with col_name ${col_name}"
     echo
@@ -79,14 +81,17 @@ for filename in "${csv_out_dir}"'LS'*.csv; do
   echo ${filename}
 
   if [ ${file_cnt} -eq 0 ]; then
-    cp ${filename} ${tmp_file}
+    sort -t','  -k 1b,1 ${filename} > ${tmp_file}
     file_cnt=1
   else
-    join -a 1 -t',' ${tmp_file} ${filename} > ${tmp_file1}
+    sort -t','  -k 1b,1 ${filename} > ${tmp_file2}
+    join -a 1 -t',' ${tmp_file} ${tmp_file2} > ${tmp_file1}
     mv ${tmp_file1} ${tmp_file}
+    rm -f ${tmp_file2}
   fi
 
-  sort ${tmp_file} > ${out_file}
+  #sort and round all columns from the second onwards, leaving tre header row as it is (the header row starts with `AAAAA_GID`)
+  sort -t','  -k 1b,1 ${tmp_file} |tr ',' ' '|awk '{if($1 ~ /AAAAA_G/){print $0}else{ printf $1; for (i = 2; i <= NF; i++){printf " %.2f",$i}; printf "\n"}}' > ${out_file}
 
 done
 
@@ -98,10 +103,10 @@ wc -l ${out_file}
 #extract_and_deflate_tifs
 #run_zonal_stats adm1 '/home/rafd/data/boundaries/gadm_admin1_no_1st_world_4326.gpkg'
 
-run_zonal_stats 0 '/home/rafd/data/boundaries/gadm_admin0_fixed_ordered.gpkg'
+#run_zonal_stats 0 '/home/rafd/data/boundaries/gadm_admin0_fixed_ordered.gpkg'
 #run_zonal_stats 1 '/home/rafd/data/boundaries/gadm_admin1_fixed_ordered.gpkg'
 #run_zonal_stats 2 '/home/rafd/data/boundaries/gadm_admin2_fixed_ordered.gpkg'
 
 combine_csvs 0
-#combine_csvs 1
-#combine_csvs 2
+combine_csvs 1
+combine_csvs 2
