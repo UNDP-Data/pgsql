@@ -55,8 +55,16 @@ out_csv=${csv_out_dir}$(echo ${filename}|xargs -n1 basename|sed 's/_defl//g'|sed
     #for some regions "max" yields out-of-scale results
     #time exactextract -r "t:${filename}" -p "${adm_gpkg}" -o "${out_csv}" -s "${col_name}=max(t)" --fid "GID_${adm_level}"
 
-    time exactextract -r "t:${filename}" -p "${adm_gpkg}" -o "${out_csv}" -s "${col_name}=mean(t)" --fid "GID_${adm_level}"
-    sed -i 's/^GID_/AAAAA_GID_/g' "${out_csv}"
+    #GADM:
+    #time exactextract -r "t:${filename}" -p "${adm_gpkg}" -o "${out_csv}" -s "${col_name}=mean(t)" --fid "GID_${adm_level}"
+    #sed -i 's/^GID_/AAAAA_GID_/g' "${out_csv}"
+
+    #GDL:
+    export GDAL_CACHEMAX=5000;
+    time exactextract -r "t:${filename}" -p "${adm_gpkg}" -o "${out_csv}" -s "${col_name}=mean(t)" --fid "gdlcode"
+    sed -i 's/^gdlcode/AAAAA_Gdlcode/g' "${out_csv}"
+
+
     echo sorting
     sort -t',' -k 1b,1 "${out_csv}" > ${tmp_file}
     mv ${tmp_file} ${out_csv}
@@ -101,12 +109,14 @@ wc -l ${out_file}
 }
 
 #extract_and_deflate_tifs
-#run_zonal_stats adm1 '/home/rafd/data/boundaries/gadm_admin1_no_1st_world_4326.gpkg'
+#run_zonal_stats adm1 ${homedir}'/data/boundaries/gadm_admin1_no_1st_world_4326.gpkg'
 
-#run_zonal_stats 0 '/home/rafd/data/boundaries/gadm_admin0_fixed_ordered.gpkg'
-#run_zonal_stats 1 '/home/rafd/data/boundaries/gadm_admin1_fixed_ordered.gpkg'
-#run_zonal_stats 2 '/home/rafd/data/boundaries/gadm_admin2_fixed_ordered.gpkg'
+#run_zonal_stats 0 ${homedir}'/data/boundaries/gadm_admin0_fixed_ordered.gpkg'
+#run_zonal_stats 1 ${homedir}'/data/boundaries/gadm_admin1_fixed_ordered.gpkg'
+#run_zonal_stats 2 ${homedir}'/data/boundaries/gadm_admin2_fixed_ordered.gpkg'
 
-combine_csvs 0
+run_zonal_stats 1 ${homedir}'/data/boundaries/gdl_v61.gpkg'
+
+#combine_csvs 0
 combine_csvs 1
-combine_csvs 2
+#combine_csvs 2
