@@ -301,12 +301,6 @@ RETURNS bytea AS $$
 
         DROP TABLE IF EXISTS hhr_extarg_tmp_table_simpl;
 
-max_t
-hdi
-wap
-gnipc
-vhi
-pop_density
 
         CREATE TEMPORARY TABLE hhr_extarg_tmp_table_simpl AS (
             SELECT
@@ -323,7 +317,7 @@ pop_density
 			                admin.utils_enforce_limits(h."wap"                  + wap_adjustment,  wap_min,   wap_max)::decimal,
 			                admin.utils_enforce_limits(h."gnipc"                + gnipc_adjustment,  gnipc_min,   gnipc_max)::decimal,
 			                admin.utils_enforce_limits(h."vhi"                  + vhi_adjustment,  vhi_min,   vhi_max)::decimal,
-			                admin.utils_enforce_limits(h."pop_density"          + pop_density_adjustment,  pop_density_min,   pop_density_max)::decimal,
+			                admin.utils_enforce_limits(h."pop_density"          + pop_density_adjustment,  pop_density_min,   pop_density_max)::decimal
 			                ) AS hhr
 			FROM admin.hhr_input_data h
 			--WHERE h."GDLCODE" like 'USA%'
