@@ -85,13 +85,13 @@ CREATE OR REPLACE FUNCTION drr.calc_hhr(
         -- normalize pop_density
         pop_density_normalized = (pop_density - pop_min) / (pop_diff);
 
-		RAISE WARNING 'gnipc %, gnipc_normalized_log %, pop_density % ,pop_density_normalized %, dependency_ratio %',gnipc, gnipc_normalized_log, pop_density, pop_density_normalized, dependency_ratio;
+--		RAISE WARNING 'gnipc %, gnipc_normalized_log %, pop_density % ,pop_density_normalized %, dependency_ratio %',gnipc, gnipc_normalized_log, pop_density, pop_density_normalized, dependency_ratio;
 
 		hazard_index := temperature_index;
-		vulnerability_index := (hdi + dependency_ratio) * 0.44 + (gnipc_normalized_log + vhi) * 0.56;
+		vulnerability_index := ((1-hdi) + dependency_ratio) * 0.44 + ((1-gnipc_normalized_log) + (1-vhi)) * 0.56;
 		exposure_index := pop_density_normalized;
 
-        hhr := hazard_index * 0.25 + vulnerability_index * 0.25 + exposure_index * 0.25;
+        hhr := hazard_index * 0.22 + vulnerability_index * 0.33 + exposure_index * 0.44;
 
         IF (missing_data > 0) THEN
             hhr := -999;
