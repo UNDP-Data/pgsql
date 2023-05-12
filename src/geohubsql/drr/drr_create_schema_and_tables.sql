@@ -7,3 +7,13 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA "drr" GRANT SELECT ON TABLES  TO "tileserver"
 ALTER DEFAULT PRIVILEGES IN SCHEMA "drr" GRANT SELECT ON TABLES  TO "tileserver";
 
 
+CREATE TABLE drr.hhr_input_data
+(gdlcode text CONSTRAINT order_details_pk PRIMARY KEY,
+max_t decimal,
+hdi decimal,
+working_age_pop decimal,
+gnipc decimal,
+vhi decimal,
+pop_density decimal
+);
+

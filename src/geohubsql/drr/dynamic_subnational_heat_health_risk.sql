@@ -27,15 +27,15 @@ CREATE OR REPLACE FUNCTION drr.dynamic_subnational_hhr(
                   "widget_type":"slider",
                   "hidden":0,
                   "units":"percent"},
-              "dependency_ratio_adjustment":
-                { "id":"dependency_ratio_adjustment",
-                  "param_name":"dependency_ratio_adjustment",
+              "working_age_pop_adjustment":
+                { "id":"working_age_pop_adjustment",
+                  "param_name":"working_age_pop_adjustment",
                   "type":"numeric",
                   "icon":"fa-graduation-cap",
                   "limits":{"min":-10,"max":10},
-                  "abs_limits":{"min":0,"max":1},
+                  "abs_limits":{"min":0,"max":100},
                   "value":0,
-                  "label":"Adjustment of the Dependency Ratio",
+                  "label":"Adjustment of the Working Age Population, percent",
                   "widget_type":"slider",
                   "hidden":0,
                   "units":"percent"},
@@ -79,8 +79,8 @@ CREATE OR REPLACE FUNCTION drr.dynamic_subnational_hhr(
     )
 
 -- Notes:
--- dependency_ratio = 1 / population(15_64)
--- population(15_64) = 1 / (1 + dependency_ratio)
+-- working_age_pop = 1 / population(15_64)
+-- population(15_64) = 1 / (1 + working_age_pop)
 
 
 
@@ -102,28 +102,28 @@ RETURNS bytea AS $$
 
         max_t_adjustment  float default 0;
         hdi_adjustment float default 0;
-        dependency_ratio_adjustment float default 0;
+        working_age_pop_adjustment float default 0;
         gnipc_adjustment float default 0;
         vhi_adjustment float default 0;
         pop_density_adjustment float default 0;
 
         max_t_min  float default 0;
         hdi_min float default 0;
-        dependency_ratio_min float default 0;
-        gnipc_min float default 0;
+        working_age_pop_min float default 0;
+
         vhi_min float default 0;
         pop_density_min float default 0;
 
         max_t_max  float default 0;
         hdi_max float default 0;
-        dependency_ratio_max float default 0;
-        gnipc_max float default 0;
+        working_age_pop_max float default 0;
+
         vhi_max float default 0;
         pop_density_max float default 0;
 
         max_t_value  float default 0;
         hdi_value float default 0;
-        dependency_ratio_value float default 0;
+        working_age_pop_value float default 0;
         gnipc_value float default 0;
         vhi_value float default 0;
         pop_density_value float default 0;
@@ -132,6 +132,19 @@ RETURNS bytea AS $$
         max_extent integer := 4096;
         mvt_extent integer := 1024;
         mvt_buffer integer := 32;
+
+        gnipc_min float default 0;
+        gnipc_max float default 100;
+        log_gnipc_min decimal;
+        log_gnipc_max decimal;
+        log_gnipc_diff decimal;
+
+        pop_min  decimal;
+        pop_max  decimal;
+        pop_diff decimal;
+
+        debug_val decimal;
+        debug_val_str varchar;
 
         func_defaults jsonb :=
             '{
@@ -159,15 +172,15 @@ RETURNS bytea AS $$
                   "widget_type":"slider",
                   "hidden":0,
                   "units":"percent"},
-              "dependency_ratio_adjustment":
-                { "id":"dependency_ratio_adjustment",
-                  "param_name":"dependency_ratio_adjustment",
+              "working_age_pop_adjustment":
+                { "id":"working_age_pop_adjustment",
+                  "param_name":"working_age_pop_adjustment",
                   "type":"numeric",
                   "icon":"fa-graduation-cap",
                   "limits":{"min":-10,"max":10},
-                  "abs_limits":{"min":0,"max":1},
+                  "abs_limits":{"min":0,"max":100},
                   "value":0,
-                  "label":"Adjustment of the Dependency Ratio",
+                  "label":"Adjustment of the Working Age Population, percent",
                   "widget_type":"slider",
                   "hidden":0,
                   "units":"percent"},
@@ -229,28 +242,28 @@ RETURNS bytea AS $$
         -- extract the relevant parameters
         max_t_adjustment             := sanitized_json->'max_t_adjustment'->'value';
         hdi_adjustment               := sanitized_json->'hdi_adjustment'->'value';
-        dependency_ratio_adjustment  := sanitized_json->'dependency_ratio_adjustment'->'value';
+        working_age_pop_adjustment   := sanitized_json->'working_age_pop_adjustment'->'value';
         gnipc_adjustment             := sanitized_json->'gnipc_adjustment'->'value';
         vhi_adjustment               := sanitized_json->'vhi_adjustment'->'value';
         pop_density_adjustment       := sanitized_json->'pop_density_adjustment'->'value';
 
         -- recast once to avoid doing that every row
-        max_t_min               := (func_defaults->'max_t_min'->'abs_limits'->'min')::float;
-        hdi_min                 := (func_defaults->'hdi_min'->'abs_limits'->'min')::float;
-        dependency_ratio_min    := (func_defaults->'dependency_ratio_min'->'abs_limits'->'min')::float;
-        gnipc_min               := (func_defaults->'gnipc_min'->'abs_limits'->'min')::float;
-        vhi_min                 := (func_defaults->'vhi_min'->'abs_limits'->'min')::float;
-        pop_density_min         := (func_defaults->'pop_density_min'->'abs_limits'->'min')::float;
+        max_t_min               := (func_defaults->'max_t_adjustment'->'abs_limits'->'min')::float;
+        hdi_min                 := (func_defaults->'hdi_adjustment'->'abs_limits'->'min')::float;
+        working_age_pop_min     := (func_defaults->'working_age_pop_adjustment'->'abs_limits'->'min')::float;
+        gnipc_min               := (func_defaults->'gnipc_adjustment'->'abs_limits'->'min')::float;
+        vhi_min                 := (func_defaults->'vhi_adjustment'->'abs_limits'->'min')::float;
+        pop_density_min         := (func_defaults->'pop_density_adjustment'->'abs_limits'->'min')::float;
 
-        max_t_max               := (func_defaults->'max_t_max'->'abs_limits'->'max')::float;
-        hdi_max                 := (func_defaults->'hdi_max'->'abs_limits'->'max')::float;
-        dependency_ratio_max    := (func_defaults->'dependency_ratio_max'->'abs_limits'->'max')::float;
-        gnipc_max               := (func_defaults->'gnipc_max'->'abs_limits'->'max')::float;
-        vhi_max                 := (func_defaults->'vhi_max'->'abs_limits'->'max')::float;
-        pop_density_max         := (func_defaults->'pop_density_max'->'abs_limits'->'max')::float;
+        max_t_max               := (func_defaults->'max_t_adjustment'->'abs_limits'->'max')::float;
+        hdi_max                 := (func_defaults->'hdi_adjustment'->'abs_limits'->'max')::float;
+        working_age_pop_max     := (func_defaults->'working_age_pop_adjustment'->'abs_limits'->'max')::float;
+        gnipc_max               := (func_defaults->'gnipc_adjustment'->'abs_limits'->'max')::float;
+        vhi_max                 := (func_defaults->'vhi_adjustment'->'abs_limits'->'max')::float;
+        pop_density_max         := (func_defaults->'pop_density_adjustment'->'abs_limits'->'max')::float;
 
 
-        --RAISE WARNING 'max_t_adjustment: %, hdi_adjustment: %, dependency_ratio_adjustment: %, gnipc_adjustment %, vhi_adjustment %, pop_density_adjustment %', max_t_adjustment, hdi_adjustment, dependency_ratio_adjustment, gnipc_adjustment, vhi_adjustment, pop_density_adjustment;
+        --RAISE WARNING 'max_t_adjustment: %, hdi_adjustment: %, working_age_pop_adjustment: %, gnipc_adjustment %, vhi_adjustment %, pop_density_adjustment %', max_t_adjustment, hdi_adjustment, working_age_pop_adjustment, gnipc_adjustment, vhi_adjustment, pop_density_adjustment;
 
         -- use 'default' as a layer name to make it possible to visualize it via pg_tileServ's internal map viewer
         --layer_name := 'default';
@@ -306,31 +319,70 @@ RETURNS bytea AS $$
 
 --max_t_adjustment	°C	-5	5  **normalize
 --hdi_adjustment	%	-10	10
---dependency_ratio_adjustment	%	-10	10  **recalc dependency ratio
---gnipc_adjustment	$	-10000	10000 
+--working_age_pop_adjustment	%	-10	10  **recalc dependency ratio
+--gnipc_adjustment	$	-10000	10000
 --vhi_adjustment	%	-10	10
 --pop_density_adjustment	%	-10	10
 
+        SELECT h."gnipc"
+		FROM drr.hhr_input_data h
+		ORDER BY h."gnipc" ASC LIMIT 1
+		INTO gnipc_min;
+
+        SELECT h."gnipc"
+		FROM drr.hhr_input_data h
+		ORDER BY h."gnipc" DESC LIMIT 1
+		INTO gnipc_max;
+
+        log_gnipc_min := LOG(gnipc_min);
+        log_gnipc_max := LOG(gnipc_max);
+        log_gnipc_diff := log_gnipc_max - log_gnipc_min;
+
+        SELECT h."pop_density"
+		FROM drr.hhr_input_data h
+		ORDER BY h."pop_density" ASC LIMIT 1
+		INTO pop_min;
+
+        SELECT h."pop_density"
+		FROM drr.hhr_input_data h
+		ORDER BY h."pop_density" DESC LIMIT 1
+		INTO pop_max;
+
+		pop_diff := pop_max - pop_min;
+
         CREATE TEMPORARY TABLE hhr_extarg_tmp_table_simpl AS (
             SELECT
-			h."GDLCODE" AS gdlcode,
+			h."gdlcode" AS gdlcode,
             admin.utils_enforce_limits(h."max_t"                + max_t_adjustment,  max_t_min,   max_t_max)::decimal AS max_t,
             admin.utils_enforce_limits(h."hdi"                  * hdi_adjustment/100,  hdi_min,   hdi_max)::decimal AS hdi,
-            admin.utils_enforce_limits(h."dependency_ratio"     * dependency_ratio_adjustment/100,  dependency_ratio_min,   dependency_ratio_max)::decimal AS dependency_ratio,
+            admin.utils_enforce_limits(h."working_age_pop"      * working_age_pop_adjustment/100,  working_age_pop_min,   working_age_pop_max)::decimal AS working_age_pop,
             admin.utils_enforce_limits(h."gnipc"                + gnipc_adjustment,  gnipc_min,   gnipc_max)::decimal AS gnipc,
             admin.utils_enforce_limits(h."vhi"                  * vhi_adjustment/100,  vhi_min,   vhi_max)::decimal AS vhi,
             admin.utils_enforce_limits(h."pop_density"          * pop_density_adjustment/100,  pop_density_min,   pop_density_max)::decimal AS pop_density,
 			drr.calc_hhr(
 			                admin.utils_enforce_limits(h."max_t"                + max_t_adjustment,  max_t_min,   max_t_max)::decimal,
 			                admin.utils_enforce_limits(h."hdi"                  * hdi_adjustment/100,  hdi_min,   hdi_max)::decimal,
-			                admin.utils_enforce_limits(h."dependency_ratio"     * dependency_ratio_adjustment/100,  dependency_ratio_min,   dependency_ratio_max)::decimal,
+			                admin.utils_enforce_limits(h."working_age_pop"      * working_age_pop_adjustment/100,  working_age_pop_min,   working_age_pop_max)::decimal,
 			                admin.utils_enforce_limits(h."gnipc"                + gnipc_adjustment,  gnipc_min,   gnipc_max)::decimal,
 			                admin.utils_enforce_limits(h."vhi"                  * vhi_adjustment/100,  vhi_min,   vhi_max)::decimal,
-			                admin.utils_enforce_limits(h."pop_density"          * pop_density_adjustment/100,  pop_density_min,   pop_density_max)::decimal
+			                admin.utils_enforce_limits(h."pop_density"          * pop_density_adjustment/100,  pop_density_min,   pop_density_max)::decimal,
+			                log_gnipc_min,
+			                log_gnipc_diff,
+			                pop_min,
+			                pop_diff
 			                ) AS hhr
 			FROM drr.hhr_input_data h
 			--WHERE h."GDLCODE" like 'USA%'
         );
+
+
+        RAISE WARNING 'TTT % % %', max_t_adjustment, max_t_min, max_t_max;
+        SELECT INTO debug_val hhr FROM hhr_extarg_tmp_table_simpl t LIMIT 1;
+--        SELECT hhr FROM hhr_extarg_tmp_table_simpl LIMIT 1 INTO debug_val;
+        RAISE NOTICE '%', debug_val;
+
+
+        RAISE WARNING 'debug_val: %s',debug_val;
 
 		CREATE INDEX IF NOT EXISTS "hhr_extarg_tmp_table_simpl_idx1" ON "hhr_extarg_tmp_table_simpl" (gdlcode);
 
@@ -344,7 +396,7 @@ RETURNS bytea AS $$
 
         EXECUTE format('SELECT * FROM admin.util_lookup_simplified_table_name(''admin'',''admin1'',%s)',z) INTO simplified_table_name;
 
---        RAISE WARNING 'Using simplified table %', simplified_table_name;
+        RAISE WARNING 'Using simplified table %', simplified_table_name;
 
         EXECUTE format('CREATE TEMPORARY TABLE mvtgeom AS (
 
@@ -354,7 +406,7 @@ RETURNS bytea AS $$
 			CAST(h.hhr as FLOAT),
 			CAST(h.max_t as FLOAT),
 			CAST(h.hdi as FLOAT),
-			CAST(h.dependency_ratio as FLOAT),
+			CAST(h.working_age_pop as FLOAT),
 			CAST(h.gnipc as FLOAT),
 			CAST(h.vhi as FLOAT),
 			CAST(h.pop_density as FLOAT)
@@ -389,7 +441,7 @@ COMMENT ON FUNCTION drr.dynamic_subnational_hhr IS 'This is dynamic subnational 
 --    {"value":5},
 --  "hdi_adjustment":
 --     {"value":3},
---  "dependency_ratio_adjustment":
+--  "working_age_pop_adjustment":
 --     {"value":4},
 --  "gnipc_adjustment":
 --     {"value":5000},
@@ -403,4 +455,4 @@ COMMENT ON FUNCTION drr.dynamic_subnational_hhr IS 'This is dynamic subnational 
 -- wget http://172.18.0.6:7800/drr.dynamic_subnational_hhr/0/0/0.pbf?params='%7B%0A%20%20%22le_incr%22%3A%0A%20%20%20%20%7B%22value%22%3A11%7D%2C%0A%20%20%22eys_incr%22%3A%0A%20%20%20%20%20%7B%22value%22%3A22%7D%2C%0A%20%20%20%20%22mys_incr%22%3A%0A%20%20%20%20%20%7B%22value%22%3A33%7D%2C%0A%20%20%22gni_incr%22%3A%0A%20%20%20%20%20%7B%22value%22%3A44%7D%0A%7D' -O ext.pbf
 
 -- works in QGIS:
--- http://172.18.0.6:7800/drr.dynamic_subnational_hhr/{z}/{x}/{y}.pbf?params={ "max_t_adjustment": {"value":5}, "hdi_adjustment": {"value":3}, "dependency_ratio_adjustment": {"value":4}, "gnipc_adjustment": {"value":5000}, "vhi_adjustment": {"value":6}, "pop_density_adjustment": {"value":7} }
+-- http://172.18.0.6:7800/drr.dynamic_subnational_hhr/{z}/{x}/{y}.pbf?params={ "max_t_adjustment": {"value":5}, "hdi_adjustment": {"value":3}, "working_age_pop_adjustment": {"value":4}, "gnipc_adjustment": {"value":5000}, "vhi_adjustment": {"value":6}, "pop_density_adjustment": {"value":7} }
