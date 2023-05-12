@@ -96,6 +96,8 @@ RETURNS bytea AS $$
         mvt_extent integer := 1024;
         mvt_buffer integer := 32;
 
+--        debug_val_str varchar;
+
         --param_names varchar ARRAY  DEFAULT  ARRAY['le_incr','eys_incr','mys_incr','gni_incr'];
 
         func_defaults jsonb :=
@@ -302,6 +304,9 @@ RETURNS bytea AS $$
         --COMMENT ON COLUMN mvtgeom.hdi is 'Human Development Index';
 
         --RAISE WARNING 'SIMPLIFIED into %', simplified_table_name;
+
+--        SELECT INTO debug_val_str ST_AsEWKT(geom) FROM mvtgeom t LIMIT 1;
+--        RAISE WARNING 'geom: %',debug_val_str;
 
         SELECT ST_AsMVT(mvtgeom.*,layer_name, mvt_extent, 'geom', 'fid')
 		FROM mvtgeom

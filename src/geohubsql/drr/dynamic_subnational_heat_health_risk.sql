@@ -9,7 +9,7 @@ CREATE OR REPLACE FUNCTION drr.dynamic_subnational_hhr(
                   "type":"numeric",
                   "icon":"fa-people-roof",
                   "limits":{"min":-10,"max":10},
-                  "abs_limits":{"min":-20,"max":80},
+                  "abs_limits":{"min":250,"max":350},
                   "value":0,
                   "label":"Adjustment of maximum temperature",
                   "widget_type":"slider",
@@ -69,7 +69,7 @@ CREATE OR REPLACE FUNCTION drr.dynamic_subnational_hhr(
                   "type":"numeric",
                   "icon":"fa-graduation-cap",
                   "limits":{"min":-10,"max":10},
-                  "abs_limits":{"min":0,"max":100000},
+                  "abs_limits":{"min":0,"max":1000000},
                   "value":0,
                   "label":"Adjustment of the Population Density",
                   "widget_type":"slider",
@@ -154,7 +154,7 @@ RETURNS bytea AS $$
                   "type":"numeric",
                   "icon":"fa-people-roof",
                   "limits":{"min":-10,"max":10},
-                  "abs_limits":{"min":-20,"max":80},
+                  "abs_limits":{"min":250,"max":350},
                   "value":0,
                   "label":"Adjustment of maximum temperature",
                   "widget_type":"slider",
@@ -214,7 +214,7 @@ RETURNS bytea AS $$
                   "type":"numeric",
                   "icon":"fa-graduation-cap",
                   "limits":{"min":-10,"max":10},
-                  "abs_limits":{"min":0,"max":100000},
+                  "abs_limits":{"min":0,"max":1000000},
                   "value":0,
                   "label":"Adjustment of the Population Density",
                   "widget_type":"slider",
@@ -353,19 +353,19 @@ RETURNS bytea AS $$
         CREATE TEMPORARY TABLE hhr_extarg_tmp_table_simpl AS (
             SELECT
 			h."gdlcode" AS gdlcode,
-            admin.utils_enforce_limits(h."max_t"                + max_t_adjustment,  max_t_min,   max_t_max)::decimal AS max_t,
-            admin.utils_enforce_limits(h."hdi"                  * hdi_adjustment/100,  hdi_min,   hdi_max)::decimal AS hdi,
-            admin.utils_enforce_limits(h."working_age_pop"      * working_age_pop_adjustment/100,  working_age_pop_min,   working_age_pop_max)::decimal AS working_age_pop,
-            admin.utils_enforce_limits(h."gnipc"                + gnipc_adjustment,  gnipc_min,   gnipc_max)::decimal AS gnipc,
-            admin.utils_enforce_limits(h."vhi"                  * vhi_adjustment/100,  vhi_min,   vhi_max)::decimal AS vhi,
-            admin.utils_enforce_limits(h."pop_density"          * pop_density_adjustment/100,  pop_density_min,   pop_density_max)::decimal AS pop_density,
+--            admin.utils_enforce_limits(h."max_t"                + max_t_adjustment,  max_t_min,   max_t_max)::decimal AS max_t,
+--            admin.utils_enforce_limits(h."hdi"                  * (1+hdi_adjustment/100),  hdi_min,   hdi_max)::decimal AS hdi,
+--            admin.utils_enforce_limits(h."working_age_pop"      * (1+working_age_pop_adjustment/100),  working_age_pop_min,   working_age_pop_max)::decimal AS working_age_pop,
+--            admin.utils_enforce_limits(h."gnipc"                + gnipc_adjustment,  gnipc_min,   gnipc_max)::decimal AS gnipc,
+--            admin.utils_enforce_limits(h."vhi"                  * (1+vhi_adjustment/100),  vhi_min,   vhi_max)::decimal AS vhi,
+--            admin.utils_enforce_limits(h."pop_density"          * (1+pop_density_adjustment/100),  pop_density_min,   pop_density_max)::decimal AS pop_density,
 			drr.calc_hhr(
 			                admin.utils_enforce_limits(h."max_t"                + max_t_adjustment,  max_t_min,   max_t_max)::decimal,
-			                admin.utils_enforce_limits(h."hdi"                  * hdi_adjustment/100,  hdi_min,   hdi_max)::decimal,
-			                admin.utils_enforce_limits(h."working_age_pop"      * working_age_pop_adjustment/100,  working_age_pop_min,   working_age_pop_max)::decimal,
+			                admin.utils_enforce_limits(h."hdi"                  * (1+hdi_adjustment/100),  hdi_min,   hdi_max)::decimal,
+			                admin.utils_enforce_limits(h."working_age_pop"      * (1+working_age_pop_adjustment/100),  working_age_pop_min,   working_age_pop_max)::decimal,
 			                admin.utils_enforce_limits(h."gnipc"                + gnipc_adjustment,  gnipc_min,   gnipc_max)::decimal,
-			                admin.utils_enforce_limits(h."vhi"                  * vhi_adjustment/100,  vhi_min,   vhi_max)::decimal,
-			                admin.utils_enforce_limits(h."pop_density"          * pop_density_adjustment/100,  pop_density_min,   pop_density_max)::decimal,
+			                admin.utils_enforce_limits(h."vhi"                  * (1+vhi_adjustment/100),  vhi_min,   vhi_max)::decimal,
+			                admin.utils_enforce_limits(h."pop_density"          * (1+pop_density_adjustment/100),  pop_density_min,   pop_density_max)::decimal,
 			                log_gnipc_min,
 			                log_gnipc_diff,
 			                pop_min,
@@ -376,13 +376,12 @@ RETURNS bytea AS $$
         );
 
 
-        RAISE WARNING 'TTT % % %', max_t_adjustment, max_t_min, max_t_max;
-        SELECT INTO debug_val hhr FROM hhr_extarg_tmp_table_simpl t LIMIT 1;
---        SELECT hhr FROM hhr_extarg_tmp_table_simpl LIMIT 1 INTO debug_val;
-        RAISE NOTICE '%', debug_val;
+        --RAISE WARNING 'TTT % % %', max_t_adjustment, max_t_min, max_t_max;
+--        SELECT INTO debug_val count(hhr) FROM hhr_extarg_tmp_table_simpl t LIMIT 1;
+--        RAISE WARNING 'hhr_extarg_tmp_table_simpl rows: %',debug_val;
+--        SELECT INTO debug_val hdi FROM hhr_extarg_tmp_table_simpl t LIMIT 1;
+--        RAISE WARNING 'hhr_extarg_tmp_table_simpl hdi: %',debug_val;
 
-
-        RAISE WARNING 'debug_val: %s',debug_val;
 
 		CREATE INDEX IF NOT EXISTS "hhr_extarg_tmp_table_simpl_idx1" ON "hhr_extarg_tmp_table_simpl" (gdlcode);
 
@@ -396,20 +395,21 @@ RETURNS bytea AS $$
 
         EXECUTE format('SELECT * FROM admin.util_lookup_simplified_table_name(''admin'',''admin1'',%s)',z) INTO simplified_table_name;
 
-        RAISE WARNING 'Using simplified table %', simplified_table_name;
+--        RAISE WARNING 'Using simplified table %', simplified_table_name;
 
         EXECUTE format('CREATE TEMPORARY TABLE mvtgeom AS (
 
             SELECT ST_AsMVTGeom(a.geom, bounds.geom, extent => %s, buffer => %s) AS geom,
 			ROW_NUMBER () OVER (ORDER BY a.gdlcode) AS fid,
 			a.gdlcode,
-			CAST(h.hhr as FLOAT),
-			CAST(h.max_t as FLOAT),
-			CAST(h.hdi as FLOAT),
-			CAST(h.working_age_pop as FLOAT),
-			CAST(h.gnipc as FLOAT),
-			CAST(h.vhi as FLOAT),
-			CAST(h.pop_density as FLOAT)
+			CAST(h.hhr as FLOAT)
+--			,
+--			CAST(h.max_t as FLOAT),
+--			CAST(h.hdi as FLOAT),
+--			CAST(h.working_age_pop as FLOAT),
+--			CAST(h.gnipc as FLOAT),
+--			CAST(h.vhi as FLOAT),
+--			CAST(h.pop_density as FLOAT)
             FROM admin."%s" a
 			JOIN bounds ON ST_Intersects(a.geom, bounds.geom)
             JOIN hhr_extarg_tmp_table_simpl h ON a.gdlcode = h.gdlcode
@@ -419,6 +419,11 @@ RETURNS bytea AS $$
             simplified_table_name
             );
 
+--        SELECT INTO debug_val count(hhr) FROM mvtgeom t LIMIT 1;
+--        RAISE WARNING 'mvtgeom rows: %',debug_val;
+--
+--        SELECT INTO debug_val_str ST_AsEWKT(geom) FROM mvtgeom t LIMIT 1;
+--        RAISE WARNING 'geom: %',debug_val_str;
 
         --COMMENT ON COLUMN mvtgeom.hhr is 'Human Development Index';
 

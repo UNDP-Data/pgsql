@@ -25,7 +25,7 @@ RETURNS float AS $utils_enforce_limits$
             END IF;
         END IF;
 
-        --RAISE WARNING 'WARN utils_enforce_limits %, %, % -> %', input_value, abs_min, abs_max, _sanitized_value;
+--        RAISE WARNING 'WARN utils_enforce_limits %, %, % -> %', input_value, abs_min, abs_max, _sanitized_value;
         RETURN _sanitized_value;
 
     END

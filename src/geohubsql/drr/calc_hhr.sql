@@ -32,12 +32,36 @@ CREATE OR REPLACE FUNCTION drr.calc_hhr(
         gnipc_normalized_log decimal;
         pop_density_normalized decimal;
 
+        missing_data integer;
+
 	BEGIN
 
         --26.66 to 39.4 Celsius degrees as per https://www.weather.gov/ama/heatindex
         non_dangerous_temp := 299.82;
         dangerous_temp := 312.55;
+        missing_data := 0;
+
+        IF log_gnipc_diff = 0 THEN
+            log_gnipc_diff = 1;
+            missing_data = 1;
+        END IF;
+
+        IF working_age_pop_perc =0 THEN
+            working_age_pop_perc = 1;
+            missing_data = 1;
+        END IF;
+
+        IF pop_diff = 0 THEN
+            pop_diff = 1;
+            missing_data = 1;
+        END IF;
+
+
+
         dependency_ratio := (1- working_age_pop_perc)/working_age_pop_perc;
+
+
+
 
         -- normalize the temperature
         CASE
@@ -61,13 +85,17 @@ CREATE OR REPLACE FUNCTION drr.calc_hhr(
         -- normalize pop_density
         pop_density_normalized = (pop_density - pop_min) / (pop_diff);
 
---		RAISE WARNING 'gnipc %, gnipc_normalized_log %, pop_density % ,pop_density_normalized %',gnipc, gnipc_normalized_log, pop_density, pop_density_normalized;
+		RAISE WARNING 'gnipc %, gnipc_normalized_log %, pop_density % ,pop_density_normalized %, dependency_ratio %',gnipc, gnipc_normalized_log, pop_density, pop_density_normalized, dependency_ratio;
 
 		hazard_index := temperature_index;
-		vulnerability_index := (hdi + working_age_pop_perc) * 0.44 + (gnipc_normalized_log + vhi) * 0.56;
+		vulnerability_index := (hdi + dependency_ratio) * 0.44 + (gnipc_normalized_log + vhi) * 0.56;
 		exposure_index := pop_density_normalized;
 
         hhr := hazard_index * 0.25 + vulnerability_index * 0.25 + exposure_index * 0.25;
+
+        IF (missing_data > 0) THEN
+            hhr := -999;
+        END IF;
 
 --		RAISE NOTICE 'hazard_index %, vulnerability_index %, exposure_index %', hazard_index, vulnerability_index, exposure_index;
 		--RAISE NOTICE 'hhr %', hhr;
