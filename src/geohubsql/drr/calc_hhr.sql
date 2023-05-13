@@ -92,6 +92,7 @@ CREATE OR REPLACE FUNCTION drr.calc_hhr(
 		exposure_index := pop_density_normalized;
 
         hhr := hazard_index * 0.22 + vulnerability_index * 0.33 + exposure_index * 0.44;
+        hhr := hhr * 100;
 
         IF (missing_data > 0) THEN
             hhr := -999;
