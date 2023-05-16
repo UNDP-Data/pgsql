@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION drr.dynamic_subnational_hhr2(
+CREATE OR REPLACE FUNCTION drr.dynamic_subnational_hhr(
     z integer default 0,
     x integer default 0,
     y integer default 0,
