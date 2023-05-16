@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION drr.dynamic_subnational_hhr(
+CREATE OR REPLACE FUNCTION drr.dynamic_subnational_hhr2(
     z integer default 0,
     x integer default 0,
     y integer default 0,
@@ -94,56 +94,58 @@ RETURNS bytea AS $$
 
         simplified_table_name varchar := NULL;
 
-        defaults_json jsonb;
-		requested_json jsonb;
-		sanitized_json jsonb;
+        defaults_jsonb jsonb;
+		requested_jsonb jsonb;
+		sanitized_jsonb jsonb;
 
         geom_col varchar;
         featcount integer;
         feat_limit integer := 3000;
 
-        max_t_adjustment  float default 0;
-        hdi_adjustment float default 0;
-        working_age_pop_adjustment float default 0;
-        gnipc_adjustment float default 0;
-        vhi_adjustment float default 0;
-        pop_density_adjustment float default 0;
-
-        max_t_min  float default 0;
-        hdi_min float default 0;
-        working_age_pop_min float default 0;
-
-        vhi_min float default 0;
-        pop_density_min float default 0;
-
-        max_t_max  float default 0;
-        hdi_max float default 0;
-        working_age_pop_max float default 0;
-
-        vhi_max float default 0;
-        pop_density_max float default 0;
-
-        max_t_value  float default 0;
-        hdi_value float default 0;
-        working_age_pop_value float default 0;
-        gnipc_value float default 0;
-        vhi_value float default 0;
-        pop_density_value float default 0;
+--        max_t_adjustment  float default 0;
+--        hdi_adjustment float default 0;
+--        working_age_pop_adjustment float default 0;
+--        gnipc_adjustment float default 0;
+--        vhi_adjustment float default 0;
+--        pop_density_adjustment float default 0;
+--
+--        max_t_min  float default 0;
+--        hdi_min float default 0;
+--        working_age_pop_min float default 0;
+--
+--        vhi_min float default 0;
+--        pop_density_min float default 0;
+--
+--        max_t_max  float default 0;
+--        hdi_max float default 0;
+--        working_age_pop_max float default 0;
+--
+--        vhi_max float default 0;
+--        pop_density_max float default 0;
+--
+--        max_t_value  float default 0;
+--        hdi_value float default 0;
+--        working_age_pop_value float default 0;
+--        gnipc_value float default 0;
+--        vhi_value float default 0;
+--        pop_density_value float default 0;
+--
+--        gnipc_min float default 0;
+--        gnipc_max float default 100;
+--        log_gnipc_min decimal;
+--        log_gnipc_max decimal;
+--        log_gnipc_diff decimal;
+--
+--        pop_min  decimal;
+--        pop_max  decimal;
+--        pop_diff decimal;
 
         min_extent integer := 256;
         max_extent integer := 4096;
         mvt_extent integer := 1024;
         mvt_buffer integer := 32;
 
-        gnipc_min float default 0;
-        gnipc_max float default 100;
-        log_gnipc_min decimal;
-        log_gnipc_max decimal;
-        log_gnipc_diff decimal;
 
-        pop_min  decimal;
-        pop_max  decimal;
-        pop_diff decimal;
 
         debug_val decimal;
         debug_val_str varchar;
@@ -231,38 +233,38 @@ RETURNS bytea AS $$
 
 
     BEGIN
-        defaults_json  := func_defaults::jsonb;
-        requested_json := params::jsonb;
+        defaults_jsonb  := func_defaults::jsonb;
+        requested_jsonb := params::jsonb;
 
         -- sanitize the JSON before proceeding
-        sanitized_json:=admin.params_sanity_check(defaults_json, requested_json);
+        sanitized_jsonb:=admin.params_sanity_check(defaults_jsonb, requested_jsonb);
 
---      RAISE WARNING 'sanitized_json: %', sanitized_json;
---		RAISE WARNING 'sanitized_json -> max_t_adjustment: %',  sanitized_json->'max_t_adjustment';
---		RAISE WARNING 'sanitized_json -> max_t_adjustment -> value: %',  sanitized_json->'max_t_adjustment'->'value';
+--      RAISE WARNING 'sanitized_jsonb: %', sanitized_jsonb;
+--		RAISE WARNING 'sanitized_jsonb -> max_t_adjustment: %',  sanitized_jsonb->'max_t_adjustment';
+--		RAISE WARNING 'sanitized_jsonb -> max_t_adjustment -> value: %',  sanitized_jsonb->'max_t_adjustment'->'value';
 
-        -- extract the relevant parameters
-        max_t_adjustment             := sanitized_json->'max_t_adjustment'->'value';
-        hdi_adjustment               := sanitized_json->'hdi_adjustment'->'value';
-        working_age_pop_adjustment   := sanitized_json->'working_age_pop_adjustment'->'value';
-        gnipc_adjustment             := sanitized_json->'gnipc_adjustment'->'value';
-        vhi_adjustment               := sanitized_json->'vhi_adjustment'->'value';
-        pop_density_adjustment       := sanitized_json->'pop_density_adjustment'->'value';
-
-        -- recast once to avoid doing that every row
-        max_t_min               := (func_defaults->'max_t_adjustment'->'abs_limits'->'min')::float;
-        hdi_min                 := (func_defaults->'hdi_adjustment'->'abs_limits'->'min')::float;
-        working_age_pop_min     := (func_defaults->'working_age_pop_adjustment'->'abs_limits'->'min')::float;
-        gnipc_min               := (func_defaults->'gnipc_adjustment'->'abs_limits'->'min')::float;
-        vhi_min                 := (func_defaults->'vhi_adjustment'->'abs_limits'->'min')::float;
-        pop_density_min         := (func_defaults->'pop_density_adjustment'->'abs_limits'->'min')::float;
-
-        max_t_max               := (func_defaults->'max_t_adjustment'->'abs_limits'->'max')::float;
-        hdi_max                 := (func_defaults->'hdi_adjustment'->'abs_limits'->'max')::float;
-        working_age_pop_max     := (func_defaults->'working_age_pop_adjustment'->'abs_limits'->'max')::float;
-        gnipc_max               := (func_defaults->'gnipc_adjustment'->'abs_limits'->'max')::float;
-        vhi_max                 := (func_defaults->'vhi_adjustment'->'abs_limits'->'max')::float;
-        pop_density_max         := (func_defaults->'pop_density_adjustment'->'abs_limits'->'max')::float;
+--        -- extract the relevant parameters
+--        max_t_adjustment             := sanitized_jsonb->'max_t_adjustment'->'value';
+--        hdi_adjustment               := sanitized_jsonb->'hdi_adjustment'->'value';
+--        working_age_pop_adjustment   := sanitized_jsonb->'working_age_pop_adjustment'->'value';
+--        gnipc_adjustment             := sanitized_jsonb->'gnipc_adjustment'->'value';
+--        vhi_adjustment               := sanitized_jsonb->'vhi_adjustment'->'value';
+--        pop_density_adjustment       := sanitized_jsonb->'pop_density_adjustment'->'value';
+--
+--        -- recast once to avoid doing that every row
+--        max_t_min               := (func_defaults->'max_t_adjustment'->'abs_limits'->'min')::float;
+--        hdi_min                 := (func_defaults->'hdi_adjustment'->'abs_limits'->'min')::float;
+--        working_age_pop_min     := (func_defaults->'working_age_pop_adjustment'->'abs_limits'->'min')::float;
+--        gnipc_min               := (func_defaults->'gnipc_adjustment'->'abs_limits'->'min')::float;
+--        vhi_min                 := (func_defaults->'vhi_adjustment'->'abs_limits'->'min')::float;
+--        pop_density_min         := (func_defaults->'pop_density_adjustment'->'abs_limits'->'min')::float;
+--
+--        max_t_max               := (func_defaults->'max_t_adjustment'->'abs_limits'->'max')::float;
+--        hdi_max                 := (func_defaults->'hdi_adjustment'->'abs_limits'->'max')::float;
+--        working_age_pop_max     := (func_defaults->'working_age_pop_adjustment'->'abs_limits'->'max')::float;
+--        gnipc_max               := (func_defaults->'gnipc_adjustment'->'abs_limits'->'max')::float;
+--        vhi_max                 := (func_defaults->'vhi_adjustment'->'abs_limits'->'max')::float;
+--        pop_density_max         := (func_defaults->'pop_density_adjustment'->'abs_limits'->'max')::float;
 
 
         --RAISE WARNING 'max_t_adjustment: %, hdi_adjustment: %, working_age_pop_adjustment: %, gnipc_adjustment %, vhi_adjustment %, pop_density_adjustment %', max_t_adjustment, hdi_adjustment, working_age_pop_adjustment, gnipc_adjustment, vhi_adjustment, pop_density_adjustment;
@@ -326,56 +328,62 @@ RETURNS bytea AS $$
 --vhi_adjustment	%	-10	10
 --pop_density_adjustment	%	-10	10
 
-        SELECT h."gnipc"
-		FROM drr.hhr_input_data h
-		ORDER BY h."gnipc" ASC LIMIT 1
-		INTO gnipc_min;
-
-        SELECT h."gnipc"
-		FROM drr.hhr_input_data h
-		ORDER BY h."gnipc" DESC LIMIT 1
-		INTO gnipc_max;
-
-        log_gnipc_min := LOG(gnipc_min);
-        log_gnipc_max := LOG(gnipc_max);
-        log_gnipc_diff := log_gnipc_max - log_gnipc_min;
-
-        SELECT h."pop_density"
-		FROM drr.hhr_input_data h
-		ORDER BY h."pop_density" ASC LIMIT 1
-		INTO pop_min;
-
-        SELECT h."pop_density"
-		FROM drr.hhr_input_data h
-		ORDER BY h."pop_density" DESC LIMIT 1
-		INTO pop_max;
-
-		pop_diff := pop_max - pop_min;
+--        SELECT h."gnipc"
+--		FROM drr.hhr_input_data h
+--		ORDER BY h."gnipc" ASC LIMIT 1
+--		INTO gnipc_min;
+--
+--        SELECT h."gnipc"
+--		FROM drr.hhr_input_data h
+--		ORDER BY h."gnipc" DESC LIMIT 1
+--		INTO gnipc_max;
+--
+--        log_gnipc_min := LOG(gnipc_min);
+--        log_gnipc_max := LOG(gnipc_max);
+--        log_gnipc_diff := log_gnipc_max - log_gnipc_min;
+--
+--        SELECT h."pop_density"
+--		FROM drr.hhr_input_data h
+--		ORDER BY h."pop_density" ASC LIMIT 1
+--		INTO pop_min;
+--
+--        SELECT h."pop_density"
+--		FROM drr.hhr_input_data h
+--		ORDER BY h."pop_density" DESC LIMIT 1
+--		INTO pop_max;
+--
+--		pop_diff := pop_max - pop_min;
 
         CREATE TEMPORARY TABLE hhr_extarg_tmp_table_simpl AS (
-            SELECT
-			h."gdlcode" AS gdlcode,
-            admin.utils_enforce_limits(h."max_t"                + max_t_adjustment,  max_t_min,   max_t_max)::decimal AS max_t,
-            admin.utils_enforce_limits(h."hdi"                  * (1+hdi_adjustment/100),  hdi_min,   hdi_max)::decimal AS hdi,
-            admin.utils_enforce_limits(h."working_age_pop"      * (1+working_age_pop_adjustment/100),  working_age_pop_min,   working_age_pop_max)::decimal AS working_age_pop,
-            admin.utils_enforce_limits(h."gnipc"                + gnipc_adjustment,  gnipc_min,   gnipc_max)::decimal AS gnipc,
-            admin.utils_enforce_limits(h."vhi"                  * (1+vhi_adjustment/100),  vhi_min,   vhi_max)::decimal AS vhi,
-            admin.utils_enforce_limits(h."pop_density"          * (1+pop_density_adjustment/100),  pop_density_min,   pop_density_max)::decimal AS pop_density,
-			drr.calc_hhr(
-			                admin.utils_enforce_limits(h."max_t"                + max_t_adjustment,  max_t_min,   max_t_max)::decimal,
-			                admin.utils_enforce_limits(h."hdi"                  * (1+hdi_adjustment/100),  hdi_min,   hdi_max)::decimal,
-			                admin.utils_enforce_limits(h."working_age_pop"      * (1+working_age_pop_adjustment/100),  working_age_pop_min,   working_age_pop_max)::decimal,
-			                admin.utils_enforce_limits(h."gnipc"                + gnipc_adjustment,  gnipc_min,   gnipc_max)::decimal,
-			                admin.utils_enforce_limits(h."vhi"                  * (1+vhi_adjustment/100),  vhi_min,   vhi_max)::decimal,
-			                admin.utils_enforce_limits(h."pop_density"          * (1+pop_density_adjustment/100),  pop_density_min,   pop_density_max)::decimal,
-			                log_gnipc_min,
-			                log_gnipc_diff,
-			                pop_min,
-			                pop_diff
-			                ) AS hhr
-			FROM drr.hhr_input_data h
-			--WHERE h."GDLCODE" like 'USA%'
-        );
+            SELECT * FROM drr.calc_hhr_table(
+                func_defaults, sanitized_jsonb
+                )
+            );
+--
+--        CREATE TEMPORARY TABLE hhr_extarg_tmp_table_simpl AS (
+--            SELECT
+--			h."gdlcode" AS gdlcode,
+--            admin.utils_enforce_limits(h."max_t"                + max_t_adjustment,  max_t_min,   max_t_max)::decimal AS max_t,
+--            admin.utils_enforce_limits(h."hdi"                  * (1+hdi_adjustment/100),  hdi_min,   hdi_max)::decimal AS hdi,
+--            admin.utils_enforce_limits(h."working_age_pop"      * (1+working_age_pop_adjustment/100),  working_age_pop_min,   working_age_pop_max)::decimal AS working_age_pop,
+--            admin.utils_enforce_limits(h."gnipc"                + gnipc_adjustment,  gnipc_min,   gnipc_max)::decimal AS gnipc,
+--            admin.utils_enforce_limits(h."vhi"                  * (1+vhi_adjustment/100),  vhi_min,   vhi_max)::decimal AS vhi,
+--            admin.utils_enforce_limits(h."pop_density"          * (1+pop_density_adjustment/100),  pop_density_min,   pop_density_max)::decimal AS pop_density,
+--			drr.calc_hhr(
+--                admin.utils_enforce_limits(h."max_t"                + max_t_adjustment,  max_t_min,   max_t_max)::decimal,
+--                admin.utils_enforce_limits(h."hdi"                  * (1+hdi_adjustment/100),  hdi_min,   hdi_max)::decimal,
+--                admin.utils_enforce_limits(h."working_age_pop"      * (1+working_age_pop_adjustment/100),  working_age_pop_min,   working_age_pop_max)::decimal,
+--                admin.utils_enforce_limits(h."gnipc"                + gnipc_adjustment,  gnipc_min,   gnipc_max)::decimal,
+--                admin.utils_enforce_limits(h."vhi"                  * (1+vhi_adjustment/100),  vhi_min,   vhi_max)::decimal,
+--                admin.utils_enforce_limits(h."pop_density"          * (1+pop_density_adjustment/100),  pop_density_min,   pop_density_max)::decimal,
+--                log_gnipc_min,
+--                log_gnipc_diff,
+--                pop_min,
+--                pop_diff
+--                ) AS hhr
+--			FROM drr.hhr_input_data h
+--			--WHERE h."GDLCODE" like 'USA%'
+--        );
 
 
         --RAISE WARNING 'TTT % % %', max_t_adjustment, max_t_min, max_t_max;
@@ -404,13 +412,17 @@ RETURNS bytea AS $$
             SELECT ST_AsMVTGeom(a.geom, bounds.geom, extent => %s, buffer => %s) AS geom,
 			ROW_NUMBER () OVER (ORDER BY a.gdlcode) AS fid,
 			a.gdlcode,
-			CAST(h.hhr as FLOAT) AS "Heat Health Risk",
-			CAST(h.max_t as FLOAT),
-			CAST(h.hdi as FLOAT),
-			CAST(h.working_age_pop as FLOAT),
-			CAST(h.gnipc as FLOAT),
-			CAST(h.vhi as FLOAT),
-			CAST(h.pop_density as FLOAT)
+			CAST(h.heat_health_index as FLOAT) AS "heat_health_index",
+			CAST(h.hazard_index as FLOAT),
+            CAST(h.vulnerability_index as FLOAT),
+            CAST(h.exposure_index as FLOAT)
+--			,
+--			CAST(h.max_t as FLOAT),
+--			CAST(h.hdi as FLOAT),
+--			CAST(h.working_age_pop as FLOAT),
+--			CAST(h.gnipc as FLOAT),
+--			CAST(h.vhi as FLOAT),
+--			CAST(h.pop_density as FLOAT)
             FROM admin."%s" a
 			JOIN bounds ON ST_Intersects(a.geom, bounds.geom)
             JOIN hhr_extarg_tmp_table_simpl h ON a.gdlcode = h.gdlcode
@@ -420,10 +432,13 @@ RETURNS bytea AS $$
             simplified_table_name
             );
 
---        SELECT INTO debug_val count(hhr) FROM mvtgeom t LIMIT 1;
+--        SELECT INTO debug_val count(heat_health_index) FROM mvtgeom t LIMIT 1;
 --        RAISE WARNING 'mvtgeom rows: %',debug_val;
+----
 --
---        SELECT INTO debug_val_str ST_AsEWKT(geom) FROM mvtgeom t LIMIT 1;
+--        SELECT INTO debug_val_str gdlcode FROM mvtgeom t ORDER BY gdlcode desc LIMIT 1;
+--        RAISE WARNING 'geom: %',debug_val_str;
+--        SELECT INTO debug_val_str ST_AsEWKT(geom) FROM mvtgeom t ORDER BY gdlcode desc LIMIT 1;
 --        RAISE WARNING 'geom: %',debug_val_str;
 
         --COMMENT ON COLUMN mvtgeom.hhr is 'Human Development Index';
