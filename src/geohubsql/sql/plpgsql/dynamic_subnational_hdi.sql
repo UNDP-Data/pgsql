@@ -248,11 +248,11 @@ RETURNS bytea AS $$
             SELECT ST_AsMVTGeom(a.geom, bounds.geom, extent => %s, buffer => %s) AS geom,
 			ROW_NUMBER () OVER (ORDER BY a.gdlcode) AS fid,
 			a.gdlcode,
-			CAST(h.hdi as FLOAT),
-			CAST(h.life_expectancy as FLOAT),
-			CAST(h.expected_years_schooling as FLOAT),
-			CAST(h.mean_years_schooling as FLOAT),
-			CAST(h.gross_national_income_per_capita as FLOAT)
+			CAST(round(CAST(h.hdi  as NUMERIC),4) as REAL) AS "hdi",
+			CAST(round(CAST(h.life_expectancy  as NUMERIC),2) as REAL) AS "life_expectancy",
+			CAST(round(CAST(h.expected_years_schooling  as NUMERIC),2) as REAL) AS "expected_years_schooling",
+			CAST(round(CAST(h.mean_years_schooling  as NUMERIC),2) as REAL) AS "mean_years_schooling",
+			CAST(round(CAST(h.gross_national_income_per_capita  as NUMERIC),2) as REAL) AS "gross_national_income_per_capita"
             FROM admin."%s" a
 			JOIN bounds ON ST_Intersects(a.geom, bounds.geom)
             JOIN hdi_extarg_tmp_table_simpl h ON a.gdlcode = h.gdlcode
