@@ -44,13 +44,13 @@ CREATE OR REPLACE FUNCTION admin.dynamic_subnational_hdi(
                   "param_name":"gross_national_income_increment",
                   "type":"numeric",
                   "icon":"fa-hand-holding-dollar",
-                  "limits":{"min":-30000,"max":30000},
-                  "abs_limits":{"min":0,"max":350000},
+                  "limits":{"min":-30,"max":30},
+                  "abs_limits":{"min":101,"max":350000},
                   "value":0,
                   "label":"Income increment",
                   "widget_type":"slider",
                   "hidden":0,
-                  "units":"USD"}
+                  "units":"percent"}
             }'
     )
 
@@ -143,13 +143,13 @@ RETURNS bytea AS $$
                   "param_name":"gross_national_income_increment",
                   "type":"numeric",
                   "icon":"fa-hand-holding-dollar",
-                  "limits":{"min":-30000,"max":30000},
+                  "limits":{"min":-30,"max":30},
                   "abs_limits":{"min":101,"max":350000},
                   "value":0,
                   "label":"Income increment",
                   "widget_type":"slider",
                   "hidden":0,
-                  "units":"USD"}
+                  "units":"percent"}
             }';
 
 -- PL/PgSQL function to create a dynamic function layer (delivered as Vector Tiles) with a representation of the Human Development Index
@@ -198,51 +198,13 @@ RETURNS bytea AS $$
         --layer_name := 'default';
 
 
-
         --let's set St_AsMVT's extent as a function of the zoom level
         --in order to reduce network usage and increase the UX.
 
 
         EXECUTE format('SELECT * FROM admin.util_lookup_mvt_extent(%s)',z) INTO mvt_extent;
 
--- TODO benckmark CASEs vs util_lookup_mvt_extent
---        CASE
---            WHEN (z<=1) THEN
---                mvt_extent := 512;
---            WHEN (z=2) THEN
---                mvt_extent := 512;
---            WHEN (z=3) THEN
---                mvt_extent := 512;
---            WHEN (z=4) THEN
---                mvt_extent := 512;
---            WHEN (z=5) THEN
---                mvt_extent := 512;
---            WHEN (z>6)AND(z<=10) THEN
---                mvt_extent := 1024;
---            WHEN (z>10)AND(z<=12) THEN
---                mvt_extent := 2048;
---            ELSE
---                mvt_extent := 4096;
---        END CASE;
-
-        --EXECUTE format('SELECT * FROM admin.util_lookup_simplified_table_name(''admin'',''admin1'',%s)',z) INTO simplified_table_name;
-
-        -- comment out after devel phase
-        --mvt_extent := definition_multiplier*mvt_extent;
---        IF (mvt_extent > max_extent) THEN
---            mvt_extent := max_extent;
---        END IF;
---        IF (mvt_extent < min_extent) THEN
---            mvt_extent := min_extent;
---        END IF;
-        --
-
 --        RAISE WARNING 'Zoom Level is: %, mvt_extent is %', z, mvt_extent;
-
---			                admin.utils_enforce_limits(h."Life expectancy"+le_incr,                    func_defaults->'le_incr'->'abs_limits'->'min'::float,  func_defaults->'le_incr'->'abs_limits'->'max'::float)::decimal,
---			                admin.utils_enforce_limits(h."Expected years schooling"+eys_incr,          func_defaults->'eys_incr'->'abs_limits'->'min'::float, func_defaults->'eys_incr'->'abs_limits'->'max'::float)::decimal,
---			                admin.utils_enforce_limits(h."Mean years schooling"+mys_incr,              func_defaults->'mys_incr'->'abs_limits'->'min'::float, func_defaults->'mys_incr'->'abs_limits'->'max'::float)::decimal,
---			                admin.utils_enforce_limits(h."Gross National Income per capita"+gni_incr,  func_defaults->'gni_incr'->'abs_limits'->'min'::float, func_defaults->'gni_incr'->'abs_limits'->'max'::float)::decimal
 
         DROP TABLE IF EXISTS hdi_extarg_tmp_table_simpl;
 
@@ -256,12 +218,12 @@ RETURNS bytea AS $$
             admin.utils_enforce_limits(h."Life expectancy"                  + le_incr,  le_min,   le_max)::decimal AS life_expectancy,
             admin.utils_enforce_limits(h."Expected years schooling"         + eys_incr, eys_min,  eys_max)::decimal AS expected_years_schooling,
             admin.utils_enforce_limits(h."Mean years schooling"             + mys_incr, mys_min,  mys_max)::decimal AS mean_years_schooling,
-            admin.utils_enforce_limits(h."Gross National Income per capita" + gni_incr, gni_min,  gni_max)::decimal AS gross_national_income_per_capita,
+            admin.utils_enforce_limits(h."Gross National Income per capita" * (1+gni_incr/100), gni_min,  gni_max)::decimal AS gross_national_income_per_capita,
 			admin.calc_hdi(
 			                admin.utils_enforce_limits(h."Life expectancy"                  + le_incr,  le_min,    le_max)::decimal,
 			                admin.utils_enforce_limits(h."Expected years schooling"         + eys_incr, eys_min,  eys_max)::decimal,
 			                admin.utils_enforce_limits(h."Mean years schooling"             + mys_incr, mys_min,  mys_max)::decimal,
-			                admin.utils_enforce_limits(h."Gross National Income per capita" + gni_incr, gni_min,  gni_max)::decimal
+			                admin.utils_enforce_limits(h."Gross National Income per capita" * (1+gni_incr/100), gni_min,  gni_max)::decimal
 			                ) AS hdi
 			FROM admin.hdi_input_data h
 			--WHERE h."GDLCODE" like 'USA%'
