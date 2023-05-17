@@ -44,7 +44,7 @@ CREATE OR REPLACE FUNCTION drr.dynamic_subnational_hhr(
       "param_name":"gross_national_income_per_capita_adjustment",
       "type":"numeric",
       "icon":"fa-hand-holding-dollar",
-      "limits":{"min":-10,"max":10},
+      "limits":{"min":-30,"max":30},
       "abs_limits":{"min":0,"max":350000},
       "value":0,
       "label":"Gross National Income per Capita",
@@ -155,13 +155,13 @@ RETURNS bytea AS $$
                   "param_name":"gross_national_income_per_capita_adjustment",
                   "type":"numeric",
                   "icon":"fa-hand-holding-dollar",
-                  "limits":{"min":-30000,"max":30000},
+                  "limits":{"min":-30,"max":30},
                   "abs_limits":{"min":0,"max":350000},
                   "value":0,
                   "label":"Gross National Income per Capita",
                   "widget_type":"slider",
                   "hidden":0,
-                  "units":"USD"},
+                  "units":"percent"},
             "vhi_adjustment":
                 { "id":"vhi_adjustment",
                   "param_name":"vhi_adjustment",
@@ -240,10 +240,10 @@ RETURNS bytea AS $$
             SELECT ST_AsMVTGeom(a.geom, bounds.geom, extent => %s, buffer => %s) AS geom,
 			ROW_NUMBER () OVER (ORDER BY a.gdlcode) AS fid,
 			a.gdlcode,
-			CAST(h.heat_health_risk_index as FLOAT) AS "heat_health_risk_index",
-			CAST(h.hazard_index as FLOAT),
-            CAST(h.vulnerability_index as FLOAT),
-            CAST(h.exposure_index as FLOAT)
+			CAST(round(CAST(h.heat_health_risk_index as NUMERIC),2) as REAL) AS "heat_health_risk_index",
+			CAST(round(CAST(h.hazard_index as NUMERIC),4)  as REAL) AS "hazard_index",
+            CAST(round(CAST(h.vulnerability_index as NUMERIC),4)  as REAL) AS "vulnerability_index",
+            CAST(round(CAST(h.exposure_index as NUMERIC),4)  as REAL) AS "exposure_index"
             FROM admin."%s" a
 			JOIN bounds ON ST_Intersects(a.geom, bounds.geom)
             JOIN hhr_extarg_tmp_table_simpl h ON a.gdlcode = h.gdlcode
