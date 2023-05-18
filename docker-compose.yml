@@ -1,0 +1,193 @@
+# docker-compose build
+version: '3.9'
+
+volumes:
+  dbbackups:
+  postgis-data:
+  pgadmin:
+
+services:
+
+  db:
+    image: postgis/postgis:latest
+    volumes:
+      - ./persistent_data/postgresql:/var/lib/postgresql/data
+      - ./persistent_data/backups:/dbbackups
+    environment:
+      # If you need to create multiple database you can add coma separated databases eg gis,data
+      - POSTGRES_DB=gis
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASS=postgres
+      - POSTGRES_PASSWORD=postgres
+      - ALLOW_IP_RANGE=0.0.0.0/0
+      # Add extensions you need to be enabled by default in the DB. Default are the five specified below
+      - POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting
+    ports:
+      - "5432"
+    networks:
+      postgres:
+        ipv4_address: 172.18.0.4
+    restart: on-failure
+#    healthcheck:
+#      test: "PGPASSWORD=postgres pg_isready -h 127.0.0.1 -U postgres -d gis"
+
+#  dbbackups:
+#    image: kartoza/pg-backup:latest
+#    hostname: pg-backups
+#    volumes:
+#      - ./persistent_data/backups:/backups
+#    environment:
+#      - DUMPPREFIX=PG_db
+#      - POSTGRES_USER=postgres
+#      - POSTGRES_PASS=postgres
+#      - POSTGRES_PORT=5432
+#      - POSTGRES_HOST=db
+#    networks:
+#      - postgres
+#    restart: on-failure
+#    depends_on:
+#      db:
+#        condition: service_healthy
+
+  pgadmin:
+    container_name: pgadmin_container
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-rafdouglas@duck.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-rafdkluibgh57857_8}
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    volumes:
+       - /opt/docker-compose/compose-postgres/persistent_data/pgadmin:/var/lib/pgadmin
+
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
+    networks:
+      postgres:
+        ipv4_address: 172.18.0.2
+    restart: unless-stopped
+
+#connect QGIS via:
+#http://127.0.0.1:3000/admin.admin0/{z}/{x}/{y}.pbf
+#  martin:
+#    image: maplibre/martin
+#    restart: unless-stopped
+#    ports:
+#      - "3000:3000"
+#    environment:
+#      - DATABASE_URL=postgres://postgres:postgres@172.18.0.4:5432/geodata
+##      - DATABASE_URL=postgres://postgres:postgres@db/geodata
+##      - DATABASE_URL=postgres://postgres@db/geodata
+##      - RUST_LOG=actix_web=info,martin=debug,tokio_postgres=debug
+#      - RUST_LOG=actix_web=trace,martin=trace,tokio_postgres=trace
+#      - DANGER_ACCEPT_INVALID_CERTS=true
+#    depends_on:
+#      - db
+#    networks:
+#      postgres:
+#        ipv4_address: 172.18.0.5
+
+  pg_tileserv:
+    image: pramsey/pg_tileserv
+    container_name: pg_tileserv
+    volumes:
+       - /opt/docker-compose/compose-postgres/persistent_data/pg_tileserv/app/assets:/app/assets
+#       - ./config/my_pg_featureserv.toml:/config/pg_featureserv.toml
+    env_file:
+      - pg_tileserv.env
+
+    depends_on:
+      - db
+
+    ports:
+      - 7800:7800
+    networks:
+      postgres:
+        ipv4_address: 172.18.0.6
+
+
+  titiler:
+    # See https://github.com/developmentseed/titiler/discussions/387
+    image: ghcr.io/developmentseed/titiler:latest
+    ports:
+      - "8000:8000"
+    volumes:
+#       - pgadmin:${BASEPATH}/persistent_data/pgadmin
+       - /opt/docker-compose/compose-postgres/persistent_data/titler/data:/tmp
+    environment:
+      # Application
+      - HOST=0.0.0.0
+      - PORT=8000
+      # Gunicorn / Uvicorn
+      # https://github.com/tiangolo/uvicorn-gunicorn-docker#web_concurrency
+      - WEB_CONCURRENCY=1
+      # https://github.com/tiangolo/uvicorn-gunicorn-docker#workers_per_core
+      - WORKERS_PER_CORE=1
+      # GDAL config
+      - CPL_TMPDIR=/tmp
+      - GDAL_CACHEMAX=75%
+      - GDAL_INGESTED_BYTES_AT_OPEN=32768
+      - GDAL_DISABLE_READDIR_ON_OPEN=EMPTY_DIR
+      - GDAL_HTTP_MERGE_CONSECUTIVE_RANGES=YES
+      - GDAL_HTTP_MULTIPLEX=YES
+      - GDAL_HTTP_VERSION=2
+      - PYTHONWARNINGS=ignore
+      - VSI_CACHE=TRUE
+      - VSI_CACHE_SIZE=536870912
+      # GDAL VSI Config
+      # https://gdal.org/user/virtual_file_systems.html#vsis3-aws-s3-files
+      # https://gdal.org/user/virtual_file_systems.html#vsigs-google-cloud-storage-files
+      # https://gdal.org/user/virtual_file_systems.html#vsiaz-microsoft-azure-blob-files
+      # - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      # - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      # TiTiler config
+      # - TITILER_API_DISABLE_STAC=TRUE/FALSE
+      # - TITILER_API_DISABLE_MOSAIC=TRUE/FALSE
+      # - TITILER_API_DISABLE_COG=TRUE/FALSE
+      # - TITILER_API_CORS_ORIGIN=url.io,url.xyz
+      # - TITILER_API_CACHECONTROL=public, max-age=3600
+      # - TITILER_API_DEBUG=TRUE/FALSE
+      # - MOSAIC_CONCURRENCY= # will default to `RIO_TILER_MAX_THREADS`
+      # rio-tiler config
+      # - RIO_TILER_MAX_THREADS=
+    ports:
+      - 8000:8000
+    networks:
+      postgres:
+        ipv4_address: 172.18.0.7
+
+  varnish:
+    image: varnish:latest
+    ports:
+#      - "81:6081"
+      - "7805:80"
+      - "6085:6085"
+    volumes:
+       - /opt/docker-compose/compose-postgres/persistent_data/varnish/var/lib/varnish:/var/lib/varnish
+       - /opt/docker-compose/compose-postgres/persistent_data/varnish/etc/varnish:/etc/varnish
+
+    environment:
+      BACKENDS_PROBE_INTERVAL: "15s"
+      BACKENDS_PROBE_TIMEOUT: "5s"
+      BACKENDS_PROBE_WINDOW: "3"
+      BACKENDS: "pg_tileserv:7800"
+      DNS_ENABLED: "false"
+      DASHBOARD_USER: "admin"
+      DASHBOARD_PASSWORD: "admin1234"
+      DASHBOARD_SERVERS: "web"
+      PARAM_VALUE: "-p default_ttl=60"
+    networks:
+      - webapp
+    depends_on:
+      - pg_tileserv
+    networks:
+      postgres:
+        ipv4_address: 172.18.0.10
+
+
+networks:
+  postgres:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.18.0.0/24
+          gateway: 172.18.0.1
