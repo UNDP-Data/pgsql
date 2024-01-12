@@ -14,12 +14,12 @@ CREATE OR REPLACE FUNCTION drr.dynamic_subnational_hhr(
       "label":"Maximum temperature",
       "widget_type":"slider",
       "hidden":0,
-      "units":"Celsius degrees"},
+      "units":"°C"},
   "hdi_adjustment":
     { "id":"hdi_adjustment",
       "param_name":"hdi_adjustment",
       "type":"numeric",
-      "icon":"fa-graduation-cap",
+      "icon":"fa-solid fa-graduation-cap",
       "limits":{"min":-10,"max":10},
       "abs_limits":{"min":0,"max":1},
       "value":0,
@@ -38,19 +38,19 @@ CREATE OR REPLACE FUNCTION drr.dynamic_subnational_hhr(
       "label":"Working age population in percent",
       "widget_type":"slider",
       "hidden":0,
-      "units":"percent"},
+      "units":"%"},
   "gnipc_adjustment":
     { "id":"gnipc_adjustment",
       "param_name":"gross_national_income_per_capita_adjustment",
       "type":"numeric",
-      "icon":"fa-hand-holding-dollar",
+      "icon":fa-solid fa-hand-holding-dollar",
       "limits":{"min":-30,"max":30},
       "abs_limits":{"min":0,"max":350000},
       "value":0,
       "label":"Gross National Income per Capita",
       "widget_type":"slider",
       "hidden":0,
-      "units":"percent"},
+      "units":"%"},
 "vhi_adjustment":
     { "id":"vhi_adjustment",
       "param_name":"vhi_adjustment",
@@ -62,7 +62,7 @@ CREATE OR REPLACE FUNCTION drr.dynamic_subnational_hhr(
       "label":"Vegetation Health Index",
       "widget_type":"slider",
       "hidden":0,
-      "units":"percent"},
+      "units":"%"},
 "pop_density_adjustment":
     { "id":"pop_density_adjustment",
       "param_name":"pop_density_adjustment",
@@ -74,7 +74,7 @@ CREATE OR REPLACE FUNCTION drr.dynamic_subnational_hhr(
       "label":"Population Density",
       "widget_type":"slider",
       "hidden":0,
-      "units":"percent"}
+      "units":"%"}
             }'
     )
 
